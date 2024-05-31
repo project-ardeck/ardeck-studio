@@ -1,0 +1,13 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+    box-sizing: border-box;
+}
+
+#root, body {
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+}
