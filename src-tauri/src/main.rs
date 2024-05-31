@@ -83,29 +83,10 @@ fn open_port(port_name: &str) {
             }
         };
 
-        let is_str = str
-
-        // let mut x: u64 = 0;
-
-        // let mut i = 0;
-        // let data_length = serial_buf.len();
-        // // print!("datal: {:?}\t", data_length);
-        // // print!("serial_buf\t: {:?}", serial_buf);
-        // loop {
-
-        //     x += (serial_buf[i] as u64) << 8 * (data_length - 1 - i);
-
-            
-        //     // println!("x: {:?}\t", 8 * (data_length - 1 - i));
-
-        //     if i >= data_length - 1 {
-        //         break;
-        //     }
-        //     i += 1;
-        // }
+        let is_str = String::from_utf8_lossy(&serial_buf);
 
 
-        println!("{}", x);
+        // println!("{}", x);
     });
 }
 
