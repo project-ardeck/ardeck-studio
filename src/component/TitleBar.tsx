@@ -16,9 +16,9 @@ export default function TitleBar() {
     const minHandler = () => {
         appWindow.minimize()
     }
-    const maxHandler = () => {
-        appWindow.toggleMaximize();
-    }
+    // const maxHandler = () => {
+    //     appWindow.toggleMaximize();
+    // }
     const closeHandler = () => {
         appWindow.hide();
     }
