@@ -19,9 +19,6 @@ use ardeck_data::ArdeckData;
 use serde::{Deserialize, Serialize};
 use serialport::SerialPort;
 // use ardeck_serial::{ArdeckSerial, ArdeckSerial2};
-use ardeck_data::ArdeckData;
-use serde::{Deserialize, Serialize};
-use serialport::SerialPort;
 use tauri::{
     CustomMenuItem, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem,
 };
@@ -146,7 +143,6 @@ fn serial(tauri_app: tauri::AppHandle) {
         park_timeout(Duration::from_millis(refresh_fps));
     });
 
-    
     // イベントリスナーからのメッセージを取得してそれなりに処理を行う。
     let tauri_app_serial_port = tauri_app.clone();
     thread::spawn(move || loop {
@@ -225,7 +221,8 @@ fn serial(tauri_app: tauri::AppHandle) {
                                     }
 
                                     let mut serial_buf: Vec<u8> = vec![0; 1];
-                                    let serial_msg = serial.unwrap().read(&mut serial_buf.as_mut_slice());
+                                    let serial_msg =
+                                        serial.unwrap().read(&mut serial_buf.as_mut_slice());
 
                                     // drop(serial);
 
@@ -246,8 +243,6 @@ fn serial(tauri_app: tauri::AppHandle) {
 
                                     sp_data_fmt.on_data(serial_buf);
                                 });
-
-                                
                             }
                             Err(_) => {
                                 println!("Open Error !!!!!! {}", target_port);
@@ -264,7 +259,6 @@ fn serial(tauri_app: tauri::AppHandle) {
                         let target_port = e.target_port.clone();
                         let serial = serials.get(&target_port);
                         if !serial.is_none() {
-
                             println!("closing...");
                             let try_break = serial.unwrap().set_break();
                             match try_break {
@@ -326,7 +320,6 @@ fn main() {
                 window.set_focus().unwrap();
             }
             SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
-            SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
                 "hide" => {
                     let window = app.get_window("main").unwrap();
                     window.hide().unwrap();
@@ -341,11 +334,10 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             greet,
             get_ports,
-            /*open_port, reset_port*/ get_connecting_serials
+            get_connecting_serials
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
 
 // [{"port_name":"COM3","port_type":{"UsbPort":{"vid":9025,"pid":32822,"serial_number":"HIDPC","manufacturer":"Arduino LLC (www.arduino.cc)","product":"Arduino Leonardo (COM3)"}}}]
-
