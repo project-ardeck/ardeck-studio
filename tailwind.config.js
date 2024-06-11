@@ -18,6 +18,9 @@ export default {
       "blue": "#4F5EFF",
       "green": "#4FFF81",
       "yellow": "#FFD94F"
+    },
+    fontFamily: {
+      "0xp": ["0xProto Regular"]
     }
   },
   plugins: [],

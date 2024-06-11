@@ -1,3 +1,13 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    @font-face {
+        font-family: "0xProto Regular";
+        font-style: normal;
+        font-weight: normal;
+        font-display: swap;
+        src: url(/font/0xProto-Regular.ttf) format("ttf");
+    }
+}
