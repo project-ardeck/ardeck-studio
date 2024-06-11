@@ -18,6 +18,10 @@ use std::{
 use ardeck_data::ArdeckData;
 use serde::{Deserialize, Serialize};
 use serialport::SerialPort;
+// use ardeck_serial::{ArdeckSerial, ArdeckSerial2};
+use ardeck_data::ArdeckData;
+use serde::{Deserialize, Serialize};
+use serialport::SerialPort;
 use tauri::{
     CustomMenuItem, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem,
 };
@@ -57,6 +61,7 @@ fn greet(name: &str) -> String {
 #[tauri::command]
 fn get_ports() -> Vec<serialport::SerialPortInfo> {
     println!("get_ports");
+    let ports = serialport::available_ports().unwrap();
     let ports = serialport::available_ports().unwrap();
     println!("got.");
     ports
@@ -282,6 +287,8 @@ fn serial(tauri_app: tauri::AppHandle) {
     });
 
     // mainserial.join().unwrap();
+
+    // mainserial.join().unwrap();
 }
 
 fn main() {
@@ -319,6 +326,7 @@ fn main() {
                 window.set_focus().unwrap();
             }
             SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
+            SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
                 "hide" => {
                     let window = app.get_window("main").unwrap();
                     window.hide().unwrap();
@@ -340,3 +348,4 @@ fn main() {
 }
 
 // [{"port_name":"COM3","port_type":{"UsbPort":{"vid":9025,"pid":32822,"serial_number":"HIDPC","manufacturer":"Arduino LLC (www.arduino.cc)","product":"Arduino Leonardo (COM3)"}}}]
+

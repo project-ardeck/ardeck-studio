@@ -1,16 +1,9 @@
 use serialport::{self, SerialPort};
 
 use serde::{Deserialize, Serialize};
-use std::{
-    ops::Fn,
-    option::Option,
-    rc::Rc,
-    sync::{atomic::AtomicBool, Arc, Mutex},
-    thread,
-};
 
 pub struct ArdeckSerial {
-    state: Arc<AtomicBool>,
+    State: u8,
     // Serial: Option<serialport::SerialPortBuilder>,
     port_list: Option<Vec<serialport::SerialPortInfo>>,
 
@@ -27,7 +20,7 @@ pub struct ArdeckSerial {
 impl ArdeckSerial {
     pub fn new() -> ArdeckSerial {
         ArdeckSerial {
-            state: Arc::new(AtomicBool::new(false)),
+            State: 0,
             // Serial: None,
             port_list: None,
             port: None,
@@ -35,8 +28,8 @@ impl ArdeckSerial {
         }
     }
 
-    pub fn get_state(&self) -> bool {
-        self.state
+    pub fn get_state(&self) -> u8 {
+        self.State
     }
 
     pub fn get_ports() -> Vec<serialport::SerialPortInfo> {
