@@ -141,6 +141,10 @@ export default function ForDev() {
 
             getConnectingPorts();
             // console.log("fook test");
+
+            window.windowTheme.setTheme(
+                window.localStorage.getItem("theme") as ThemeList ?? "default-dark"
+            );
         }
     }, []);
 
@@ -151,50 +155,14 @@ export default function ForDev() {
                 <Infomations>
                     <h2 className="text-xl font-bold mb-2 pb-2 border-b-2">
                         Port
-                    </h2>
-                    <div className="flex gap-2">
-                        {/* Arduinoだと確定でわかる場合 */}
-                        {portList.map((port) => {
-                            if (!(port.port_type.UsbPort?.manufacturer.split(" ")[0] == "Arduino")) {
-                                return null;
-                            }
-
-                            let product = port.port_type.UsbPort?.product ?
-                                port.port_type.UsbPort?.product :
-                                "Unknown";
-
-                            let serialNum = port.port_type.UsbPort?.serial_number ?
-                                port.port_type.UsbPort.serial_number :
-                                "Unknown";
-
-                            let isConnect = connectedSerialList.some(val => {
-                                return port.port_name == val;
-                            })
-
-
-                            return (
-                                <div className="bg-bg-secondary p-2 rounded-lg border-2 shadow-lg">
-                                    <div>
-                                        {port.port_name}
-                                    </div>
-                                    <div>
-                                        {product}
-                                    </div>
-                                    <div className="text-sm text-text-primary text-opacity-50">
-                                        {serialNum}
-                                    </div>
-                                    <div className="flex flex-col gap-2 mt-2">
-                                        <button disabled={isConnect} className="bg-accent-positive rounded-lg text-text-tertiary px-4 transition-colors disabled:bg-bg-quaternary disabled:text-text-primary disabled:text-opacity-50" onClick={() => serialOpenRequest(port.port_name)}>Connect</button>
-                                        <button disabled={!isConnect} className="bg-accent-negative rounded-lg text-text-primary px-2 transition-colors disabled:bg-bg-quaternary disabled:text-text-primary disabled:text-opacity-50" onClick={() => closeHandler(port.port_name)}>Disconnect</button>
-                                    </div>
-                                </div>
-                            );
-                        })}
-                    </div>
+                    </h2>                    
                     <div className="flex gap-2 mt-2">
-                        {/* Arduinoではないかもしれない */}
                         {portList.map((port) => {
-                            if (port.port_type.UsbPort?.manufacturer.split(" ")[0] == "Arduino") {
+                            // if (port.port_type.UsbPort?.manufacturer.split(" ")[0] == "Arduino") {
+                            //     return null;
+                            // }
+
+                            if (port.port_type.UsbPort?.vid != 0x2341) {
                                 return null;
                             }
 
@@ -211,7 +179,7 @@ export default function ForDev() {
                             })
 
                             return (
-                                <div className="bg-bg-tertiary p-2 rounded-lg border-bg-4 border-2 shadow-lg">
+                                <div className="bg-bg-secondary p-2 rounded-lg border-bg-4 border-2 shadow-lg">
                                     <div>
                                         {port.port_name}
                                     </div>
@@ -257,7 +225,7 @@ export default function ForDev() {
                             Digital
                         </h3>
                         {Array.from(switchStates.Digital).map(([pin, state]) => {
-                            const className = state.state ? "bg-accent- text-black" : "";
+                            const className = state.state ? "border-accent-primary border-opacity-50" : "border-bg-quaternary";
                             const date = state.lastUpdate.getDate().toString().padStart(2, '0');
                             const hour = state.lastUpdate.getHours().toString().padStart(2, '0');
                             const minute = state.lastUpdate.getMinutes().toString().padStart(2, '0');
@@ -267,7 +235,7 @@ export default function ForDev() {
 
                             return (
 
-                                <div className={`${className} px-4 mb-1 border-2 border-bg-quaternary rounded-md flex items-center place-content-between`}>
+                                <div className={`${className} px-4 mb-1 border-2 rounded-md flex items-center place-content-between transition-colors`}>
                                     <div>
 
                                         {`${pin.toString().padStart(2, '0')} : ${state.state ? "HIGH" : "LOW"}`}
@@ -307,6 +275,32 @@ export default function ForDev() {
                         </pre>
                     </div>
                 </Infomations>
+
+                <Infomations>
+                    <h2 className="text-xl font-bold mb-2 pb-2 border-b-2">
+                        Theme
+                    </h2>
+                    <div>
+                        <select
+                            className="rounded-md bg-bg-quaternary text-text-primary px-4 py-2 w-full"
+                            onChange={(e) => {
+                                window.localStorage.setItem("theme", e.target.value);
+                                window.windowTheme.setTheme(e.target.value as ThemeList);
+                            }}
+                        >
+                            {window.windowTheme.themeList.map((theme) => {
+                                return (
+                                    <option
+                                        value={theme}
+                                        selected={theme == window.windowTheme.theme ? true : false}
+                                    >
+                                        {theme}
+                                    </option>
+                                );
+                            })}
+                        </select>
+                    </div>
+                </Infomations>
             </div>
         </div>
     );
@@ -318,7 +312,7 @@ function Infomations({
     children: ReactNode
 }) {
     return (
-        <div className="p-4 bg-bg-tertiary rounded-lg">
+        <div className="p-4 bg-bg-secondary rounded-lg">
             {children}
         </div>
     );

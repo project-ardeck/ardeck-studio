@@ -1,0 +1,27 @@
+{
+    "id": "24f32497-9e95-453e-9f6c-414aac279a02",
+    "name": "Fuckin Dark",
+    "author": "akurakuu",
+
+    "base": "dark",
+
+    "colors": {
+        "bg-titlebar": [0, 0, 0],
+        
+        "bg-primary": [0, 0, 0],
+        "bg-secondary": [0, 0, 0],
+        "bg-tertiary": [0, 0, 0],
+        "bg-quaternary": [0, 0, 0],
+
+        "text-primary": [255, 255, 255],
+        "text-reverse": [0, 0, 0],
+
+        "accent-primary": [0, 255, 0],
+        "accent-secondary": [0, 255, 0],
+
+        "accent-positive": [0, 0, 255],
+        "accent-caution": [255, 255, 0],
+        "accent-negative": [255, 0, 0],
+        "accent-link": [0, 255, 0]
+    }
+}

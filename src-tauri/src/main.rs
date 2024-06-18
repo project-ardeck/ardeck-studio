@@ -81,7 +81,11 @@ fn get_ports() -> Vec<serialport::SerialPortInfo> {
 }
 
 #[tauri::command]
-async fn open_port(port_name: &str, baud_rate: u32) -> Result<u32, u32> {
+async fn open_port(port_name: &str, baud_rate: u32, protocol_version: Option<&str>) -> Result<u32, u32> {
+    // # protocol_version バージョンの考案日付
+    // "2024-0-17": [DATA] ... 未実装
+    // "2014-06-03": 'A', 'D', 'E', 'C', [DATA] ... Cを受信したタイミングで(リセットなどで)接続が途絶え、再度接続された際にデータがずれる問題が発生する
+    // "2024-06-17": 'A', 'D', [DATA], 'E', 'C' ...
     
     println!("[{}] Opening", port_name);
     
@@ -90,13 +94,17 @@ async fn open_port(port_name: &str, baud_rate: u32) -> Result<u32, u32> {
         println!("[{}] Already Opened.", port_name);
         return Err(501);
     }
-        
+    
     // 接続開始
     let serial = ArdeckSerial::open(&port_name.to_string(), baud_rate);
 
     match serial {
         Ok(ardeck_serial) => {
             println!("[{}] Opened", port_name);
+            
+            if protocol_version.is_some() {
+                ardeck_serial.port_data().lock().unwrap().protocol_version = protocol_version.unwrap().to_string();
+            }
 
             
             ardeck_serial.port().lock().unwrap().set_timeout(Duration::from_millis(5000)).unwrap();

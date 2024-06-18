@@ -1,0 +1,27 @@
+{
+    "id": "3bf41419-b075-475f-8742-9a33b050146e",
+    "name": "Kawaii Light",
+    "author": "akurakuu",
+
+    "base": "white",
+
+    "colors": {
+        "bg-titlebar": [202, 231, 255],
+        
+        "bg-primary": [255, 255, 255],
+        "bg-secondary": [245, 247, 250],
+        "bg-tertiary": [235, 238, 242],
+        "bg-quaternary": [230, 233, 237],
+
+        "text-primary": [0, 0, 0],
+        "text-reverse": [201, 209, 217],
+
+        "accent-primary": [88, 166, 255],
+        "accent-secondary": [121, 192, 255],
+
+        "accent-positive": [121, 192, 255],
+        "accent-caution": [255, 171, 92],
+        "accent-negative": [255, 92, 141],
+        "accent-link": [88, 166, 255]
+    }
+}

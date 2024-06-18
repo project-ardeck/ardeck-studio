@@ -1,0 +1,27 @@
+{
+    "id": "d250020b-106d-4b3b-8370-f1b0ff4cd8c0",
+    "name": "Default Dark",
+    "author": "akurakuu",
+
+    "base": "dark",
+
+    "colors": {
+        "bg-titlebar": [16, 17, 18],
+        
+        "bg-primary": [16, 17, 20],
+        "bg-secondary": [24, 25, 32],
+        "bg-tertiary": [34, 36, 45],
+        "bg-quaternary": [40, 42, 50],
+
+        "text-primary": [201, 209, 217],
+        "text-reverse": [12, 13, 15],
+
+        "accent-primary": [88, 166, 255],
+        "accent-secondary": [121, 192, 255],
+
+        "accent-positive": [88, 166, 255],
+        "accent-caution": [255, 171, 92],
+        "accent-negative": [255, 100, 130],
+        "accent-link": [88, 166, 255]
+    }
+}
