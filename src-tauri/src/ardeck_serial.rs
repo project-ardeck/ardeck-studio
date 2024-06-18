@@ -1,22 +1,29 @@
+mod ardeck_data;
+use ardeck_data::ArdeckData;
+
 use serialport::{self, SerialPort};
 
-use serde::{Deserialize, Serialize};
 use std::{
-    ops::Fn,
-    option::Option,
-    rc::Rc,
-    sync::{atomic::AtomicBool, Arc, Mutex},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
     thread,
+    time::Duration,
 };
 
+#[derive(Clone)]
 pub struct ArdeckSerial {
     state: Arc<AtomicBool>,
     // Serial: Option<serialport::SerialPortBuilder>,
-    port_list: Option<Vec<serialport::SerialPortInfo>>,
+    // port_list: Option<Vec<serialport::SerialPortInfo>>,
 
     // Use only while connected
-    port: Option<Arc<Mutex<Box<dyn SerialPort>>>>,
-    port_name: Option<String>,
+    // port: Option<Arc<Mutex<Box<dyn SerialPort>>>>,
+    port: Arc<Mutex<Box<dyn SerialPort>>>,
+    port_data: Arc<Mutex<ArdeckData>>,
+    // listen_thread: Option<Arc<thread::JoinHandle<()>>>,
+    // port_name: Option<String>,
 }
 
 /* State List
@@ -24,19 +31,36 @@ pub struct ArdeckSerial {
 // - 1: Port Connecting.
 */
 
-impl ArdeckSerial {
-    pub fn new() -> ArdeckSerial {
-        ArdeckSerial {
-            state: Arc::new(AtomicBool::new(false)),
-            // Serial: None,
-            port_list: None,
-            port: None,
-            port_name: None,
-        }
-    }
+pub enum OpenError {
+    Unknown,
+}
 
-    pub fn get_state(&self) -> bool {
-        self.state
+impl ArdeckSerial {
+    pub fn open(port_name: &String, baud_rate: u32) -> Result<ArdeckSerial, OpenError> {
+        println!("Open Port: {} - {}", port_name, baud_rate);
+        let port = serialport::new(port_name, baud_rate).open();
+
+        match port {
+            Ok(mut port) => {
+                println!("Port Opened.");
+
+                // port.set_timeout(Duration::from_millis(1000))
+                //     .expect("Set Timeout Error.");
+                Ok(ArdeckSerial {
+                    state: Arc::new(AtomicBool::new(true)),
+                    port: Arc::new(Mutex::new(port)),
+                    port_data: Arc::new(Mutex::new(ArdeckData::new())),
+                    // listen_thread: None,
+                })
+            }
+            Err(_) => Err(OpenError::Unknown),
+        }
+
+        // ArdeckSerial {
+        //     state: Arc::new(AtomicBool::new(true)),
+        //     port: Arc::new(Mutex::new(port)),
+        //     port_data: Arc::new(Mutex::new(ArdeckData::new())),
+        // }
     }
 
     pub fn get_ports() -> Vec<serialport::SerialPortInfo> {
@@ -44,139 +68,27 @@ impl ArdeckSerial {
 
         ports
     }
-
-    pub fn refresh_ports(&mut self) -> Vec<serialport::SerialPortInfo> {
-        let ports = serialport::available_ports().expect("Ports Not Found.");
-
-        self.port_list = Some(ports.clone());
-
-        ports
+    
+    pub fn get_state(&self) -> bool {
+        self.state.load(Ordering::Relaxed)
     }
-
-    // fn open(&mut self, ports_index: usize) -> serialport::SerialPortBuilder {
-    //     let select_port = &self.Ports.clone().unwrap()[ports_index];
-    //     serialport::new(select_port, 9600)
-    //         .open().unwrap();
-    // }
-
-    pub fn open(
-        &mut self,
-        port_name: String,
-    ) -> Result<Arc<Mutex<Box<dyn SerialPort>>>, serialport::Error> {
-        let port = serialport::new(port_name, 9600).open();
-
-        match port {
-            Ok(p) => {
-                println!("Ardeck Serial: opened port {:?}", &p.name());
-
-                self.port = Some(Arc::new(Mutex::new(p)));
-                self.state = 1;
-            }
-            Err(p) => {
-                println!("Oops! port is not found or other reason Error");
-                return Err(p);
-            }
-        }
-
-        Ok(self.port.clone().unwrap())
+    
+    pub fn state(&self) -> Arc<AtomicBool> {
+        self.state.clone()
     }
-
-    pub fn reset(&mut self) {
-        if self.state == 1 {
-            self.port
-                .as_mut()
-                .unwrap()
-                .lock()
-                .unwrap()
-                .clear_break()
-                .unwrap();
-        }
-        self.state = 0;
-        self.port_list = None;
+    
+    pub fn port(&self) -> Arc<Mutex<Box<dyn SerialPort>>> {
+        self.port.clone()
+    }
+    
+    pub fn port_data(&self) -> Arc<Mutex<ArdeckData>> {
+        self.port_data.clone()
     }
 }
 
 impl Drop for ArdeckSerial {
     fn drop(&mut self) {
-        self.reset();
-    }
-}
-
-/// -------------- Ardeck  Seroial2 Draft --------------------
-/// -------------- Ardeck  Seroial2 Draft --------------------
-/// -------------- Ardeck  Seroial2 Draft --------------------
-/// -------------- Ardeck  Seroial2 Draft --------------------
-/// -------------- Ardeck  Seroial2 Draft --------------------
-/// -------------- Ardeck  Seroial2 Draft --------------------
-/// -------------- Ardeck  Seroial2 Draft --------------------
-/// -------------- Ardeck  Seroial2 Draft --------------------
-/// -------------- Ardeck  Seroial2 Draft --------------------
-/// -------------- Ardeck  Seroial2 Draft --------------------
-/// -------------- Ardeck  Seroial2 Draft --------------------
-/// -------------- Ardeck  Seroial2 Draft --------------------
-/// -------------- Ardeck  Seroial2 Draft --------------------
-/// -------------- Ardeck  Seroial2 Draft --------------------
-/// -------------- Ardeck  Seroial2 Draft --------------------
-/// -------------- Ardeck  Seroial2 Draft --------------------
-pub struct ArdeckSerial2 {
-    state: u8,
-    // Serial: Option<serialport::SerialPortBuilder>,
-
-    // Use only while connected
-    port: Box<dyn SerialPort>,
-}
-
-/* State List
-// - 0: Inited, Not Work.
-// - 1: Port Connecting.
-*/
-
-impl ArdeckSerial2 {
-    pub fn get_ports() -> Vec<serialport::SerialPortInfo> {
-        let ports = serialport::available_ports().expect("Ports Not Found.");
-
-        ports
-    }
-
-    pub fn new(port_name: String, baud_rate: u32) -> Result<ArdeckSerial2, serialport::Error> {
-        let port = serialport::new(port_name, baud_rate).open();
-
-        match port {
-            Ok(p) => {
-                println!("Ardeck Serial: opened port {:?}", &p.name());
-
-                // self.port = Some(Arc::new(Mutex::new(p)));
-                // self.state = 1;
-                Ok(ArdeckSerial2 {
-                    state: 1,
-                    // Serial: None,
-                    port: p,
-                })
-            }
-            Err(p) => {
-                println!("Oops! port is not found or other reason Error");
-                return Err(p);
-            }
-        }
-    }
-
-    pub fn get_state(&self) -> u8 {
-        self.state
-    }
-
-    // fn open(&mut self, ports_index: usize) -> serialport::SerialPortBuilder {
-    //     let select_port = &self.Ports.clone().unwrap()[ports_index];
-    //     serialport::new(select_port, 9600)
-    //         .open().unwrap();
-    // }
-
-    pub fn reset(&mut self) {
-        
-    }
-}
-
-impl Drop for ArdeckSerial2 {
-    fn drop(&mut self) {
-        self.reset();
+        // self.reset();
+        self.state.store(false, Ordering::Relaxed);
     }
 }

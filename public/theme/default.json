@@ -1,0 +1,17 @@
+{
+    "id": "d250020b-106d-4b3b-8370-f1b0ff4cd8c0",
+    "name": "Default",
+    "author": "akurakuu",
+
+    "base": "dark",
+
+    "colors": {
+        "accent": "#ffcc00",
+        "primary": "#ffcc00",
+        "secondary": "#ffcc00",
+        "background": "#000000",
+        "foreground": "#ffffff",
+        "highlight": "#ffcc00",
+        "muted": "#ffcc00"
+    }
+}

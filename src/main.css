@@ -1,13 +1,50 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
-
 @layer base {
     @font-face {
         font-family: "0xProto Regular";
         font-style: normal;
-        font-weight: normal;
-        font-display: swap;
-        src: url(/font/0xProto-Regular.ttf) format("ttf");
+        font-weight: 400;
+        src: url("/font/0xProto-Regular.ttf") format("truetype");
+    }
+
+    @font-face {
+        font-family: "monaspace";
+        font-style: normal;
+        font-weight: 400;
+        src: url("/font/MonaspaceArgon-Medium.woff") format("woff");
+    }
+
+    @font-face {
+        font-family: "notosans";
+        font-style: normal;
+        font-weight: 400;
+        src: url("/font/NotoSansJP-VariableFont_wght.ttf") format("truetype");
+    }
+
+    :root {
+        /* init Colors is kawaii pop */
+        --bg-titlebar: 0 0 0; /* #000000 */
+
+        --bg-primary: 13 17 23; /* #0d1117 */
+        --bg-secondary: 22 27 34; /* #161b22 */
+        --bg-tertiary: 28 33 40; /* #1c2128 */
+        --bg-quaternary: 33 38 46; /* #21262e */
+    
+        --text-primary: 201 209 217; /* #c9d1d9 */
+        --text-reverse: 0 0 0; /* #000000 */
+    
+        --accent-primary: 88 166 255; /* #58a6ff */
+        --accent-secondary: 121 192 255; /* #79c0ff */
+    
+        --accent-positive: 121 192 255; /* #79c0ff */
+        --accent-caution: 255 171 92; /* #ffab5c */
+        --accent-negative: 255 92 141; /* #ff5c8d */
+        --accent-link: 88 166 255; /* #58a6ff */
     }
 }
+
+
+
+

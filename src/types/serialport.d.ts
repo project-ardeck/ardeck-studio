@@ -1,4 +1,4 @@
-type serialPortInfo = {
+type SerialPortInfo = {
     
     port_name: string,
     port_type: {
@@ -12,4 +12,17 @@ type serialPortInfo = {
         PciPort?: {},
         BluetoothPort?: {},
     }
+}
+
+type serialPortState = {
+    port_name: string,
+    status: "open" | "closed" | "error" = "closed",
+    // port_state: {
+    //     open: boolean,
+    //     baud_rate: number,
+    //     data_bits: number,
+    //     stop_bits: number,
+    //     parity: string,
+    //     flow_control: string
+    // }
 }
