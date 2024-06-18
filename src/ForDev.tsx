@@ -166,6 +166,8 @@ export default function ForDev() {
                             //     return null;
                             // }
 
+                            // TODO: プロトコルバージョンの指定をできるようにする
+
                             if (port.port_type.UsbPort?.vid != 0x2341) {
                                 return null;
                             }

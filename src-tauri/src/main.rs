@@ -131,7 +131,7 @@ async fn open_port(
                 .port_data()
                 .lock()
                 .unwrap()
-                .on_collect(move |data, timestamp| {
+                .on_complete(move |data, timestamp| {
                     get_tauri_app()
                         .emit_all(
                             "on-message-serial",

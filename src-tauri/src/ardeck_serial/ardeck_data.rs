@@ -43,11 +43,15 @@ impl ArdeckData {
         self.read_count += 1;
     }
 
-    fn param_reset(&mut self) {
-        self.header_buf = "".to_string();
+    fn clear_flag_count(&mut self) {
         self.is_reading = false;
         self.read_count = 0;
         self.has_collect = false;
+    }
+
+    fn clear_buf(&mut self) {
+        self.header_buf.clear();
+        self.data_buf.clear();
     }
 
     fn get_time_millis() -> i64 {
@@ -68,12 +72,13 @@ impl ArdeckData {
                 // A, D, [DATA], E, C にする？
                  */
 
-                if self.protocol_version == "2014-06-03".to_string() || true {
+                if self.protocol_version == "2014-06-03".to_string() {
                     // A, D, E, C, [DATA]
 
                     // ADECのヘッダーの頭であるAが来たら、読み取り開始
                     if msg == "A" && !self.is_reading && self.read_count == 0 {
-                        self.param_reset(); // 念のためリセット
+                        self.clear_flag_count(); // 念のためリセット
+                        self.clear_buf();
                         self.is_reading = true;
                         self.header_buf.push('A');
 
@@ -108,14 +113,14 @@ impl ArdeckData {
                         // 前回までに溜めたデータがADECだったら、今回のデータを正式なデータとして扱う
                         if self.header_buf == Self::HEADER {
                             self.data_buf = _data;
-                            self.param_reset();
+                            self.clear_flag_count();
                             print!("\tCollect-Data");
                             println!("");
 
                             return true;
                         } else {
                             // ヘッダーがADECじゃなかったら、リセット
-                            self.param_reset();
+                            self.clear_flag_count();
                             print!("\tCollect-Reset");
                             println!("");
 
@@ -126,10 +131,78 @@ impl ArdeckData {
                         if self.is_reading {
                             self.countup();
                         }
+                        print!("\t{}", self.read_count);
+                        println!("");
                         return false;
                     }
                 } else if self.protocol_version == "2024-06-17".to_string() {
-                    false
+                    // ADECのヘッダーの頭であるAが来たら、読み取り開始
+                    if msg == "A" && !self.is_reading && self.read_count == 0 {
+                        self.clear_flag_count(); // 念のためリセット
+                        self.clear_buf();
+                        self.is_reading = true;
+                        self.header_buf.push('A');
+
+                        print!("\tCollect-A, Start-Read");
+                        println!("");
+                    }
+
+                    // 2個目にDが来たら、ヘッダーを読み取る
+                    if  msg == "D" && self.is_reading && self.read_count == 1 {
+                        self.header_buf.push('D');
+
+                        print!("\tCollect-D");
+                        println!("");
+                    }
+
+                    // 3個目にデータが来たら、データを読み取る
+                    if self.is_reading && self.read_count == 2 {
+                        self.data_buf = _data;
+
+                        println!("\tCollect-Data");
+                    }
+
+                    // データの後ろにE, Cが来たら、ヘッダーを読み取る
+                    if msg == "E" && self.is_reading && self.read_count == 3 {
+                        self.header_buf.push('E');
+
+                        print!("\tCollect-E");
+                        println!("");
+                    }
+
+                    if msg == "C" && self.is_reading && self.read_count == 4 {
+                        self.header_buf.push('C');
+
+                        print!("\tCollect-C");
+                        println!("");
+                    }
+
+                    // ヘッダーが４つ揃ったら、溜めたデータをチェックする
+                    if self.read_count >= 4 {
+                        // 前回までに溜めたデータがADECだったら、今回のデータを正式なデータとして扱う
+                        if self.header_buf == Self::HEADER {
+                            self.clear_flag_count();
+                            print!("\tCollect-Data");
+                            println!("");
+
+                            return true;
+                        } else {
+                            // ヘッダーがADECじゃなかったら、リセット
+                            self.clear_flag_count();
+                            print!("\tCollect-Reset");
+                            println!("");
+
+                            return false;
+                        }
+                    } else {
+                        // ヘッダーが４つ揃ってなかったら、読み取り中ならばカウントアップ
+                        if self.is_reading {
+                            self.countup();
+                        }
+                        print!("\t{}", self.read_count);
+                        println!("");
+                        return false;
+                    }
                 } else {
                     return false;
                 }
@@ -161,7 +234,7 @@ impl ArdeckData {
         // }
     }
 
-    pub fn on_collect<F: Fn(u8, i64) + Send + 'static>(&mut self, handler: F) {
+    pub fn on_complete<F: Fn(u8, i64) + Send + 'static>(&mut self, handler: F) {
         self.on_correct_handler = Box::new(handler);
     }
 }
