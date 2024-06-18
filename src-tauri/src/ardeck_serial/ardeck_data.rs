@@ -1,6 +1,10 @@
+use core::time;
+
+use chrono::{Local, TimeZone, Utc};
+
 pub struct SwitchData {
-    id : u8,
-    state : u8,
+    id: u8,
+    state: u8,
 }
 
 pub struct ArdeckData {
@@ -10,24 +14,27 @@ pub struct ArdeckData {
     data_buf: Vec<u8>,
     is_reading: bool,
     read_count: u8,
-    on_correct_handler: Box<dyn Fn(u8) + Send>,
+    has_collect: bool,
+    on_correct_handler: Box<dyn Fn(u8, i64) + Send>,
     pub protocol_version: String,
 }
 
 impl ArdeckData {
     const HEADER: &'static str = "ADEC";
+    const HEADER_LEN: usize = 4;
+    const BODY_SIZE: u16 = 1;
 
     pub fn new() -> ArdeckData {
         let header_len = Self::HEADER.len();
-        let header_buf = String::new();
         ArdeckData {
             header: Self::HEADER.to_string(),
-            bodysize: 1,
-            header_buf,
-            data_buf: vec![0; 1],
+            bodysize: Self::BODY_SIZE,
+            header_buf: String::new(),
+            data_buf: vec![0; Self::BODY_SIZE as usize],
             is_reading: false,
             read_count: 0,
-            on_correct_handler: Box::new(|x| {}),
+            has_collect: false,
+            on_correct_handler: Box::new(|x, timestamp| {}),
             protocol_version: "2024-06-17".to_string(), // TODO: デフォルトバージョンは最新
         }
     }
@@ -40,10 +47,15 @@ impl ArdeckData {
         self.header_buf = "".to_string();
         self.is_reading = false;
         self.read_count = 0;
+        self.has_collect = false;
+    }
+
+    fn get_time_millis() -> i64 {
+        Utc::now().timestamp_millis()
     }
 
     fn put_challenge(&mut self, _data: Vec<u8>) -> bool {
-        print!("{:0<8b}", &_data[0]);
+        print!("{:08b}", &_data[0]);
 
         let buf_len = self.header_buf.len();
         let if_str = String::from_utf8(_data.clone());
@@ -54,133 +66,73 @@ impl ArdeckData {
                 /* TODO:
                 // A, D, E, C, [DATA] だとCの時にデータが切れたときにめちゃくちゃなデータが来ることがある
                 // A, D, [DATA], E, C にする？
-                */
+                 */
 
-                if self.protocol_version == "2014-06-03".to_string() {
-                    if msg == "A" && self.is_reading == false && self.read_count == 0 {
-                        self.param_reset();
+                if self.protocol_version == "2014-06-03".to_string() || true {
+                    // A, D, E, C, [DATA]
+
+                    // ADECのヘッダーの頭であるAが来たら、読み取り開始
+                    if msg == "A" && !self.is_reading && self.read_count == 0 {
+                        self.param_reset(); // 念のためリセット
                         self.is_reading = true;
                         self.header_buf.push('A');
-    
+
                         print!("\tCollect-A, Start-Read");
                         println!("");
                     }
-                    if msg == "D" && self.is_reading == true && self.read_count == 1 {
+
+                    // D, E, C が順番に来たら、ヘッダーを読み取る
+                    if  msg == "D" && self.is_reading && self.read_count == 1 {
                         self.header_buf.push('D');
-    
+
                         print!("\tCollect-D");
                         println!("");
                     }
-                    if msg == "E" && self.is_reading == true && self.read_count == 2 {
+
+                    if msg == "E" && self.is_reading && self.read_count == 2 {
                         self.header_buf.push('E');
-    
+
                         print!("\tCollect-E");
                         println!("");
                     }
-                    if msg == "C" && self.is_reading == true && self.read_count == 3 {
+
+                    if msg == "C" && self.is_reading && self.read_count == 3 {
                         self.header_buf.push('C');
-    
+
                         print!("\tCollect-C");
                         println!("");
                     }
-    
-                    if Self::HEADER.to_string() == self.header_buf
-                        && Self::HEADER.to_string().len() == self.header_buf.len()
-                        && self.is_reading == true
-                        && self.read_count == 4
-                    {
-                        // self.countup();
-                        self.data_buf = _data;
-    
-                        print!("\t All Collect!!");
-                        println!("");
-    
-                        return true;
-                    }
 
-                    if self.is_reading == true && self.read_count == 4 {
-                        self.param_reset();
-    
-                        println!("");
-    
+                    // ヘッダーが４つ揃ったら、溜めたデータをチェックする
+                    if self.read_count >= 4 {
+                        // 前回までに溜めたデータがADECだったら、今回のデータを正式なデータとして扱う
+                        if self.header_buf == Self::HEADER {
+                            self.data_buf = _data;
+                            self.param_reset();
+                            print!("\tCollect-Data");
+                            println!("");
+
+                            return true;
+                        } else {
+                            // ヘッダーがADECじゃなかったら、リセット
+                            self.param_reset();
+                            print!("\tCollect-Reset");
+                            println!("");
+
+                            return false;
+                        }
+                    } else {
+                        // ヘッダーが４つ揃ってなかったら、読み取り中ならばカウントアップ
+                        if self.is_reading {
+                            self.countup();
+                        }
                         return false;
                     }
-
-                    if self.is_reading {
-                        self.countup();
-                    }
-                    return false;
                 } else if self.protocol_version == "2024-06-17".to_string() {
-                    println!("{}", self.read_count);
-                    if msg == "A" && self.is_reading == false && self.read_count == 0 {
-                        self.param_reset();
-                        self.is_reading = true;
-                        self.header_buf.push('A');
-    
-                        print!("\tCollect-A, Start-Read");
-                        println!("");
-                    }
-
-                    if msg == "D" && self.is_reading == true && self.read_count == 1 {
-                        self.header_buf.push('D');
-    
-                        print!("\tCollect-D");
-                        println!("");
-                    }
-
-                    if self.is_reading == true
-                        && self.header_buf == "AD".to_string()
-                        && self.read_count == 2
-                    {
-                        print!("\tCollect-DataSize");
-                        println!("");
-                    }
-
-                    if msg == "E" && self.is_reading == true && self.read_count == 3 {
-                        self.header_buf.push('E');
-    
-                        print!("\tCollect-E");
-                        println!("");
-                    }
-
-                    if msg == "C" && self.is_reading == true && self.read_count == 4 {
-                        self.header_buf.push('C');
-    
-                        print!("\tCollect-C");
-                        println!("");
-                    }
-
-                    if Self::HEADER.to_string() == self.header_buf
-                        && Self::HEADER.to_string().len() == self.header_buf.len()
-                        && self.is_reading == true
-                        && self.read_count == 4
-                    {
-                        // self.countup();
-                        self.data_buf = _data;
-    
-                        print!("\t All Collect!!");
-                        println!("");
-    
-                        return true;
-                    }
-
-                    if self.is_reading == true && self.read_count == 4 {
-                        self.param_reset();
-    
-                        println!("");
-    
-                        return false;
-                    }
-                    
-                    if self.is_reading {
-                        self.countup();
-                    }
-                    return false;
+                    false
                 } else {
-                    return false
+                    return false;
                 }
-
-                
             }
             Err(_) => {
                 println!("\t");
@@ -196,9 +148,11 @@ impl ArdeckData {
         let pc = self.put_challenge(data.clone());
 
         if pc {
-            println!("------------------------ On Collect ------------------------");
             // (self.on_correct_handler)();
-            self.on_correct_handler.as_mut()(self.data_buf[0]);
+            let time = Self::get_time_millis();
+            self.on_correct_handler.as_mut()(self.data_buf[0], time);
+            println!("On Correct! {}", Local.timestamp_millis_opt(time).unwrap());
+            println!("------------------------------------------------");
         }
 
         // if Self::HEADER == self.header_buf {
@@ -207,9 +161,7 @@ impl ArdeckData {
         // }
     }
 
-    pub fn on_collect<F: Fn(u8) + Send + 'static>(&mut self, handler: F)
-    {
+    pub fn on_collect<F: Fn(u8, i64) + Send + 'static>(&mut self, handler: F) {
         self.on_correct_handler = Box::new(handler);
-        
     }
 }

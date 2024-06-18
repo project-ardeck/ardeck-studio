@@ -14,6 +14,11 @@ type SerialPortInfo = {
     }
 }
 
+type OnMessageSerial = {
+    data: number,
+    timestamp: number
+}
+
 type serialPortState = {
     port_name: string,
     status: "open" | "closed" | "error" = "closed",

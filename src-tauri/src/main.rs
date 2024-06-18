@@ -15,6 +15,8 @@ use std::{
 
 use ardeck_serial::ArdeckSerial;
 
+use chrono:: {Utc};
+
 use serde::{Deserialize, Serialize};
 use serialport::SerialPort;
 use tauri::{
@@ -35,6 +37,14 @@ struct PortRequest {
 struct SerialPortThreadMessage {
     event: String,
     target_port: String,
+}
+
+// シリアル通信中のデータをフロントエンドに送る際のメッセージ
+#[derive(Serialize, Deserialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct OnMessageSerial {
+    data: u8,
+    timestamp: i64,
 }
 
 // シリアル通信中のSerialportトレイトを格納する
@@ -81,38 +91,57 @@ fn get_ports() -> Vec<serialport::SerialPortInfo> {
 }
 
 #[tauri::command]
-async fn open_port(port_name: &str, baud_rate: u32, protocol_version: Option<&str>) -> Result<u32, u32> {
+async fn open_port(
+    port_name: &str,
+    baud_rate: u32,
+    protocol_version: Option<&str>,
+) -> Result<u32, u32> {
     // # protocol_version バージョンの考案日付
     // "2024-0-17": [DATA] ... 未実装
     // "2014-06-03": 'A', 'D', 'E', 'C', [DATA] ... Cを受信したタイミングで(リセットなどで)接続が途絶え、再度接続された際にデータがずれる問題が発生する
     // "2024-06-17": 'A', 'D', [DATA], 'E', 'C' ...
-    
+
     println!("[{}] Opening", port_name);
-    
+
     // すでに接続中であればエラーを投げて終わる
     if is_connecting_serial(&port_name.to_string()) {
         println!("[{}] Already Opened.", port_name);
         return Err(501);
     }
-    
+
     // 接続開始
     let serial = ArdeckSerial::open(&port_name.to_string(), baud_rate);
 
     match serial {
         Ok(ardeck_serial) => {
             println!("[{}] Opened", port_name);
-            
+
             if protocol_version.is_some() {
-                ardeck_serial.port_data().lock().unwrap().protocol_version = protocol_version.unwrap().to_string();
+                ardeck_serial.port_data().lock().unwrap().protocol_version =
+                    protocol_version.unwrap().to_string();
             }
 
-            
-            ardeck_serial.port().lock().unwrap().set_timeout(Duration::from_millis(5000)).unwrap();
-            ardeck_serial.port_data().lock().unwrap().on_collect(move |data| {
-                get_tauri_app()
-                    .emit_all("on-message-serial", data)
-                    .unwrap();
-            });
+            ardeck_serial
+                .port()
+                .lock()
+                .unwrap()
+                .set_timeout(Duration::from_millis(5000))
+                .unwrap();
+            ardeck_serial
+                .port_data()
+                .lock()
+                .unwrap()
+                .on_collect(move |data, timestamp| {
+                    get_tauri_app()
+                        .emit_all(
+                            "on-message-serial",
+                            OnMessageSerial {
+                                data,
+                                timestamp,
+                            },
+                        )
+                        .unwrap();
+                });
 
             let port_name_for_thread = port_name.to_string().clone();
             thread::spawn(move || loop {
@@ -129,7 +158,7 @@ async fn open_port(port_name: &str, baud_rate: u32, protocol_version: Option<&st
 
                 let port_arc = serial.unwrap().port();
                 let mut port = port_arc.lock().unwrap();
-                
+
                 // println!("[{}] Reading...", port_name_for_thread);
 
                 let try_read = port.read(&mut serial_buf);
@@ -138,14 +167,23 @@ async fn open_port(port_name: &str, baud_rate: u32, protocol_version: Option<&st
                     Ok(_) => {
                         // println!("[{}] Readed", port_name_for_thread);
 
-                        let ardeck_data = serials.get_mut(&port_name_for_thread.to_string()).unwrap().port_data();
+                        let ardeck_data = serials
+                            .get_mut(&port_name_for_thread.to_string())
+                            .unwrap()
+                            .port_data();
                         ardeck_data.lock().unwrap().on_data(serial_buf);
                     }
                     Err(_) => {
-                        println!("[{}] Connection Err, Connetion Stoped.", port_name_for_thread.to_string());
+                        println!(
+                            "[{}] Connection Err, Connetion Stoped.",
+                            port_name_for_thread.to_string()
+                        );
 
-
-                        get_serial_map().lock().unwrap().remove(&port_name_for_thread.to_string()).unwrap();
+                        get_serial_map()
+                            .lock()
+                            .unwrap()
+                            .remove(&port_name_for_thread.to_string())
+                            .unwrap();
 
                         get_tauri_app()
                             .emit_all("on-close-serial", port_name_for_thread.clone())
@@ -163,7 +201,6 @@ async fn open_port(port_name: &str, baud_rate: u32, protocol_version: Option<&st
             get_tauri_app()
                 .emit_all("on-open-serial", port_name)
                 .unwrap();
-
 
             Ok(200)
         }
@@ -215,7 +252,6 @@ fn serial() {
     let refresh_fps = 1000 / 5;
     let tauri_app_port_list = get_tauri_app().clone();
     thread::spawn(move || loop {
-
         let ports = serialport::available_ports().unwrap();
         tauri_app_port_list.emit_all("on-ports", ports).unwrap();
 

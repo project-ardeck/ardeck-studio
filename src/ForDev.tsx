@@ -4,7 +4,7 @@ import { emit, listen } from "@tauri-apps/api/event";
 
 type switchStatesObject = {
     state: number,
-    lastUpdate: Date
+    timestamp: Date
 }
 
 export default function ForDev() {
@@ -101,7 +101,9 @@ export default function ForDev() {
             });
 
             listen("on-message-serial", (e) => { // シリアル通信のメッセージ
-                const msg = e.payload as number;
+                const payload = e.payload as OnMessageSerial;
+                // console.log(payload);
+                const msg = payload.data;
                 const msgBinRaw = msg.toString(2);
                 let msgBin = ""
                 msgBinRaw.padStart((Math.floor(msgBinRaw.length / 8) + 1) * 8, "0").split("").map((val, index) => {
@@ -116,7 +118,7 @@ export default function ForDev() {
                 const DorA = (msg & 0b10000000) >> 7;
                 let pin: number;
                 let state: number;
-                const lastUpdate = new Date();
+                const timestamp = payload.timestamp; // millis
                 if (DorA) {
                     // Analog
                 } else {
@@ -128,10 +130,12 @@ export default function ForDev() {
                         const newMap = new Map(prev.Digital);
                         newMap.set(pin, {
                             state: state,
-                            lastUpdate: lastUpdate
+                            timestamp: new Date(timestamp)
                         });
                         return { ...prev, Digital: newMap };
                     });
+
+                    console.log(switchStates);
 
                     // pushLog(`\t[Digital] ${pin.toString().padStart(2, '0')} : ${state ? "HIGH" : "LOW"}`);
                 }
@@ -179,7 +183,7 @@ export default function ForDev() {
                             })
 
                             return (
-                                <div className="bg-bg-secondary p-2 rounded-lg border-bg-4 border-2 shadow-lg">
+                                <div key={port.port_name} className="bg-bg-secondary p-2 rounded-lg border-bg-4 border-2 shadow-lg">
                                     <div>
                                         {port.port_name}
                                     </div>
@@ -226,12 +230,14 @@ export default function ForDev() {
                         </h3>
                         {Array.from(switchStates.Digital).map(([pin, state]) => {
                             const className = state.state ? "border-accent-primary border-opacity-50" : "border-bg-quaternary";
-                            const date = state.lastUpdate.getDate().toString().padStart(2, '0');
-                            const hour = state.lastUpdate.getHours().toString().padStart(2, '0');
-                            const minute = state.lastUpdate.getMinutes().toString().padStart(2, '0');
-                            const second = state.lastUpdate.getSeconds().toString().padStart(2, '0');
-                            const millisecond = state.lastUpdate.getMilliseconds().toString().padStart(3, '0');
+                            const date = state.timestamp.getDate().toString().padStart(2, '0');
+                            const hour = state.timestamp.getHours().toString().padStart(2, '0');
+                            const minute = state.timestamp.getMinutes().toString().padStart(2, '0');
+                            const second = state.timestamp.getSeconds().toString().padStart(2, '0');
+                            const millisecond = state.timestamp.getMilliseconds().toString().padStart(3, '0');
                             const time = `${hour}:${minute}:${second}.${millisecond}`;
+
+                            console.log(state.timestamp);
 
                             return (
 
@@ -256,7 +262,7 @@ export default function ForDev() {
                         <pre>
                             {devLogs.map((msg) => {
                                 return (
-                                    <div>
+                                    <div key={msg}>
                                         {msg}
                                     </div>
                                 )
@@ -291,6 +297,7 @@ export default function ForDev() {
                             {window.windowTheme.themeList.map((theme) => {
                                 return (
                                     <option
+                                        key={theme}
                                         value={theme}
                                         selected={theme == window.windowTheme.theme ? true : false}
                                     >
