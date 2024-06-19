@@ -1,0 +1,27 @@
+{
+    "id": "d1sc0rd-dark",
+    "name": "D1sC0rd daRK",
+    "author": "akuRakuu",
+
+    "base": "dark",
+
+    "colors": {
+        "bg-titlebar": [30, 31, 34],
+        
+        "bg-primary": [30, 31, 34],
+        "bg-secondary": [43, 45, 49],
+        "bg-tertiary": [49, 51, 56],
+        "bg-quaternary": [56, 58, 64],
+
+        "text-primary": [242, 243, 245],
+        "text-reverse": [13, 12, 10],
+
+        "accent-primary": [88, 101, 242],
+        "accent-secondary": [235, 69, 158],
+
+        "accent-positive": [87, 242, 135],
+        "accent-caution": [254, 231, 92],
+        "accent-negative": [237, 66, 69],
+        "accent-link": [88, 101, 242]
+    }
+}

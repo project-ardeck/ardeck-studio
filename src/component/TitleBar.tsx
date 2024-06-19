@@ -36,7 +36,7 @@ export default function TitleBar() {
                     max
                 </div> */}
                 <div onClick={closeHandler} className="hover:bg-accent-negative h-full flex items-center px-2 transition-colors">
-                    <img src={closeButton} className="pointer-events-none" alt="close" />
+                    <img src={closeButton} className="pointer-events-none text-text-primary" alt="close" />
                 </div>
             </div>
         </div>

@@ -4,39 +4,45 @@ const themeList = [
     "default-dark",
     "default-light",
     "fk-neon",
-    "kawaii-light",
+    // "kawaii-blue",
+    "d1sc0rd-dark"
 ] as const;
+
 declare global {
     type ThemeList = typeof themeList[number];
+
+    type ThemeInfo = {
+        id: string;
+        name?: string;
+        author?: string;
+    }
+    
+    type Theme = ThemeInfo & {
+        base: "dark" | "light";
+    
+        colors: {
+            "bg-titlebar": number[];
+    
+            "bg-primary": number[];
+            "bg-secondary"?: number[];
+            "bg-tertiary"?: number[];
+            "bg-quaternary"?: number[];
+    
+            "text-primary": number[];
+            "text-reverse"?: number[];
+    
+            "accent-primary": number[];
+            "accent-secondary"?: number[];
+    
+            "accent-positive": number[];
+            "accent-caution": number[];
+            "accent-negative": number[];
+            "accent-link"?: number[];
+        }
+    };
 }
 
-type Theme = {
-    id: string;
-    name?: string;
-    author?: string;
 
-    base: "dark" | "light";
-
-    colors: {
-        "bg-titlebar": number[];
-
-        "bg-primary": number[];
-        "bg-secondary"?: number[];
-        "bg-tertiary"?: number[];
-        "bg-quaternary"?: number[];
-
-        "text-primary": number[];
-        "text-reverse"?: number[];
-
-        "accent-primary": number[];
-        "accent-secondary"?: number[];
-
-        "accent-positive": number[];
-        "accent-caution": number[];
-        "accent-negative": number[];
-        "accent-link"?: number[];
-    }
-};
 
 class themeConfigs {
     static themeFormatting(theme: Theme): Theme {
@@ -90,9 +96,27 @@ export default class WindowTheme extends React.Component<WindowThemeProps> {
         return this.nowTheme;
     }
 
-    get themeList() {
-        return themeList;
+    async themeList() {
+        console.log("getting list...");
+
+        let list: ThemeInfo[] = [];
+        
+        for (let i = 0; i < themeList.length; i ++) {
+            const themeConfig = await themeConfigs.getTheme(themeList[i]);
+            
+            const tmp = {
+                id: themeConfig.id,
+                name: themeConfig.name,
+                author: themeConfig.author,
+            }
+            
+            list.push(tmp);
+        }
+        
+        return list;
     }
+    
+    
 
     constructor(props: WindowThemeProps) {
         super(props);

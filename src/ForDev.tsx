@@ -4,14 +4,19 @@ import { emit, listen } from "@tauri-apps/api/event";
 
 type switchStatesObject = {
     state: number,
-    timestamp: Date
+    timestamp: Date,
+    raw: number
 }
+
+const SerialProtocolVersionList = ["2014-06-03", "2024-06-17"] as const;
+type SerialProtocolVersion = typeof SerialProtocolVersionList[number];
 
 export default function ForDev() {
     const isInit = useRef(false); // for Develop
 
-    const theme = useRef("" as string);
+    const [themeInfos, setThemeInfos] = useState([] as ThemeInfo[]);
 
+    const [targetProtocolVersion, setTargetProtocolVersion] = useState("2024-06-17" as SerialProtocolVersion); // 2024-06-17 or 2014-06-03
     const [portList, setPortList] = useState([] as SerialPortInfo[]);
     const [devLogs, setDevLogs] = useState([] as string[]);
     const [connectedSerialList, setConnectedSerialList] = useState([] as string[]);
@@ -55,7 +60,7 @@ export default function ForDev() {
     }
 
     const serialOpenRequest = async (portName: string) => {
-        invoke("open_port", { portName: portName, baudRate: 9600 })
+        invoke("open_port", { portName: portName, baudRate: 9600, protocolVersion: targetProtocolVersion})
             .then(() => {
                 // addCS(portName);
                 // pushLog(`OPEN: ${portName}`);
@@ -74,6 +79,11 @@ export default function ForDev() {
             .catch((e) => {
                 pushLog(e);
             });
+    }
+
+    const getThemeInfos = async () => {
+        const list = await window.windowTheme.themeList();
+        setThemeInfos(list);
     }
 
     useEffect(() => {
@@ -130,12 +140,13 @@ export default function ForDev() {
                         const newMap = new Map(prev.Digital);
                         newMap.set(pin, {
                             state: state,
-                            timestamp: new Date(timestamp)
+                            timestamp: new Date(timestamp),
+                            raw: msg
                         });
                         return { ...prev, Digital: newMap };
                     });
 
-                    console.log(switchStates);
+                    // console.log(switchStates);
 
                     // pushLog(`\t[Digital] ${pin.toString().padStart(2, '0')} : ${state ? "HIGH" : "LOW"}`);
                 }
@@ -144,6 +155,8 @@ export default function ForDev() {
             getPorts();
 
             getConnectingPorts();
+
+            getThemeInfos();
             // console.log("fook test");
 
             window.windowTheme.setTheme(
@@ -159,68 +172,95 @@ export default function ForDev() {
                 <Infomations>
                     <h2 className="text-xl font-bold mb-2 pb-2 border-b-2">
                         Port
-                    </h2>                    
-                    <div className="flex gap-2 mt-2">
-                        {portList.map((port) => {
-                            // if (port.port_type.UsbPort?.manufacturer.split(" ")[0] == "Arduino") {
-                            //     return null;
-                            // }
-
-                            // TODO: プロトコルバージョンの指定をできるようにする
-
-                            if (port.port_type.UsbPort?.vid != 0x2341) {
-                                return null;
-                            }
-
-                            let product = port.port_type.UsbPort?.product ?
-                                port.port_type.UsbPort?.product :
-                                "Unknown";
-
-                            let serialNum = port.port_type.UsbPort?.serial_number ?
-                                port.port_type.UsbPort.serial_number :
-                                "Unknown";
-
-                            let isConnect = connectedSerialList.some(val => {
-                                return port.port_name == val;
-                            })
-
-                            return (
-                                <div key={port.port_name} className="bg-bg-secondary p-2 rounded-lg border-bg-4 border-2 shadow-lg">
-                                    <div>
-                                        {port.port_name}
-                                    </div>
-                                    <div>
-                                        {product}
-                                    </div>
-                                    <div className="text-sm text-text-primary text-opacity-50">
-                                        {serialNum}
-                                    </div>
-                                    <div className="flex flex-col gap-2 mt-2">
-                                        <button
-                                            disabled={isConnect}
-                                            className="bg-accent-positive rounded-lg text-bg-primary px-4 transition-colors disabled:bg-bg-quaternary disabled:text-text-primary disabled:text-opacity-50"
-                                            onClick={() => {
-                                                serialOpenRequest(port.port_name);
-                                                // buttonLoadingAnimation;
-                                            }}
+                    </h2>
+                    <div>
+                        <div className="mb-6">
+                            <div>
+                                Protocol Version
+                            </div>
+                            <select
+                                className="rounded-md bg-bg-quaternary text-text-primary px-4 py-2 w-full"
+                                onChange={(e) => {
+                                    setTargetProtocolVersion(e.target.value as SerialProtocolVersion);
+                                }}
+                            >
+                                {SerialProtocolVersionList.map((version) => {
+                                    return (
+                                        <option
+                                            key={version}
+                                            value={version}
+                                            selected={version == targetProtocolVersion ? true : false}
                                         >
-                                            Connect
-                                        </button>
-                                        <button
-                                            disabled={!isConnect}
-                                            className="bg-accent-negative rounded-lg text-bg-primary px-2 transition-colors disabled:bg-bg-quaternary disabled:text-text-primary disabled:text-opacity-50"
-                                            onClick={() => {
-                                                closeHandler(port.port_name);
-                                                // buttonLoadingAnimation;
-                                            }}
-                                        >
-                                            Disconnect
-                                        </button>
+                                            {version}
+                                        </option>
+                                    );
+                                })}
+                            </select>
+                        </div>
+                        <div className="flex gap-2 mt-2">
+
+                            {portList.map((port) => {
+                                // if (port.port_type.UsbPort?.manufacturer.split(" ")[0] == "Arduino") {
+                                //     return null;
+                                // }
+
+                                // TODO: プロトコルバージョンの指定をできるようにする
+
+                                if (port.port_type.UsbPort?.vid != 0x2341) {
+                                    return null;
+                                }
+
+                                let product = port.port_type.UsbPort?.product ?
+                                    port.port_type.UsbPort?.product :
+                                    "Unknown";
+
+                                let serialNum = port.port_type.UsbPort?.serial_number ?
+                                    port.port_type.UsbPort.serial_number :
+                                    "Unknown";
+
+                                let isConnect = connectedSerialList.some(val => {
+                                    return port.port_name == val;
+                                })
+
+                                return (
+                                    <div key={port.port_name} className="bg-bg-secondary p-2 rounded-lg border-bg-4 border-2 shadow-lg">
+                                        <div>
+                                            {port.port_name}
+                                        </div>
+                                        <div>
+                                            {product}
+                                        </div>
+                                        <div className="text-sm text-text-primary text-opacity-50">
+                                            {serialNum}
+                                        </div>
+                                        <div className="flex flex-col gap-2 mt-2">
+                                            <button
+                                                disabled={isConnect}
+                                                className="bg-accent-positive rounded-lg text-bg-primary px-4 transition-colors disabled:bg-bg-quaternary disabled:text-text-primary disabled:text-opacity-50"
+                                                onClick={() => {
+                                                    serialOpenRequest(port.port_name);
+                                                    // buttonLoadingAnimation;
+                                                }}
+                                            >
+                                                Connect
+                                            </button>
+                                            <button
+                                                disabled={!isConnect}
+                                                className="bg-accent-negative rounded-lg text-bg-primary px-2 transition-colors disabled:bg-bg-quaternary disabled:text-text-primary disabled:text-opacity-50"
+                                                onClick={() => {
+                                                    closeHandler(port.port_name);
+                                                    // buttonLoadingAnimation;
+                                                }}
+                                            >
+                                                Disconnect
+                                            </button>
+                                        </div>
                                     </div>
-                                </div>
-                            );
-                        })}
+                                );
+                            })}
+                        </div>
                     </div>
+
                 </Infomations>
                 <Infomations>
                     <h2 className="text-xl font-bold mb-2 pb-2 border-b-2">
@@ -239,14 +279,23 @@ export default function ForDev() {
                             const millisecond = state.timestamp.getMilliseconds().toString().padStart(3, '0');
                             const time = `${hour}:${minute}:${second}.${millisecond}`;
 
-                            console.log(state.timestamp);
+                            // console.log(state.timestamp);
 
                             return (
 
-                                <div className={`${className} px-4 mb-1 border-2 rounded-md flex items-center place-content-between transition-colors`}>
+                                <div className={`${className} px-4 mb-1 border-2 rounded-md flex items-center place-content-between transition-colors relative`}>
                                     <div>
 
                                         {`${pin.toString().padStart(2, '0')} : ${state.state ? "HIGH" : "LOW"}`}
+                                    </div>
+                                    <div className="absolute top-0 left-0 right-0 bottom-0 flex justify-center items-center pointer-events-none">
+                                        {state.raw.toString(2).padStart(8, '0').split("").map((val, index) => {
+                                            return (
+                                                <span key={index} className="text-sm">
+                                                    {val}
+                                                </span>
+                                            );
+                                        })}
                                     </div>
                                     <div className="text-sm text-text-primary text-opacity-50">
                                         {time}
@@ -296,14 +345,14 @@ export default function ForDev() {
                                 window.windowTheme.setTheme(e.target.value as ThemeList);
                             }}
                         >
-                            {window.windowTheme.themeList.map((theme) => {
+                            {themeInfos.map((theme) => {
                                 return (
                                     <option
-                                        key={theme}
-                                        value={theme}
-                                        selected={theme == window.windowTheme.theme ? true : false}
+                                        key={theme.id}
+                                        value={theme.id}
+                                        selected={theme.id == window.windowTheme.theme ? true : false}
                                     >
-                                        {theme}
+                                        {theme.name}
                                     </option>
                                 );
                             })}
