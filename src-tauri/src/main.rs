@@ -5,6 +5,7 @@ mod ardeck_serial;
 
 use std::{
     collections::HashMap,
+    io,
     sync::{
         mpsc::{channel, Receiver, Sender},
         Mutex, OnceLock,
@@ -15,7 +16,7 @@ use std::{
 
 use ardeck_serial::ArdeckSerial;
 
-use chrono:: {Utc};
+use chrono::Utc;
 
 use serde::{Deserialize, Serialize};
 use serialport::SerialPort;
@@ -121,7 +122,7 @@ async fn open_port(
                     protocol_version.unwrap().to_string();
             }
 
-            ardeck_serial
+            ardeck_serial // 5秒間受信しなければエラー
                 .port()
                 .lock()
                 .unwrap()
@@ -133,13 +134,7 @@ async fn open_port(
                 .unwrap()
                 .on_complete(move |data, timestamp| {
                     get_tauri_app()
-                        .emit_all(
-                            "on-message-serial",
-                            OnMessageSerial {
-                                data,
-                                timestamp,
-                            },
-                        )
+                        .emit_all("on-message-serial", OnMessageSerial { data, timestamp })
                         .unwrap();
                 });
 
@@ -152,6 +147,37 @@ async fn open_port(
 
                 if serial.is_none() {
                     return;
+                }
+
+                let ooool = serial
+                .as_ref()
+                .unwrap()
+                .continue_flag()
+                .load(std::sync::atomic::Ordering::SeqCst);
+
+                println!("continue={}", ooool);
+
+
+                if serial
+                    .as_ref()
+                    .unwrap()
+                    .continue_flag()
+                    .load(std::sync::atomic::Ordering::SeqCst)
+                    == false
+                {
+                    get_serial_map()
+                        .lock()
+                        .unwrap()
+                        .remove(&port_name_for_thread.to_string())
+                        .unwrap();
+
+                    get_tauri_app()
+                        .emit_all("on-close-serial", port_name_for_thread.clone())
+                        .unwrap();
+
+                    println!("[{}] Connection Stoped for Bool.", port_name_for_thread.to_string());
+
+                    break;
                 }
 
                 let mut serial_buf: Vec<u8> = vec![0; 1];
@@ -173,11 +199,15 @@ async fn open_port(
                             .port_data();
                         ardeck_data.lock().unwrap().on_data(serial_buf);
                     }
-                    Err(_) => {
+                    Err(Kind) => {
                         println!(
                             "[{}] Connection Err, Connetion Stoped.",
                             port_name_for_thread.to_string()
                         );
+
+                        // match Kind {
+
+                        // }
 
                         get_serial_map()
                             .lock()
@@ -189,7 +219,7 @@ async fn open_port(
                             .emit_all("on-close-serial", port_name_for_thread.clone())
                             .unwrap();
 
-                        println!("[{}] Connection Stoped.", port_name_for_thread.to_string());
+                        println!("[{}] Connection Stoped for Error.", port_name_for_thread.to_string());
 
                         break;
                     }
@@ -220,19 +250,21 @@ async fn close_port(port_name: &str) -> Result<u32, u32> {
     let serial = serials.get_mut(&target_port);
     if !serial.is_none() {
         println!("[{}] closing...", target_port);
-        let try_break = serial.unwrap().port().lock().unwrap().set_break();
-        match try_break {
-            Ok(()) => {
-                println!("[{}] closed.", target_port);
 
-                serials.remove(&target_port).unwrap();
+        serial.unwrap().continue_flag().store(false, std::sync::atomic::Ordering::SeqCst);
+        // let try_break = serial.unwrap().port().lock().unwrap().set_break();
+        // match try_break {
+        //     Ok(()) => {
+        //         println!("[{}] closed.", target_port);
 
-                get_tauri_app()
-                    .emit_all("on-close-serial", target_port)
-                    .unwrap();
-            }
-            Err(_) => {}
-        }
+        //         serials.remove(&target_port).unwrap();
+
+        //         get_tauri_app()
+        //             .emit_all("on-close-serial", target_port)
+        //             .unwrap();
+        //     }
+        //     Err(_) => {}
+        // }
     }
 
     Ok(200)
