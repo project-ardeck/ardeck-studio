@@ -19,6 +19,14 @@ type OnMessageSerial = {
     timestamp: number
 }
 
+type SwitchData = {
+    switchType: number,
+    id: number,
+    state: number,
+    rawData: number[],
+    timestamp: number,
+}
+
 type serialPortState = {
     port_name: string,
     status: "open" | "closed" | "error" = "closed",

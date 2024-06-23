@@ -1,7 +1,11 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-mod ardeck_serial;
+// mod ardeck_serial;
+// mod ardeck_data;
+
+mod ardeck;
+
 
 use std::{
     collections::HashMap,
@@ -14,7 +18,11 @@ use std::{
     time::Duration,
 };
 
-use ardeck_serial::ArdeckSerial;
+// use ardeck_serial::ArdeckSerial;
+use ardeck::{
+    SwitchData,
+    ArdeckSerial,
+};
 
 use chrono::Utc;
 
@@ -132,9 +140,9 @@ async fn open_port(
                 .port_data()
                 .lock()
                 .unwrap()
-                .on_complete(move |data, timestamp| {
+                .on_complete(move |data| {
                     get_tauri_app()
-                        .emit_all("on-message-serial", OnMessageSerial { data, timestamp })
+                        .emit_all("on-message-serial", data)
                         .unwrap();
                 });
 
@@ -150,13 +158,12 @@ async fn open_port(
                 }
 
                 let ooool = serial
-                .as_ref()
-                .unwrap()
-                .continue_flag()
-                .load(std::sync::atomic::Ordering::SeqCst);
+                    .as_ref()
+                    .unwrap()
+                    .continue_flag()
+                    .load(std::sync::atomic::Ordering::SeqCst);
 
-                println!("continue={}", ooool);
-
+                // println!("continue={}", ooool);
 
                 if serial
                     .as_ref()
@@ -175,7 +182,10 @@ async fn open_port(
                         .emit_all("on-close-serial", port_name_for_thread.clone())
                         .unwrap();
 
-                    println!("[{}] Connection Stoped for Bool.", port_name_for_thread.to_string());
+                    println!(
+                        "[{}] Connection Stoped for Bool.",
+                        port_name_for_thread.to_string()
+                    );
 
                     break;
                 }
@@ -219,7 +229,10 @@ async fn open_port(
                             .emit_all("on-close-serial", port_name_for_thread.clone())
                             .unwrap();
 
-                        println!("[{}] Connection Stoped for Error.", port_name_for_thread.to_string());
+                        println!(
+                            "[{}] Connection Stoped for Error.",
+                            port_name_for_thread.to_string()
+                        );
 
                         break;
                     }
@@ -251,7 +264,10 @@ async fn close_port(port_name: &str) -> Result<u32, u32> {
     if !serial.is_none() {
         println!("[{}] closing...", target_port);
 
-        serial.unwrap().continue_flag().store(false, std::sync::atomic::Ordering::SeqCst);
+        serial
+            .unwrap()
+            .continue_flag()
+            .store(false, std::sync::atomic::Ordering::SeqCst);
         // let try_break = serial.unwrap().port().lock().unwrap().set_break();
         // match try_break {
         //     Ok(()) => {

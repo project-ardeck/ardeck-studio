@@ -1,5 +1,4 @@
-mod ardeck_data;
-use ardeck_data::ArdeckData;
+use crate::ardeck::ardeck_data::ArdeckData;
 
 use serialport::{self, SerialPort};
 

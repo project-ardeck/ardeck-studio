@@ -5,7 +5,7 @@ import { emit, listen } from "@tauri-apps/api/event";
 type switchStatesObject = {
     state: number,
     timestamp: Date,
-    raw: number
+    raw: number[]
 }
 
 const SerialProtocolVersionList = ["2014-06-03", "2024-06-17"] as const;
@@ -111,45 +111,38 @@ export default function ForDev() {
             });
 
             listen("on-message-serial", (e) => { // シリアル通信のメッセージ
-                const payload = e.payload as OnMessageSerial;
+                const payload = e.payload as SwitchData;
                 // console.log(payload);
-                const msg = payload.data;
-                const msgBinRaw = msg.toString(2);
-                let msgBin = ""
-                msgBinRaw.padStart((Math.floor(msgBinRaw.length / 8) + 1) * 8, "0").split("").map((val, index) => {
-                    msgBin += val;
+                
+                const data = {
+                    state: payload.state,
+                    timestamp: new Date(payload.timestamp),
+                    raw: payload.rawData
+                };
 
-                    if ((index + 1) % 4 == 0) {
-                        msgBin += " ";
-                    }
-                });
-                // pushLog(`${msg.toString().padStart(3, "0")} : ${msgBin}`)
-
-                const DorA = (msg & 0b10000000) >> 7;
-                let pin: number;
-                let state: number;
-                const timestamp = payload.timestamp; // millis
-                if (DorA) {
-                    // Analog
-                } else {
-                    // Digital
-                    pin = (msg & 0b01111110) >> 1;
-                    state = msg & 0b00000001;
-
-                    setSwitchStates((prev) => {
-                        const newMap = new Map(prev.Digital);
-                        newMap.set(pin, {
-                            state: state,
-                            timestamp: new Date(timestamp),
-                            raw: msg
-                        });
-                        return { ...prev, Digital: newMap };
+                if (payload.switchType == 0) {
+                    // console.log("0");
+                    setSwitchStates(prevState => {
+                        const newState = new Map(prevState.Digital);
+                        newState.set(payload.id, data);
+                        return {
+                            ...prevState,
+                            Digital: newState
+                        }
                     });
-
-                    // console.log(switchStates);
-
-                    // pushLog(`\t[Digital] ${pin.toString().padStart(2, '0')} : ${state ? "HIGH" : "LOW"}`);
+                } else if (payload.switchType == 1) {
+                    // console.log("1");
+                    setSwitchStates(prevState => {
+                        const newState = new Map(prevState.Analog);
+                        newState.set(payload.id, data);
+                        return {
+                            ...prevState,
+                            Analog: newState
+                        }
+                    });
                 }
+
+                
             });
 
             getPorts();
@@ -174,29 +167,6 @@ export default function ForDev() {
                         Port
                     </h2>
                     <div>
-                        <div className="mb-6">
-                            <div>
-                                Protocol Version
-                            </div>
-                            <select
-                                className="rounded-md bg-bg-quaternary text-text-primary px-4 py-2 w-full"
-                                onChange={(e) => {
-                                    setTargetProtocolVersion(e.target.value as SerialProtocolVersion);
-                                }}
-                            >
-                                {SerialProtocolVersionList.map((version) => {
-                                    return (
-                                        <option
-                                            key={version}
-                                            value={version}
-                                            selected={version == targetProtocolVersion ? true : false}
-                                        >
-                                            {version}
-                                        </option>
-                                    );
-                                })}
-                            </select>
-                        </div>
                         <div className="flex gap-2 mt-2">
 
                             {portList.map((port) => {
@@ -267,7 +237,7 @@ export default function ForDev() {
                         Device Info
                     </h2>
                     <div>
-                        <h3 className="font-bold text-lg">
+                        <h3 className="font-bold text-lg mt-4">
                             Digital
                         </h3>
                         {Array.from(switchStates.Digital).map(([pin, state]) => {
@@ -289,10 +259,10 @@ export default function ForDev() {
                                         {`${pin.toString().padStart(2, '0')} : ${state.state ? "HIGH" : "LOW"}`}
                                     </div>
                                     <div className="absolute top-0 left-0 right-0 bottom-0 flex justify-center items-center pointer-events-none">
-                                        {state.raw.toString(2).padStart(8, '0').split("").map((val, index) => {
+                                        {state.raw.map((val, index) => {
                                             return (
-                                                <span key={index} className="text-sm">
-                                                    {val}
+                                                <span key={index} className="text-sm pointer-events-auto">
+                                                    {val.toString(2).padStart(8, '0')}
                                                 </span>
                                             );
                                         })}
@@ -300,6 +270,46 @@ export default function ForDev() {
                                     <div className="text-sm text-text-primary text-opacity-50">
                                         {time}
                                     </div>
+                                </div>
+                            )
+                        })}
+                        <h3 className="font-bold text-lg mt-4">
+                            Analog
+                        </h3>
+                        {Array.from(switchStates.Analog).map(([pin, state]) => {
+                            const className = state.state ? "border-accent-primary border-opacity-50" : "border-bg-quaternary";
+                            const date = state.timestamp.getDate().toString().padStart(2, '0');
+                            const hour = state.timestamp.getHours().toString().padStart(2, '0');
+                            const minute = state.timestamp.getMinutes().toString().padStart(2, '0');
+                            const second = state.timestamp.getSeconds().toString().padStart(2, '0');
+                            const millisecond = state.timestamp.getMilliseconds().toString().padStart(3, '0');
+                            const time = `${hour}:${minute}:${second}.${millisecond}`;
+
+                            // console.log(state.timestamp);
+
+                            const style = {
+                                "width": `${state.state / 1024 * 100}%`
+                            }
+
+                            return (
+
+                                <div className={`${className} px-4 mb-1 border-2 rounded-md flex items-center place-content-between transition-colors relative`}>
+                                    <div className="z-10">
+                                        {`${pin.toString().padStart(2, '0')} : ${state.state}`}
+                                    </div>
+                                    <div className="z-10 absolute top-0 left-0 right-0 bottom-0 flex gap-2 justify-center items-center pointer-events-none">
+                                        {state.raw.map((val, index) => {
+                                            return (
+                                                <span key={index} className="text-sm pointer-events-auto">
+                                                    {val.toString(2).padStart(8, '0')}
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                    <div className="z-10 text-sm text-text-primary text-opacity-50">
+                                        {time}
+                                    </div>
+                                    <div className="z-0 absolute top-0 left-0 bottom-0 bg-accent-primary opacity-25 pointer-events-none" style={style}></div>
                                 </div>
                             )
                         })}
