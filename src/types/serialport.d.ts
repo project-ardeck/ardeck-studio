@@ -20,7 +20,7 @@ type OnMessageSerial = {
 }
 
 type SwitchData = {
-    switchType: number,
+    switchType: "digital" | "analog",
     id: number,
     state: number,
     rawData: number[],

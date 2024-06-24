@@ -10,10 +10,24 @@ use chrono::{Local, TimeZone, Utc};
 //     Analog,
 // }
 
+#[derive(Clone, Copy, Deserialize, Serialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub enum SwitchType {
+    Unknown = -1,
+    Digital = 0,
+    Analog = 1,
+}
+
+enum BodyLen {
+    Unknown = 0,
+    Digital = 1,
+    Analog = 2,
+}
+
 #[derive(Clone, Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct SwitchData {
-    switch_type: i8, // -1: Unknown, 0: Digital, 1: Analog
+    switch_type: SwitchType, // -1: Unknown, 0: Digital, 1: Analog
     id: u8,
     state: u16,
     raw_data: Vec<u8>,
@@ -23,7 +37,7 @@ pub struct SwitchData {
 impl SwitchData {
     pub fn new() -> SwitchData {
         SwitchData {
-            switch_type: -1,
+            switch_type: SwitchType::Unknown,
             id: 0,
             state: 0,
             raw_data: Vec::new(),
@@ -31,11 +45,11 @@ impl SwitchData {
         }
     }
 
-    pub fn set_switch_type(&mut self, switch_type: i8) {
+    pub fn set_switch_type(&mut self, switch_type: SwitchType) {
         self.switch_type = switch_type;
     }
 
-    pub fn switch_type(&self) -> i8 {
+    pub fn switch_type(&self) -> SwitchType {
         self.switch_type
     }
 
@@ -76,16 +90,18 @@ pub struct ArdeckData {
     header_buf: String,
     is_reading: bool,
     read_count: u8,
+    header_len: usize,
+    data_len: usize, // Digital: 4, Analog: 5
+    body_len: BodyLen,
     has_collect: bool,
     on_correct_handler: Box<dyn Fn(SwitchData) + Send>,
-    pub protocol_version: String,
     complete_count: u128,
     switch_data_buf: SwitchData,
 }
 
 impl ArdeckData {
     const HEADER: &'static str = "ADEC";
-    const HEADER_LEN: usize = 4;
+    const HEADER_LEN: usize = Self::HEADER.len();
     const BODY_SIZE: usize = 2;
 
     pub fn new() -> ArdeckData {
@@ -94,12 +110,24 @@ impl ArdeckData {
             header_buf: String::new(),
             is_reading: false,
             read_count: 0,
+            header_len: Self::HEADER_LEN,
+            data_len: 0,
+            body_len: BodyLen::Unknown,
             has_collect: false,
             on_correct_handler: Box::new(|data| {}),
-            protocol_version: "2024-06-17".to_string(), // TODO: デフォルトバージョンは最新
             complete_count: 0,
             switch_data_buf: SwitchData::new(),
         }
+    }
+
+    fn data_of_digital_switch(&mut self) {
+        self.body_len = BodyLen::Digital;
+        self.data_len = Self::HEADER_LEN + BodyLen::Digital as usize;
+    }
+
+    fn data_of_analog_switch(&mut self) {
+        self.body_len = BodyLen::Analog;
+        self.data_len = Self::HEADER_LEN + BodyLen::Analog as usize;
     }
 
     fn countup_read(&mut self) {
@@ -132,12 +160,19 @@ impl ArdeckData {
         println!("{:08b}", raw_data[0]);
         let mut id: u8;
         let mut state: u16;
-        if switch_type == 0 {
-            id = (raw_data[0] & 0b01111110) >> 1;
-            state = (raw_data[0] & 0b00000001) as u16;
-        } else {
-            id = (raw_data[0] & 0b01111100) >> 2;
-            state = ((raw_data[0] & 0b00000011) as u16) << 8 | raw_data[1] as u16;
+        match switch_type {
+            SwitchType::Digital => {
+                id = (raw_data[0] & 0b01111110) >> 1;
+                state = (raw_data[0] & 0b00000001) as u16;
+            }
+            SwitchType::Analog => {
+                id = (raw_data[0] & 0b01111100) >> 2;
+                state = ((raw_data[0] & 0b00000011) as u16) << 8 | raw_data[1] as u16;
+            }
+            _ => {
+                id = 0;
+                state = 0;
+            }
         }
 
         self.switch_data_buf.set_id(id);
@@ -148,159 +183,138 @@ impl ArdeckData {
     }
 
     fn put_challenge(&mut self, _data: u8) -> bool {
-        print!("{}", self.read_count);
+        print!("count: {}", self.read_count);
         print!("\t{:08b}", &_data);
 
         let buf_len = self.header_buf.len();
         let if_str = String::from_utf8(vec![_data]).unwrap_or("".to_string());
         let msg = if_str.clone();
-        // match if_str.clone() {
-        //     Ok(msg) => {
-                print!("\t{}", msg);
+        print!("\t{}", msg);
+        // ADECのヘッダーの頭であるAが来たら、読み取り開始
+        if msg == "A" && !self.is_reading
+        /* && self.read_count == 0 */
+        {
+            self.clear_flag_count(); // 念のためリセット
+            self.clear_buf();
+            self.is_reading = true;
+            self.header_buf.push('A');
 
-                /* TODO:
-                // A, D, E, C, [DATA] だとCの時にデータが切れたときにめちゃくちゃなデータが来ることがある
-                // A, D, [DATA], E, C にする？
-                 */
-                // ADECのヘッダーの頭であるAが来たら、読み取り開始
-                if msg == "A" && !self.is_reading && self.read_count == 0 {
-                    self.clear_flag_count(); // 念のためリセット
-                    self.clear_buf();
-                    self.is_reading = true;
-                    self.header_buf.push('A');
+            print!("\tCollect-A, Start-Read");
+        }
 
-                    self.countup_read();
+        // 2個目にDが来たら、ヘッダーを読み取る
+        if msg == "D" && self.is_reading
+        /* && self.read_count == 1 */
+        {
+            self.header_buf.push('D');
 
-                    print!("\tCollect-A, Start-Read");
-                    println!("");
+            print!("\tCollect-D");
+        }
 
-                    return false;
-                }
+        // 3個目にデータが来たら、データを読み取る
+        if self.is_reading && self.read_count == 2 || self.read_count == 3 {
+            // self.data_buf[] = _data.clone();
 
-                // 2個目にDが来たら、ヘッダーを読み取る
-                if msg == "D" && self.is_reading && self.read_count == 1 {
-                    self.header_buf.push('D');
+            let switch_type = self.switch_data_buf.switch_type();
 
-                    self.countup_read();
+            print!("Switch-Type: {:?}", switch_type);
 
-                    print!("\tCollect-D");
-                    println!("");
+            match switch_type {
+                SwitchType::Unknown => {
+                    // let check = self.check_switch_type(_data);
+                    let check = match (_data & 0b10000000) >> 7 {
+                        0 => SwitchType::Digital,
+                        1 => SwitchType::Analog,
+                        _ => SwitchType::Unknown,
+                    };
+                    self.switch_data_buf.set_switch_type(check);
 
-                    return false;
-                }
+                    print!("\tCheck: {:?}", check);
 
-                // 3個目にデータが来たら、データを読み取る
-                if self.is_reading && self.read_count == 2 {
-                    // self.data_buf[] = _data.clone();
+                    match check {
+                        SwitchType::Digital => {
+                            self.data_of_digital_switch();
 
-                    let switch_type = self.switch_data_buf.switch_type();
-
-                    print!("Switch-Type: {}", switch_type);
-
-                    match switch_type {
-                        -1 => {
-                            // let check = self.check_switch_type(_data);
-                            let check = (_data & 0b10000000) >> 7;
-                            self.switch_data_buf.set_switch_type(check as i8);
-
-                            print!("\tCheck: {}", check);
-
-                            match check {
-                                0 => {
-                                    let mut raw_data = self.switch_data_buf.raw_data();
-                                    raw_data.push(_data);
-                                    self.switch_data_buf.set_raw_data(raw_data);
-
-                                    self.countup_read();
-
-                                    print!("\tCollect-Data-Digital");
-                                }
-                                1 => {
-                                    let mut raw_data = self.switch_data_buf.raw_data();
-                                    raw_data.push(_data);
-                                    self.switch_data_buf.set_raw_data(raw_data);
-
-                                    print!("\tCollect-Data-Analog-0");
-                                }
-                                _ => {
-                                    print!("\tCollect-data-Unknown-0");
-                                }
-                            }
-                        }
-                        1 => {
-                            // self.data_buf.push(_data);
                             let mut raw_data = self.switch_data_buf.raw_data();
                             raw_data.push(_data);
                             self.switch_data_buf.set_raw_data(raw_data);
 
-                            self.countup_read();
+                            print!("\tCollect-Data-Digital");
+                        }
+                        SwitchType::Analog => {
+                            self.data_of_analog_switch();
 
-                            print!("\tCollect-Data-Analog-1");
+                            let mut raw_data = self.switch_data_buf.raw_data();
+                            raw_data.push(_data);
+                            self.switch_data_buf.set_raw_data(raw_data);
+
+                            print!("\tCollect-Data-Analog-0");
                         }
                         _ => {
-                            print!("\tCollect-Data-Unknown-1");
+                            print!("\tCollect-data-Unknown-0");
                         }
                     }
-
-                    println!("");
-                    return false;
                 }
+                SwitchType::Analog => {
+                    // self.data_buf.push(_data);
+                    let mut raw_data = self.switch_data_buf.raw_data();
+                    raw_data.push(_data);
+                    self.switch_data_buf.set_raw_data(raw_data);
 
-                // データの後ろにE, Cが来たら、ヘッダーを読み取る
-                if msg == "E" && self.is_reading && self.read_count == 3 {
-                    self.header_buf.push('E');
-
-                    self.countup_read();
-
-                    print!("\tCollect-E");
-                    println!("");
-
-                    return false;
+                    print!("\tCollect-Data-Analog-1");
                 }
-
-                if msg == "C" && self.is_reading && self.read_count == 4 {
-                    self.header_buf.push('C');
-
-                    self.countup_read();
-
-                    print!("\tCollect-C");
-                    println!("");
-                }
-
-                // ヘッダーが４つ揃ったら、溜めたデータをチェックする
-                if self.read_count >= 5 {
-                    // 前回までに溜めたデータがADECだったら、今回のデータを正式なデータとして扱う
-                    if self.header_buf == Self::HEADER {
-                        self.clear_flag_count();
-                        print!("\tComplete-Data");
-                        println!("");
-
-                        self.format_switch_data();
-
-                        self.on_correct_emit(self.switch_data_buf.clone());
-
-                        return true;
-                    } else {
-                        // ヘッダーがADECじゃなかったら、リセット
-                        self.clear_flag_count();
-                        print!("\tCollect-Reset");
-                        println!("------------------------------------------------");
-                        println!("");
-
-                        return false;
-                    }
-                } else {
-                    println!("\twtfff");
-                    return false;
-                }
+                SwitchType::Digital => {}
             }
-            // Err(_) => {
-            //     println!("\twtf char");
+        }
 
-            //     return false;
-            // }
-        // }
-    // }
+        // データの後ろにE, Cが来たら、ヘッダーを読み取る
+        if msg == "E" && self.is_reading
+        /* && self.read_count as i8 == 3 + self.switch_data_buf.switch_type() */
+        {
+            self.header_buf.push('E');
+
+            print!("\tCollect-E");
+        }
+
+        if msg == "C" && self.is_reading
+        /* && self.read_count as i8 == 4 + self.switch_data_buf.switch_type() */
+        {
+            self.header_buf.push('C');
+
+            print!("\tCollect-C");
+        }
+
+        // ヘッダーが４つ揃ったら、溜めたデータをチェックする
+        if self.header_buf.len() == Self::HEADER_LEN as usize {
+            self.countup_read();
+
+            // 前回までに溜めたデータがADECだったら、今回のデータを正式なデータとして扱う
+            if self.header_buf == Self::HEADER && self.read_count as i8 == self.data_len as i8 {
+                self.clear_flag_count();
+                print!("\tComplete-Data");
+                println!("");
+
+                self.format_switch_data();
+
+                self.on_correct_emit(self.switch_data_buf.clone());
+
+                return true;
+            } else {
+                // ヘッダーがADECじゃなかったら、リセット
+                self.clear_flag_count();
+                println!("\tCollect-Reset");
+                println!("------------------------------------------------");
+                println!("");
+
+                return false;
+            }
+        } else {
+            self.countup_read();
+            println!("");
+
+            return false;
+        }
+    }
 
     pub fn on_data(&mut self, data: Vec<u8>) {
         // println!("aaaaa");

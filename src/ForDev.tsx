@@ -11,12 +11,13 @@ type switchStatesObject = {
 const SerialProtocolVersionList = ["2014-06-03", "2024-06-17"] as const;
 type SerialProtocolVersion = typeof SerialProtocolVersionList[number];
 
+const devLogLimit = 100;
+
 export default function ForDev() {
     const isInit = useRef(false); // for Develop
 
     const [themeInfos, setThemeInfos] = useState([] as ThemeInfo[]);
 
-    const [targetProtocolVersion, setTargetProtocolVersion] = useState("2024-06-17" as SerialProtocolVersion); // 2024-06-17 or 2014-06-03
     const [portList, setPortList] = useState([] as SerialPortInfo[]);
     const [devLogs, setDevLogs] = useState([] as string[]);
     const [connectedSerialList, setConnectedSerialList] = useState([] as string[]);
@@ -36,6 +37,10 @@ export default function ForDev() {
         const mm = _DATE.getMilliseconds().toString().padStart(4, '0');
         const date = `${M}-${d} ${h}:${m}:${s}.${mm}`;
         const formattedLog = `[${date}] ${log}`
+
+        if (devLogs.length >= devLogLimit) {
+            setDevLogs(prevLogs => prevLogs.slice(0, devLogLimit - 1));
+        }
 
         setDevLogs(prevLogs => [formattedLog, ...prevLogs]);
     }
@@ -60,7 +65,7 @@ export default function ForDev() {
     }
 
     const serialOpenRequest = async (portName: string) => {
-        invoke("open_port", { portName: portName, baudRate: 9600, protocolVersion: targetProtocolVersion})
+        invoke("open_port", { portName: portName, baudRate: 9600 })
             .then(() => {
                 // addCS(portName);
                 // pushLog(`OPEN: ${portName}`);
@@ -113,14 +118,14 @@ export default function ForDev() {
             listen("on-message-serial", (e) => { // シリアル通信のメッセージ
                 const payload = e.payload as SwitchData;
                 // console.log(payload);
-                
+
                 const data = {
                     state: payload.state,
                     timestamp: new Date(payload.timestamp),
                     raw: payload.rawData
                 };
 
-                if (payload.switchType == 0) {
+                if (payload.switchType == "digital") {
                     // console.log("0");
                     setSwitchStates(prevState => {
                         const newState = new Map(prevState.Digital);
@@ -130,7 +135,7 @@ export default function ForDev() {
                             Digital: newState
                         }
                     });
-                } else if (payload.switchType == 1) {
+                } else if (payload.switchType == "analog") {
                     // console.log("1");
                     setSwitchStates(prevState => {
                         const newState = new Map(prevState.Analog);
@@ -142,7 +147,7 @@ export default function ForDev() {
                     });
                 }
 
-                
+
             });
 
             getPorts();
@@ -170,12 +175,6 @@ export default function ForDev() {
                         <div className="flex gap-2 mt-2">
 
                             {portList.map((port) => {
-                                // if (port.port_type.UsbPort?.manufacturer.split(" ")[0] == "Arduino") {
-                                //     return null;
-                                // }
-
-                                // TODO: プロトコルバージョンの指定をできるようにする
-
                                 if (port.port_type.UsbPort?.vid != 0x2341) {
                                     return null;
                                 }

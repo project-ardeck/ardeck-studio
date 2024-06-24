@@ -57,13 +57,12 @@ struct OnMessageSerial {
 }
 
 // シリアル通信中のSerialportトレイトを格納する
-// TODO: Boxの中身をSerialPort生ではなく、オリジナルのトレイト、その中のAtomicBoolでステートの管理を行うことによってブロッキングを回避する。
-static SERIAL_MAP: OnceLock<Mutex<HashMap<String, ArdeckSerial>>> = OnceLock::new(); // TODO: SERIAL_MAPって名前よくないね
+static SERIAL_LIST: OnceLock<Mutex<HashMap<String, ArdeckSerial>>> = OnceLock::new();
 static TAURI_APP: OnceLock<Option<tauri::AppHandle>> = OnceLock::new();
 
 // SERIAL_MAPのデータを取り出す
 fn get_serial_map() -> &'static Mutex<HashMap<String, ArdeckSerial>> {
-    SERIAL_MAP.get_or_init(|| Mutex::new(HashMap::new()))
+    SERIAL_LIST.get_or_init(|| Mutex::new(HashMap::new()))
 }
 
 // TAURI_APPのデータを取り出す
@@ -102,8 +101,7 @@ fn get_ports() -> Vec<serialport::SerialPortInfo> {
 #[tauri::command]
 async fn open_port(
     port_name: &str,
-    baud_rate: u32,
-    protocol_version: Option<&str>,
+    baud_rate: u32
 ) -> Result<u32, u32> {
     // # protocol_version バージョンの考案日付
     // "2024-0-17": [DATA] ... 未実装
@@ -124,11 +122,6 @@ async fn open_port(
     match serial {
         Ok(ardeck_serial) => {
             println!("[{}] Opened", port_name);
-
-            if protocol_version.is_some() {
-                ardeck_serial.port_data().lock().unwrap().protocol_version =
-                    protocol_version.unwrap().to_string();
-            }
 
             ardeck_serial // 5秒間受信しなければエラー
                 .port()
@@ -156,14 +149,6 @@ async fn open_port(
                 if serial.is_none() {
                     return;
                 }
-
-                let ooool = serial
-                    .as_ref()
-                    .unwrap()
-                    .continue_flag()
-                    .load(std::sync::atomic::Ordering::SeqCst);
-
-                // println!("continue={}", ooool);
 
                 if serial
                     .as_ref()
@@ -214,10 +199,7 @@ async fn open_port(
                             "[{}] Connection Err, Connetion Stoped.",
                             port_name_for_thread.to_string()
                         );
-
-                        // match Kind {
-
-                        // }
+                        println!("Kind: {:?}", Kind);
 
                         get_serial_map()
                             .lock()
@@ -233,6 +215,8 @@ async fn open_port(
                             "[{}] Connection Stoped for Error.",
                             port_name_for_thread.to_string()
                         );
+
+                        // TODO: エラーの理由がどうであれ、ディスコネクト要求があるまでエラーイベントを発火させてループを続ける
 
                         break;
                     }
