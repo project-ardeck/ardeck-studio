@@ -7,7 +7,7 @@
   },
   "package": {
     "productName": "ardeck",
-    "version": "0.0.6"
+    "version": "0.0.8"
   },
   "tauri": {
     "allowlist": {
@@ -50,8 +50,8 @@
         "icons/32x32.png",
         "icons/128x128.png",
         "icons/128x128@2x.png",
-        "icons/icon.icns",
-        "icons/icon.ico"
+        "icons/icon.ico",
+        "icons/icon.icns"
       ]
     },
     "systemTray": {

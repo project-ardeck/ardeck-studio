@@ -76,11 +76,7 @@ fn is_connecting_serial(port_name: &String) -> bool {
 
     let tryget = serials.get(port_name);
 
-    if !tryget.is_none() {
-        return true;
-    } else {
-        return false;
-    }
+    tryget.is_some()
 }
 
 // Learn more about Tauri commands at https://tauri.app/v1/guides/features/command
