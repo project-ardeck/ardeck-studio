@@ -65,7 +65,7 @@ export default function ForDev() {
     }
 
     const serialOpenRequest = async (portName: string) => {
-        invoke("open_port", { portName: portName, baudRate: 9600 })
+        invoke("open_port", { portName: portName, baudRate: 19200 })
             .then(() => {
                 // addCS(portName);
                 // pushLog(`OPEN: ${portName}`);
@@ -287,7 +287,7 @@ export default function ForDev() {
                             // console.log(state.timestamp);
 
                             const style = {
-                                "width": `${state.state / 1024 * 100}%`
+                                "width": `${state.state / 1023 * 100}%`
                             }
 
                             return (
