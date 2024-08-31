@@ -16,6 +16,8 @@ const devLogLimit = 100;
 export default function ForDev() {
     const isInit = useRef(false); // for Develop
 
+    const [isShowotherArduinoDevice, setIsShowotherArduinoDevice] = useState(false);
+
     const [themeInfos, setThemeInfos] = useState([] as ThemeInfo[]);
 
     const [portList, setPortList] = useState([] as SerialPortInfo[]);
@@ -73,6 +75,12 @@ export default function ForDev() {
             .catch((e) => {
                 pushLog(e);
             });
+    }
+
+    const testHandler = async () => {
+        pushLog("TEST");
+
+        invoke("test");
     }
 
     const closeHandler = async (portName: string) => {
@@ -150,6 +158,10 @@ export default function ForDev() {
 
             });
 
+            listen("test", (e) => {
+                pushLog("GOT TEST");
+            });
+
             getPorts();
 
             getConnectingPorts();
@@ -166,16 +178,31 @@ export default function ForDev() {
     return (
         <div className="font-fordev w-full h-full bg-bg-primary text-text-primary flex flex-col">
             <div data-tauri-drag-region className="p-4 h-full flex-1 overflow-auto flex flex-col gap-2">
-
+                <Infomations>
+                    <input className="border-2 p-2 bg-bg-tertiary cursor-pointer" type="button" value="TEST" onClick={testHandler} />
+                </Infomations>
                 <Infomations>
                     <h2 className="text-xl font-bold mb-2 pb-2 border-b-2">
                         Port
                     </h2>
                     <div>
+                        <div>
+                            <input
+                                type="checkbox"
+                                className="rounded-lg"
+                                name="isArduinoOnly"
+                                checked={isShowotherArduinoDevice}
+                                onChange={(e) => {
+                                    setIsShowotherArduinoDevice(e.target.checked);
+                                }}
+                            />
+                            <label htmlFor="isArduinoOnly">Show other than Arduino</label>
+
+                        </div>
                         <div className="flex gap-2 mt-2">
 
                             {portList.map((port) => {
-                                if (port.port_type.UsbPort?.vid != 0x2341) {
+                                if (port.port_type.UsbPort?.vid != 0x2341 && !isShowotherArduinoDevice) {
                                     return null;
                                 }
 

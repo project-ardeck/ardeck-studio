@@ -6,9 +6,11 @@
 
 mod ardeck;
 
-
+use core::panic;
 use std::{
     collections::HashMap,
+    fs::{self, File},
+    hash::Hash,
     io,
     sync::{
         mpsc::{channel, Receiver, Sender},
@@ -18,18 +20,27 @@ use std::{
     time::Duration,
 };
 
-// use ardeck_serial::ArdeckSerial;
+use once_cell::sync::{Lazy, OnceCell};
+
 use ardeck::{
-    SwitchData,
-    ArdeckSerial,
+    plugin::{
+        plugin_core::PluginServe, plugin_manager::PluginManager, PluginManifest,
+        PLUGIN_DIR,
+    },
+    serial::{
+        command::ArdeckCommand,
+        data::{ActionData, ArdeckData},
+        ArdeckSerial,
+    },
+    service::settings::{DeviceSettingOptions, DeviceSettings},
 };
 
-use chrono::Utc;
+use chrono::{format, Utc};
 
 use serde::{Deserialize, Serialize};
 use serialport::SerialPort;
 use tauri::{
-    CustomMenuItem, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem,
+    plugin, AppHandle, CustomMenuItem, Manager, State as TauriState, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem
 };
 use window_shadows::set_shadow;
 
@@ -57,22 +68,15 @@ struct OnMessageSerial {
 }
 
 // シリアル通信中のSerialportトレイトを格納する
-static SERIAL_LIST: OnceLock<Mutex<HashMap<String, ArdeckSerial>>> = OnceLock::new();
-static TAURI_APP: OnceLock<Option<tauri::AppHandle>> = OnceLock::new();
+static SERIAL_MANAGER: Lazy<Mutex<HashMap<String, ArdeckSerial>>> =
+    Lazy::new(|| Mutex::new(HashMap::new()));
+static TAURI_APP: OnceCell<tauri::AppHandle> = OnceCell::new();
+static PLUGIN_MANAGER: OnceCell<Mutex<PluginManager>> = OnceCell::new();
 
-// SERIAL_MAPのデータを取り出す
-fn get_serial_map() -> &'static Mutex<HashMap<String, ArdeckSerial>> {
-    SERIAL_LIST.get_or_init(|| Mutex::new(HashMap::new()))
-}
-
-// TAURI_APPのデータを取り出す
-fn get_tauri_app() -> &'static tauri::AppHandle {
-    TAURI_APP.get_or_init(|| None).as_ref().unwrap()
-}
 
 // 指定されたポート名が、現在接続中のポート一覧に存在するかどうかを確認する
 fn is_connecting_serial(port_name: &String) -> bool {
-    let serials = get_serial_map().lock().unwrap();
+    let serials = SERIAL_MANAGER.lock().unwrap();
 
     let tryget = serials.get(port_name);
 
@@ -95,10 +99,12 @@ fn get_ports() -> Vec<serialport::SerialPortInfo> {
 }
 
 #[tauri::command]
-async fn open_port(
-    port_name: &str,
-    baud_rate: u32
-) -> Result<u32, u32> {
+fn get_device_settings() -> Vec<DeviceSettingOptions> {
+    DeviceSettings::get_settings().unwrap()
+}
+
+#[tauri::command]
+async fn open_port(port_name: &str, baud_rate: u32) -> Result<u32, u32> {
     // # protocol_version バージョンの考案日付
     // "2024-0-17": [DATA] ... 未実装
     // "2014-06-03": 'A', 'D', 'E', 'C', [DATA] ... Cを受信したタイミングで(リセットなどで)接続が途絶え、再度接続された際にデータがずれる問題が発生する
@@ -115,31 +121,39 @@ async fn open_port(
     // 接続開始
     let serial = ArdeckSerial::open(&port_name.to_string(), baud_rate);
 
+    let command = ArdeckCommand::new();
+
     match serial {
         Ok(ardeck_serial) => {
             println!("[{}] Opened", port_name);
 
-            ardeck_serial // 5秒間受信しなければエラー
+            // 5秒間受信しなければエラー
+            ardeck_serial
                 .port()
                 .lock()
                 .unwrap()
                 .set_timeout(Duration::from_millis(5000))
                 .unwrap();
+
+            // 受信したデータが正しければ、プラグインの部分に投げる
             ardeck_serial
                 .port_data()
                 .lock()
                 .unwrap()
                 .on_complete(move |data| {
-                    get_tauri_app()
+                    TAURI_APP
+                        .get()
+                        .unwrap()
                         .emit_all("on-message-serial", data)
                         .unwrap();
+                    // command.on_data(data);
                 });
 
             let port_name_for_thread = port_name.to_string().clone();
             thread::spawn(move || loop {
                 // println!("[{}] Thread Start", port_name_for_thread);
 
-                let mut serials = get_serial_map().lock().unwrap().clone();
+                let mut serials = SERIAL_MANAGER.lock().unwrap().clone();
                 let serial = serials.get_mut(&port_name_for_thread.to_string());
 
                 if serial.is_none() {
@@ -153,13 +167,15 @@ async fn open_port(
                     .load(std::sync::atomic::Ordering::SeqCst)
                     == false
                 {
-                    get_serial_map()
+                    SERIAL_MANAGER
                         .lock()
                         .unwrap()
                         .remove(&port_name_for_thread.to_string())
                         .unwrap();
 
-                    get_tauri_app()
+                    TAURI_APP
+                        .get()
+                        .unwrap()
                         .emit_all("on-close-serial", port_name_for_thread.clone())
                         .unwrap();
 
@@ -197,13 +213,15 @@ async fn open_port(
                         );
                         println!("Kind: {:?}", Kind);
 
-                        get_serial_map()
+                        SERIAL_MANAGER
                             .lock()
                             .unwrap()
                             .remove(&port_name_for_thread.to_string())
                             .unwrap();
 
-                        get_tauri_app()
+                        TAURI_APP
+                            .get()
+                            .unwrap()
                             .emit_all("on-close-serial", port_name_for_thread.clone())
                             .unwrap();
 
@@ -219,9 +237,11 @@ async fn open_port(
                 }
             });
 
-            let mut serials = get_serial_map().lock().unwrap();
+            let mut serials = SERIAL_MANAGER.lock().unwrap();
             serials.insert(port_name.to_string(), ardeck_serial);
-            get_tauri_app()
+            TAURI_APP
+                .get()
+                .unwrap()
                 .emit_all("on-open-serial", port_name)
                 .unwrap();
 
@@ -237,7 +257,7 @@ async fn open_port(
 
 #[tauri::command]
 async fn close_port(port_name: &str) -> Result<u32, u32> {
-    let mut serials = get_serial_map().lock().unwrap();
+    let mut serials = SERIAL_MANAGER.lock().unwrap();
 
     let target_port = port_name.to_string();
     let serial = serials.get_mut(&target_port);
@@ -248,19 +268,6 @@ async fn close_port(port_name: &str) -> Result<u32, u32> {
             .unwrap()
             .continue_flag()
             .store(false, std::sync::atomic::Ordering::SeqCst);
-        // let try_break = serial.unwrap().port().lock().unwrap().set_break();
-        // match try_break {
-        //     Ok(()) => {
-        //         println!("[{}] closed.", target_port);
-
-        //         serials.remove(&target_port).unwrap();
-
-        //         get_tauri_app()
-        //             .emit_all("on-close-serial", target_port)
-        //             .unwrap();
-        //     }
-        //     Err(_) => {}
-        // }
     }
 
     Ok(200)
@@ -269,25 +276,85 @@ async fn close_port(port_name: &str) -> Result<u32, u32> {
 // 現在接続中のポートの名前一覧を取得する
 #[tauri::command]
 fn get_connecting_serials() -> Vec<String> {
-    let serials = get_serial_map().lock().unwrap();
+    let serials = SERIAL_MANAGER.lock().unwrap();
 
     let keys = serials.keys();
     keys.cloned().collect()
 }
 
+#[tauri::command]
+fn test(
+    state1: TauriState<Mutex<AppHandle>>,
+    state2: TauriState<Mutex<_AppData>>
+) {
+    state1.lock().unwrap().emit_all("test", "");
+    println!("{:?}", state2.lock().unwrap().welcome_message);
+}
+
 fn serial() {
     // ポートリストを定期的に更新し、イベントを発火する
-    let refresh_fps = 1000 / 5;
-    let tauri_app_port_list = get_tauri_app().clone();
-    thread::spawn(move || loop {
-        let ports = serialport::available_ports().unwrap();
-        tauri_app_port_list.emit_all("on-ports", ports).unwrap();
+    let refresh_fps = 1000 / 4;
+    thread::spawn(move || {
+        let tauri_app_port_list = TAURI_APP.get().unwrap().clone();
+        let mut last_ports: Vec<serialport::SerialPortInfo> = vec![];
+        loop {
+            let ports = serialport::available_ports().unwrap();
 
-        park_timeout(Duration::from_millis(refresh_fps));
+            if last_ports.clone() != ports.clone() {
+                tauri_app_port_list
+                    .emit_all("on-ports", ports.clone())
+                    .unwrap();
+            }
+
+            last_ports = ports;
+
+            park_timeout(Duration::from_millis(refresh_fps));
+        }
     });
 }
 
-fn main() {
+async fn init_plugin_serve() {
+    // let aaa = PLUGIN_MANAGER.get().unwrap();
+    // let serve = PluginServe::init(aaa);
+}
+
+async fn init_plugin() {
+    PLUGIN_MANAGER.get_or_init(|| Mutex::new(PluginManager::new()));
+
+    tokio::spawn(init_plugin_serve());
+
+    let plugin_dir = fs::read_dir(PLUGIN_DIR).unwrap();
+
+    println!("Loading plugins...");
+
+    for entry in plugin_dir {
+        let entry = entry.unwrap(); // TODO: match
+        let path = entry.path();
+
+        let manifest_file = File::open(format!("{}/manifest.json", path.display()));
+        if manifest_file.is_err() {
+            println!("Failed to open manifest.json");
+            continue;
+        }
+
+        let manifest: PluginManifest = serde_json::from_reader(manifest_file.unwrap()).unwrap();
+
+        println!("Loaded plugin manifest: {}", manifest.name);
+
+        let plugin_main_path = format!("{}/{}", path.display(), manifest.main);
+
+        let plugin_process = std::process::Command::new(plugin_main_path)
+            .spawn()
+            .expect("Failed to execute plugin");
+    }
+}
+
+struct _AppData {
+    welcome_message: &'static str,
+  }
+
+#[tokio::main]
+async fn main() {
     // システムトレイアイコンの設定
     let hide = CustomMenuItem::new("hide".to_string(), "Hide");
     let quit = CustomMenuItem::new("quit".to_string(), "Quit");
@@ -297,12 +364,21 @@ fn main() {
         .add_item(quit);
     let tray = SystemTray::new().with_menu(tray_menu);
 
+    tokio::spawn(init_plugin());
+
     tauri::Builder::default()
         .setup(|app| {
             let for_serial_app = app.app_handle();
-            TAURI_APP.get_or_init(|| Some(for_serial_app.clone()));
+            TAURI_APP.get_or_init(|| for_serial_app);
             // serial(for_serial_app);
             serial();
+
+            let _for_manage = app.app_handle();
+            app.manage(Mutex::new(_for_manage));
+            let _app_data = _AppData {
+                welcome_message: "WelcmeToTOTOTOtTToToTOt",
+            };
+            app.manage(Mutex::new(_app_data));
 
             let window = app.get_window("main").unwrap();
             window.show().unwrap();
@@ -340,7 +416,8 @@ fn main() {
             get_ports,
             get_connecting_serials,
             open_port,
-            close_port
+            close_port,
+            test
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -2,6 +2,7 @@ use std::vec;
 
 use ::serde::{Deserialize, Serialize};
 use chrono::{Local, TimeZone, Utc};
+use serde_repr::{Deserialize_repr, Serialize_repr};
 
 // #[derive(Clone, Copy)]
 // pub enum SwitchType {
@@ -10,7 +11,8 @@ use chrono::{Local, TimeZone, Utc};
 //     Analog,
 // }
 
-#[derive(Clone, Copy, Deserialize, Serialize, Debug)]
+#[derive(Clone, Copy, Deserialize_repr, Serialize_repr, Debug)]
+#[repr(i8)]
 #[serde(rename_all = "camelCase")]
 pub enum SwitchType {
     Unknown = -1,
@@ -26,17 +28,17 @@ enum BodyLen {
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct SwitchData {
+pub struct ActionData {
     switch_type: SwitchType, // -1: Unknown, 0: Digital, 1: Analog
     id: u8,
     state: u16,
-    raw_data: Vec<u8>,
+    raw_data: Vec<u8>, // TODO: raw_value
     timestamp: i64,
 }
 
-impl SwitchData {
-    pub fn new() -> SwitchData {
-        SwitchData {
+impl ActionData {
+    pub fn new() -> ActionData {
+        ActionData {
             switch_type: SwitchType::Unknown,
             id: 0,
             state: 0,
@@ -94,9 +96,9 @@ pub struct ArdeckData {
     data_len: usize, // Digital: 4, Analog: 5
     body_len: BodyLen,
     has_collect: bool,
-    on_correct_handler: Box<dyn Fn(SwitchData) + Send>,
+    on_correct_handler: Box<dyn Fn(ActionData) + Send>,
     complete_count: u128,
-    switch_data_buf: SwitchData,
+    switch_data_buf: ActionData,
 }
 
 impl ArdeckData {
@@ -116,7 +118,7 @@ impl ArdeckData {
             has_collect: false,
             on_correct_handler: Box::new(|data| {}),
             complete_count: 0,
-            switch_data_buf: SwitchData::new(),
+            switch_data_buf: ActionData::new(),
         }
     }
 
@@ -147,7 +149,7 @@ impl ArdeckData {
 
     fn clear_buf(&mut self) {
         self.header_buf.clear();
-        self.switch_data_buf = SwitchData::new();
+        self.switch_data_buf = ActionData::new();
     }
 
     fn get_time_millis() -> i64 {
@@ -183,13 +185,13 @@ impl ArdeckData {
     }
 
     fn put_challenge(&mut self, _data: u8) -> bool {
-        // print!("count: {}", self.read_count);
-        // print!("\t{:08b}", &_data);
+        print!("count: {}", self.read_count);
+        print!("\t{:08b}", &_data);
 
         let buf_len = self.header_buf.len();
         let if_str = String::from_utf8(vec![_data]).unwrap_or("".to_string());
         let msg = if_str.clone();
-        // print!("\t{}", msg);
+        print!("\t{}", msg);
         // ADECのヘッダーの頭であるAが来たら、読み取り開始
         if msg == "A" && !self.is_reading
         /* && self.read_count == 0 */
@@ -199,7 +201,7 @@ impl ArdeckData {
             self.is_reading = true;
             self.header_buf.push('A');
 
-            // print!("\tCollect-A, Start-Read");
+            print!("\tCollect-A, Start-Read");
         }
 
         // 2個目にDが来たら、ヘッダーを読み取る
@@ -208,7 +210,7 @@ impl ArdeckData {
         {
             self.header_buf.push('D');
 
-            // print!("\tCollect-D");
+            print!("\tCollect-D");
         }
 
         // 3個目にデータが来たら、データを読み取る
@@ -217,7 +219,7 @@ impl ArdeckData {
 
             let switch_type = self.switch_data_buf.switch_type();
 
-            // print!("Switch-Type: {:?}", switch_type);
+            print!("Switch-Type: {:?}", switch_type);
 
             match switch_type {
                 SwitchType::Unknown => {
@@ -248,10 +250,10 @@ impl ArdeckData {
                             raw_data.push(_data);
                             self.switch_data_buf.set_raw_data(raw_data);
 
-                            // print!("\tCollect-Data-Analog-0");
+                            print!("\tCollect-Data-Analog-0");
                         }
                         _ => {
-                            // print!("\tCollect-data-Unknown-0");
+                            print!("\tCollect-data-Unknown-0");
                         }
                     }
                 }
@@ -261,7 +263,7 @@ impl ArdeckData {
                     raw_data.push(_data);
                     self.switch_data_buf.set_raw_data(raw_data);
 
-                    // print!("\tCollect-Data-Analog-1");
+                    print!("\tCollect-Data-Analog-1");
                 }
                 SwitchType::Digital => {}
             }
@@ -273,7 +275,7 @@ impl ArdeckData {
         {
             self.header_buf.push('E');
 
-            // print!("\tCollect-E");
+            print!("\tCollect-E");
         }
 
         if msg == "C" && self.is_reading
@@ -281,18 +283,18 @@ impl ArdeckData {
         {
             self.header_buf.push('C');
 
-            // print!("\tCollect-C");
+            print!("\tCollect-C");
         }
 
         // ヘッダーが４つ揃ったら、溜めたデータをチェックする
-        if self.header_buf.len() == Self::HEADER_LEN as usize {
+        if self.header_buf.len() == Self::HEADER_LEN as usize || self.read_count > 5 {
             self.countup_read();
 
             // 前回までに溜めたデータがADECだったら、今回のデータを正式なデータとして扱う
             if self.header_buf == Self::HEADER && self.read_count as i8 == self.data_len as i8 {
                 self.clear_flag_count();
-                // print!("\tComplete-Data");
-                // println!("");
+                print!("\tComplete-Data");
+                println!("");
 
                 self.format_switch_data();
 
@@ -302,15 +304,17 @@ impl ArdeckData {
             } else {
                 // ヘッダーがADECじゃなかったら、リセット
                 self.clear_flag_count();
-                // println!("\tCollect-Reset");
-                // println!("------------------------------------------------");
-                // println!("");
+                println!("\tCollect-Reset");
+                println!("------------------------------------------------");
+                println!("");
 
                 return false;
             }
         } else {
-            self.countup_read();
-            // println!("");
+            if self.is_reading {
+                self.countup_read();
+            }
+            println!("");
 
             return false;
         }
@@ -336,11 +340,11 @@ impl ArdeckData {
         // }
     }
 
-    pub fn on_complete<F: Fn(SwitchData) + Send + 'static>(&mut self, handler: F) {
+    pub fn on_complete<F: Fn(ActionData) + Send + 'static>(&mut self, handler: F) {
         self.on_correct_handler = Box::new(handler);
     }
 
-    fn on_correct_emit(&mut self, data: SwitchData) {
+    fn on_correct_emit(&mut self, data: ActionData) {
         let time = Self::get_time_millis();
         // println!("Switch data: {:?}", data);
         self.countup_complete();

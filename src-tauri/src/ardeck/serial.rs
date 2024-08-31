@@ -1,4 +1,11 @@
-use crate::ardeck::ardeck_data::ArdeckData;
+pub mod command;
+pub mod data;
+
+use command::ArdeckCommand;
+use data::{
+    ArdeckData,
+    ActionData,
+};
 
 use serialport::{self, SerialPort};
 

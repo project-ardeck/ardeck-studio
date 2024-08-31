@@ -1,10 +1,4 @@
-mod ardeck_data;
-mod ardeck_serial;
-mod ardeck_command;
-mod ardeck_config;
+pub mod service;
+pub mod serial;
+pub mod plugin;
 
-pub use ardeck_data::{
-    ArdeckData,
-    SwitchData,
-};
-pub use ardeck_serial::ArdeckSerial;
