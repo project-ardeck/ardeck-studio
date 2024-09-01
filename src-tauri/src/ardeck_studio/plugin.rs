@@ -1,10 +1,10 @@
-pub mod plugin_core;
-pub mod plugin_manager;
+pub mod core;
+pub mod manager;
 
-use plugin_manager::{
+use manager::{
     PluginManager,
 };
-use plugin_core::{
+use core::{
     PluginServe
 };
 

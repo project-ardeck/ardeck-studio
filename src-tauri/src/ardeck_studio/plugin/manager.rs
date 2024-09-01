@@ -1,9 +1,11 @@
-use std::{collections::HashMap, hash::Hash, process::Child, sync::{Arc, Mutex}};
+use std::{
+    collections::HashMap,
+    hash::Hash,
+    process::Child,
+    sync::{Arc, Mutex},
+};
 
-use super::{PluginManifest, Plugin};
-
-
-
+use super::{Plugin, PluginManifest};
 
 #[derive(Clone, Debug)]
 pub struct PluginManager {
@@ -20,7 +22,7 @@ impl PluginManager {
     pub fn add_plugin(&mut self, plugin: Plugin) {
         self.plugins.insert(plugin.manifest.clone().id, plugin);
     }
-    
+
     pub fn get_plugin(&self, id: &str) -> Option<&Plugin> {
         self.plugins.get(id)
     }

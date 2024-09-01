@@ -1,5 +1,6 @@
 pub mod command;
 pub mod data;
+pub mod manager;
 
 use command::ArdeckCommand;
 use data::{
@@ -19,7 +20,7 @@ use std::{
 };
 
 #[derive(Clone)]
-pub struct ArdeckSerial {
+pub struct Ardeck {
     continue_flag: Arc<AtomicBool>,
 
     port: Arc<Mutex<Box<dyn SerialPort>>>,
@@ -35,8 +36,8 @@ pub enum OpenError {
     Unknown,
 }
 
-impl ArdeckSerial {
-    pub fn open(port_name: &String, baud_rate: u32) -> Result<ArdeckSerial, OpenError> {
+impl Ardeck {
+    pub fn open(port_name: &String, baud_rate: u32) -> Result<Ardeck, OpenError> {
         println!("Open Port: {} - {}", port_name, baud_rate);
         let port = serialport::new(port_name, baud_rate).open();
 
@@ -46,7 +47,7 @@ impl ArdeckSerial {
 
                 // port.set_timeout(Duration::from_millis(1000))
                 //     .expect("Set Timeout Error.");
-                Ok(ArdeckSerial {
+                Ok(Ardeck {
                     continue_flag: Arc::new(AtomicBool::new(true)),
                     port: Arc::new(Mutex::new(port)),
                     port_data: Arc::new(Mutex::new(ArdeckData::new())),
@@ -89,7 +90,7 @@ impl ArdeckSerial {
     }
 }
 
-impl Drop for ArdeckSerial {
+impl Drop for Ardeck {
     fn drop(&mut self) {
         // self.reset();
         // self.continue_flag.store(false, Ordering::Relaxed);

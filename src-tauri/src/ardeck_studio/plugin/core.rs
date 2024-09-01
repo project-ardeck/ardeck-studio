@@ -8,7 +8,7 @@ use axum::{serve, Router};
 use once_cell::sync::Lazy;
 use tokio::net::TcpListener;
 
-use super::plugin_manager::PluginManager;
+use super::manager::PluginManager;
 
 use super::{Plugin, PluginManifest, PluginMessage, PluginMessageData, PluginOpCode, PLUGIN_DIR};
 

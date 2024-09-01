@@ -20,6 +20,7 @@ pub enum SwitchType {
     Analog = 1,
 }
 
+#[derive(Clone, Debug)]
 enum BodyLen {
     Unknown = 0,
     Digital = 1,
@@ -96,7 +97,7 @@ pub struct ArdeckData {
     data_len: usize, // Digital: 4, Analog: 5
     body_len: BodyLen,
     has_collect: bool,
-    on_correct_handler: Box<dyn Fn(ActionData) + Send>,
+    on_correct_handler: Box<dyn Fn(ActionData) + Send + 'static>,
     complete_count: u128,
     switch_data_buf: ActionData,
 }

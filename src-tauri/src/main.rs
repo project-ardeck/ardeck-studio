@@ -4,7 +4,7 @@
 // mod ardeck_serial;
 // mod ardeck_data;
 
-mod ardeck;
+mod ardeck_studio;
 
 use core::panic;
 use std::{
@@ -22,15 +22,12 @@ use std::{
 
 use once_cell::sync::{Lazy, OnceCell};
 
-use ardeck::{
-    plugin::{
-        plugin_core::PluginServe, plugin_manager::PluginManager, PluginManifest,
-        PLUGIN_DIR,
-    },
-    serial::{
+use ardeck_studio::{
+    plugin::{core::PluginServe, manager::PluginManager, PluginManifest, PLUGIN_DIR},
+    ardeck::{
         command::ArdeckCommand,
         data::{ActionData, ArdeckData},
-        ArdeckSerial,
+        Ardeck,
     },
     service::settings::{DeviceSettingOptions, DeviceSettings},
 };
@@ -40,7 +37,8 @@ use chrono::{format, Utc};
 use serde::{Deserialize, Serialize};
 use serialport::SerialPort;
 use tauri::{
-    plugin, AppHandle, CustomMenuItem, Manager, State as TauriState, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem
+    plugin, AppHandle, CustomMenuItem, Manager, State as TauriState, SystemTray, SystemTrayEvent,
+    SystemTrayMenu, SystemTrayMenuItem,
 };
 use window_shadows::set_shadow;
 
@@ -68,15 +66,14 @@ struct OnMessageSerial {
 }
 
 // シリアル通信中のSerialportトレイトを格納する
-static SERIAL_MANAGER: Lazy<Mutex<HashMap<String, ArdeckSerial>>> =
+static ARDECK_MANAGER: Lazy<Mutex<HashMap<String, Ardeck>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 static TAURI_APP: OnceCell<tauri::AppHandle> = OnceCell::new();
 static PLUGIN_MANAGER: OnceCell<Mutex<PluginManager>> = OnceCell::new();
 
-
 // 指定されたポート名が、現在接続中のポート一覧に存在するかどうかを確認する
 fn is_connecting_serial(port_name: &String) -> bool {
-    let serials = SERIAL_MANAGER.lock().unwrap();
+    let serials = ARDECK_MANAGER.lock().unwrap();
 
     let tryget = serials.get(port_name);
 
@@ -119,7 +116,7 @@ async fn open_port(port_name: &str, baud_rate: u32) -> Result<u32, u32> {
     }
 
     // 接続開始
-    let serial = ArdeckSerial::open(&port_name.to_string(), baud_rate);
+    let serial = Ardeck::open(&port_name.to_string(), baud_rate);
 
     let command = ArdeckCommand::new();
 
@@ -150,70 +147,25 @@ async fn open_port(port_name: &str, baud_rate: u32) -> Result<u32, u32> {
                 });
 
             let port_name_for_thread = port_name.to_string().clone();
-            thread::spawn(move || loop {
-                // println!("[{}] Thread Start", port_name_for_thread);
+            tokio::spawn(async move {
+                loop {
+                    // println!("[{}] Thread Start", port_name_for_thread);
 
-                let mut serials = SERIAL_MANAGER.lock().unwrap().clone();
-                let serial = serials.get_mut(&port_name_for_thread.to_string());
+                    let mut serials = ARDECK_MANAGER.lock().unwrap().clone();
+                    let serial = serials.get_mut(&port_name_for_thread.to_string());
 
-                if serial.is_none() {
-                    return;
-                }
-
-                if serial
-                    .as_ref()
-                    .unwrap()
-                    .continue_flag()
-                    .load(std::sync::atomic::Ordering::SeqCst)
-                    == false
-                {
-                    SERIAL_MANAGER
-                        .lock()
-                        .unwrap()
-                        .remove(&port_name_for_thread.to_string())
-                        .unwrap();
-
-                    TAURI_APP
-                        .get()
-                        .unwrap()
-                        .emit_all("on-close-serial", port_name_for_thread.clone())
-                        .unwrap();
-
-                    println!(
-                        "[{}] Connection Stoped for Bool.",
-                        port_name_for_thread.to_string()
-                    );
-
-                    break;
-                }
-
-                let mut serial_buf: Vec<u8> = vec![0; 1];
-
-                let port_arc = serial.unwrap().port();
-                let mut port = port_arc.lock().unwrap();
-
-                // println!("[{}] Reading...", port_name_for_thread);
-
-                let try_read = port.read(&mut serial_buf);
-
-                match try_read {
-                    Ok(_) => {
-                        // println!("[{}] Readed", port_name_for_thread);
-
-                        let ardeck_data = serials
-                            .get_mut(&port_name_for_thread.to_string())
-                            .unwrap()
-                            .port_data();
-                        ardeck_data.lock().unwrap().on_data(serial_buf);
+                    if serial.is_none() {
+                        return;
                     }
-                    Err(Kind) => {
-                        println!(
-                            "[{}] Connection Err, Connetion Stoped.",
-                            port_name_for_thread.to_string()
-                        );
-                        println!("Kind: {:?}", Kind);
 
-                        SERIAL_MANAGER
+                    if serial
+                        .as_ref()
+                        .unwrap()
+                        .continue_flag()
+                        .load(std::sync::atomic::Ordering::SeqCst)
+                        == false
+                    {
+                        ARDECK_MANAGER
                             .lock()
                             .unwrap()
                             .remove(&port_name_for_thread.to_string())
@@ -226,18 +178,65 @@ async fn open_port(port_name: &str, baud_rate: u32) -> Result<u32, u32> {
                             .unwrap();
 
                         println!(
-                            "[{}] Connection Stoped for Error.",
+                            "[{}] Connection Stoped for Bool.",
                             port_name_for_thread.to_string()
                         );
 
-                        // TODO: エラーの理由がどうであれ、ディスコネクト要求があるまでエラーイベントを発火させてループを続ける
-
                         break;
+                    }
+
+                    let mut serial_buf: Vec<u8> = vec![0; 1];
+
+                    let port_arc = serial.unwrap().port();
+                    let mut port = port_arc.lock().unwrap();
+
+                    // println!("[{}] Reading...", port_name_for_thread);
+
+                    let try_read = port.read(&mut serial_buf);
+
+                    match try_read {
+                        Ok(_) => {
+                            // println!("[{}] Readed", port_name_for_thread);
+
+                            let ardeck_data = serials
+                                .get_mut(&port_name_for_thread.to_string())
+                                .unwrap()
+                                .port_data();
+                            ardeck_data.lock().unwrap().on_data(serial_buf);
+                        }
+                        Err(Kind) => {
+                            println!(
+                                "[{}] Connection Err, Connetion Stoped.",
+                                port_name_for_thread.to_string()
+                            );
+                            println!("Kind: {:?}", Kind);
+
+                            ARDECK_MANAGER
+                                .lock()
+                                .unwrap()
+                                .remove(&port_name_for_thread.to_string())
+                                .unwrap();
+
+                            TAURI_APP
+                                .get()
+                                .unwrap()
+                                .emit_all("on-close-serial", port_name_for_thread.clone())
+                                .unwrap();
+
+                            println!(
+                                "[{}] Connection Stoped for Error.",
+                                port_name_for_thread.to_string()
+                            );
+
+                            // TODO: エラーの理由がどうであれ、ディスコネクト要求があるまでエラーイベントを発火させてループを続ける
+
+                            break;
+                        }
                     }
                 }
             });
 
-            let mut serials = SERIAL_MANAGER.lock().unwrap();
+            let mut serials = ARDECK_MANAGER.lock().unwrap();
             serials.insert(port_name.to_string(), ardeck_serial);
             TAURI_APP
                 .get()
@@ -257,7 +256,7 @@ async fn open_port(port_name: &str, baud_rate: u32) -> Result<u32, u32> {
 
 #[tauri::command]
 async fn close_port(port_name: &str) -> Result<u32, u32> {
-    let mut serials = SERIAL_MANAGER.lock().unwrap();
+    let mut serials = ARDECK_MANAGER.lock().unwrap();
 
     let target_port = port_name.to_string();
     let serial = serials.get_mut(&target_port);
@@ -276,17 +275,14 @@ async fn close_port(port_name: &str) -> Result<u32, u32> {
 // 現在接続中のポートの名前一覧を取得する
 #[tauri::command]
 fn get_connecting_serials() -> Vec<String> {
-    let serials = SERIAL_MANAGER.lock().unwrap();
+    let serials = ARDECK_MANAGER.lock().unwrap();
 
     let keys = serials.keys();
     keys.cloned().collect()
 }
 
 #[tauri::command]
-fn test(
-    state1: TauriState<Mutex<AppHandle>>,
-    state2: TauriState<Mutex<_AppData>>
-) {
+fn test(state1: TauriState<Mutex<AppHandle>>, state2: TauriState<Mutex<_AppData>>) {
     state1.lock().unwrap().emit_all("test", "");
     println!("{:?}", state2.lock().unwrap().welcome_message);
 }
@@ -351,7 +347,7 @@ async fn init_plugin() {
 
 struct _AppData {
     welcome_message: &'static str,
-  }
+}
 
 #[tokio::main]
 async fn main() {

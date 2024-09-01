@@ -1,4 +1,4 @@
 pub mod service;
-pub mod serial;
+pub mod ardeck;
 pub mod plugin;
 
