@@ -5,6 +5,8 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+use crate::util::manager::Manager;
+
 use super::{Plugin, PluginManifest};
 
 #[derive(Clone, Debug)]
@@ -19,23 +21,23 @@ impl PluginManager {
         }
     }
 
-    pub fn add_plugin(&mut self, plugin: Plugin) {
+    pub fn add(&mut self, plugin: Plugin) {
         self.plugins.insert(plugin.manifest.clone().id, plugin);
     }
 
-    pub fn get_plugin(&self, id: &str) -> Option<&Plugin> {
+    pub fn get(&self, id: &str) -> Option<&Plugin> {
         self.plugins.get(id)
     }
 
-    pub fn get_plugins(&self) -> &HashMap<String, Plugin> {
+    pub fn get_all(&self) -> &HashMap<String, Plugin> {
         &self.plugins
     }
 
-    pub fn get_plugins_mut(&mut self) -> &mut HashMap<String, Plugin> {
+    pub fn get_all_mut(&mut self) -> &mut HashMap<String, Plugin> {
         &mut self.plugins
     }
 
-    pub fn remove_plugin(&mut self, id: &str) {
+    pub fn remove(&mut self, id: &str) {
         self.plugins.remove(id);
     }
 }

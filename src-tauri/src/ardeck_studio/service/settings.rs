@@ -24,6 +24,9 @@ pub enum GetDeviceSettingError {
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub struct DeviceSettings;
 impl DeviceSettings {
+    // TODO: アプリで使うディレクトリを(存在しなければ)作成する関数
+    pub fn init_dir() {}
+
     pub fn get_settings() -> Result<Vec<DeviceSettingOptions>, GetDeviceSettingError> {
         let settings_path = "settings/device_settings.json";
         let settings_str = match fs::read_to_string(settings_path) {

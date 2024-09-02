@@ -1,3 +1,4 @@
+use std::fs;
 use std::sync::{Arc, Mutex};
 
 use axum::extract::ws::WebSocket;
@@ -12,7 +13,9 @@ use super::manager::PluginManager;
 
 use super::{Plugin, PluginManifest, PluginMessage, PluginMessageData, PluginOpCode, PLUGIN_DIR};
 
-pub struct PluginServe {}
+pub struct PluginServe {
+    plugin: PluginManager,
+}
 impl PluginServe {
     pub async fn start(plugins_state: Mutex<PluginManager>) {
         let listener = TcpListener::bind("localhost::3322").await.unwrap();
@@ -28,6 +31,12 @@ impl PluginServe {
 
         serve(listener, app).await.unwrap();
     }
+
+    pub async fn execute_plugin_all() {
+        let plugin_dir = fs::read_dir(PLUGIN_DIR).unwrap();
+    }
+
+    // pub async fn 
 
     // async fn socket_handler(ws: WebSocketUpgrade) {
     //     ws.on_upgrade(move |socket: WebSocket| self)
