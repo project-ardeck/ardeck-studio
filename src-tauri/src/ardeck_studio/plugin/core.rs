@@ -1,4 +1,6 @@
-use std::fs;
+use std::borrow::Borrow;
+use std::fs::{self, File};
+use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 use axum::extract::ws::WebSocket;
@@ -7,7 +9,10 @@ use axum::response::IntoResponse;
 use axum::routing::get;
 use axum::{serve, Router};
 use once_cell::sync::Lazy;
+use tauri::plugin;
 use tokio::net::TcpListener;
+
+use crate::ardeck_studio::service::dir::Directories;
 
 use super::manager::PluginManager;
 
@@ -33,10 +38,33 @@ impl PluginServe {
     }
 
     pub async fn execute_plugin_all() {
-        let plugin_dir = fs::read_dir(PLUGIN_DIR).unwrap();
+        let dir = Directories::get_or_init(Path::new(PLUGIN_DIR)).unwrap();
+
+        for entry in dir {
+            if entry.is_err() {
+                continue;
+                // TODO: Error
+            }
+
+            let path = entry.unwrap().path();
+
+            let manifest_file = File::open(format!("{}/manifest.json", path.display()));
+            if manifest_file.is_err() {
+                println!("Failed to open manifest.json");
+                continue;
+            }
+
+            let manifest: PluginManifest = serde_json::from_reader(manifest_file.unwrap()).unwrap();
+            
+            let plugin_main_path = format!("{}/{}", path.display(), manifest.main);
+
+            let plugin_process = std::process::Command::new(plugin_main_path)
+                .spawn()
+                .expect("Failed to execute plugin");
+            }
     }
 
-    // pub async fn 
+    // pub async fn
 
     // async fn socket_handler(ws: WebSocketUpgrade) {
     //     ws.on_upgrade(move |socket: WebSocket| self)
