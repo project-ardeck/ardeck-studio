@@ -1,3 +1,22 @@
+/*
+Ardeck studio - The ardeck command mapping software.
+Copyright (C) 2024 project-ardeck
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or 
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful, 
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+*/
+
+
 pub mod command;
 pub mod data;
 pub mod manager;
@@ -19,12 +38,12 @@ use std::{
     time::Duration,
 };
 
-#[derive(Clone)]
-pub struct Ardeck {
-    continue_flag: Arc<AtomicBool>,
 
-    port: Arc<Mutex<Box<dyn SerialPort>>>,
-    port_data: Arc<Mutex<ArdeckData>>,
+pub struct Ardeck {
+    continue_flag: AtomicBool,
+
+    port: Box<dyn SerialPort>,
+    port_data: ArdeckData,
 }
 
 /* State List
@@ -44,23 +63,14 @@ impl Ardeck {
         match port {
             Ok(mut port) => {
                 println!("Port Opened.");
-
-                // port.set_timeout(Duration::from_millis(1000))
-                //     .expect("Set Timeout Error.");
                 Ok(Ardeck {
-                    continue_flag: Arc::new(AtomicBool::new(true)),
-                    port: Arc::new(Mutex::new(port)),
-                    port_data: Arc::new(Mutex::new(ArdeckData::new())),
-                })
+                    continue_flag: AtomicBool::new(true),
+                    port,
+                    port_data: ArdeckData::new(),
+                }) // TODO: Arcを外す
             }
             Err(_) => Err(OpenError::Unknown),
         }
-
-        // ArdeckSerial {
-        //     state: Arc::new(AtomicBool::new(true)),
-        //     port: Arc::new(Mutex::new(port)),
-        //     port_data: Arc::new(Mutex::new(ArdeckData::new())),
-        // }
     }
 
     pub fn get_ports() -> Vec<serialport::SerialPortInfo> {
@@ -73,16 +83,16 @@ impl Ardeck {
         self.continue_flag.load(Ordering::Relaxed)
     }
     
-    pub fn state(&self) -> Arc<AtomicBool> {
-        self.continue_flag.clone()
+    pub fn state(&self) -> &AtomicBool {
+        &self.continue_flag
     }
     
-    pub fn port(&self) -> Arc<Mutex<Box<dyn SerialPort>>> {
-        self.port.clone()
+    pub fn port(&self) -> &Box<dyn SerialPort> {
+        &self.port
     }
     
-    pub fn port_data(&self) -> Arc<Mutex<ArdeckData>> {
-        self.port_data.clone()
+    pub fn port_data(&self) -> &ArdeckData {
+        &self.port_data
     }
     
     pub fn continue_flag(&self) -> &AtomicBool {

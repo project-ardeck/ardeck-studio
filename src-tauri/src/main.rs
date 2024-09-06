@@ -1,3 +1,21 @@
+/*
+Ardeck studio - The ardeck command mapping software.
+Copyright (C) 2024 project-ardeck
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or 
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful, 
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+*/
+
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
@@ -14,8 +32,7 @@ use std::{
     hash::Hash,
     io,
     sync::{
-        mpsc::{channel, Receiver, Sender},
-        Mutex, OnceLock,
+        mpsc::{channel, Receiver, Sender}, Arc, Mutex, OnceLock
     },
     thread::{self, park_timeout},
     time::Duration,
@@ -24,13 +41,9 @@ use std::{
 use once_cell::sync::{Lazy, OnceCell};
 
 use ardeck_studio::{
-    plugin::{core::PluginServe, manager::PluginManager, PluginManifest, PLUGIN_DIR},
     ardeck::{
-        command::ArdeckCommand,
-        data::{ActionData, ArdeckData},
-        Ardeck,
-    },
-    service::settings::{DeviceSettingOptions, DeviceSettings},
+        command::ArdeckCommand, data::{ActionData, ArdeckData}, manager::ArdeckManager, Ardeck
+    }, plugin::{core::PluginServe, manager::PluginManager, PluginManifest, PLUGIN_DIR}, service::settings::{DeviceSettingOptions, DeviceSettings}
 };
 
 use chrono::{format, Utc};
@@ -67,7 +80,7 @@ struct OnMessageSerial {
 }
 
 // シリアル通信中のSerialportトレイトを格納する
-static ARDECK_MANAGER: Lazy<Mutex<HashMap<String, Ardeck>>> =
+static ARDECK_MANAGER: Lazy<Mutex<HashMap<String, Arc<Mutex<Ardeck>>>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 static TAURI_APP: OnceCell<tauri::AppHandle> = OnceCell::new();
 static PLUGIN_MANAGER: OnceCell<Mutex<PluginManager>> = OnceCell::new();
@@ -123,21 +136,22 @@ async fn open_port(port_name: &str, baud_rate: u32) -> Result<u32, u32> {
 
     match serial {
         Ok(ardeck_serial) => {
+            let ardeck_serial = Arc::new(Mutex::new(ardeck_serial));
             println!("[{}] Opened", port_name);
 
             // 5秒間受信しなければエラー
             ardeck_serial
-                .port()
                 .lock()
                 .unwrap()
+                .port()
                 .set_timeout(Duration::from_millis(5000))
                 .unwrap();
 
             // 受信したデータが正しければ、プラグインの部分に投げる
             ardeck_serial
-                .port_data()
                 .lock()
                 .unwrap()
+                .port_data()
                 .on_complete(move |data| {
                     TAURI_APP
                         .get()
@@ -161,6 +175,8 @@ async fn open_port(port_name: &str, baud_rate: u32) -> Result<u32, u32> {
 
                     if serial
                         .as_ref()
+                        .unwrap()
+                        .lock()
                         .unwrap()
                         .continue_flag()
                         .load(std::sync::atomic::Ordering::SeqCst)
@@ -188,8 +204,8 @@ async fn open_port(port_name: &str, baud_rate: u32) -> Result<u32, u32> {
 
                     let mut serial_buf: Vec<u8> = vec![0; 1];
 
-                    let port_arc = serial.unwrap().port();
-                    let mut port = port_arc.lock().unwrap();
+                    // let port_arc = ;
+                    let mut port = serial.unwrap().port();
 
                     // println!("[{}] Reading...", port_name_for_thread);
 
@@ -203,7 +219,7 @@ async fn open_port(port_name: &str, baud_rate: u32) -> Result<u32, u32> {
                                 .get_mut(&port_name_for_thread.to_string())
                                 .unwrap()
                                 .port_data();
-                            ardeck_data.lock().unwrap().on_data(serial_buf);
+                            ardeck_data.on_data(serial_buf);
                         }
                         Err(Kind) => {
                             println!(
@@ -362,6 +378,9 @@ async fn main() {
     let tray = SystemTray::new().with_menu(tray_menu);
 
     tokio::spawn(init_plugin());
+
+    // TODO: Lazy to Arc
+    let ardeck_manager = Arc::new(Mutex::new(ArdeckManager::new()));
 
     tauri::Builder::default()
         .setup(|app| {
