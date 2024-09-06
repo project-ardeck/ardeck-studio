@@ -34,6 +34,15 @@ impl ArdeckManager for HashMap<&str, Arc<Mutex<Ardeck>>> {
 
 }
 
+impl ArdeckManager for HashMap<String, Ardeck> {
+
+}
+
+impl ArdeckManager for HashMap<String, Arc<Mutex<Ardeck>>> {
+
+}
+
+
 // pub struct ArdeckManager {
 //     ardecks: HashMap<String, Ardeck>,
 // }

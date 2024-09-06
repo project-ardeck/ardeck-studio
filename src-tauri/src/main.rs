@@ -115,7 +115,11 @@ fn get_device_settings() -> Vec<DeviceSettingOptions> {
 }
 
 #[tauri::command]
-async fn open_port(port_name: &str, baud_rate: u32) -> Result<u32, u32> {
+async fn open_port(
+    ardeck_manager: TauriState<>
+    port_name: &str,
+    baud_rate: u32
+) -> Result<u32, u32> {
     // # protocol_version バージョンの考案日付
     // "2024-0-17": [DATA] ... 未実装
     // "2014-06-03": 'A', 'D', 'E', 'C', [DATA] ... Cを受信したタイミングで(リセットなどで)接続が途絶え、再度接続された際にデータがずれる問題が発生する
@@ -136,21 +140,17 @@ async fn open_port(port_name: &str, baud_rate: u32) -> Result<u32, u32> {
 
     match serial {
         Ok(ardeck_serial) => {
-            let ardeck_serial = Arc::new(Mutex::new(ardeck_serial));
+            // let ardeck_serial = Arc::new(Mutex::new(ardeck_serial));
             println!("[{}] Opened", port_name);
 
             // 5秒間受信しなければエラー
             ardeck_serial
-                .lock()
-                .unwrap()
                 .port()
                 .set_timeout(Duration::from_millis(5000))
                 .unwrap();
 
             // 受信したデータが正しければ、プラグインの部分に投げる
             ardeck_serial
-                .lock()
-                .unwrap()
                 .port_data()
                 .on_complete(move |data| {
                     TAURI_APP
@@ -380,7 +380,7 @@ async fn main() {
     tokio::spawn(init_plugin());
 
     // TODO: Lazy to Arc
-    let ardeck_manager = Arc::new(Mutex::new(ArdeckManager::new()));
+    let ardeck_manager: Arc<Mutex<HashMap<String, Ardeck>>> = Arc::new(Mutex::new(HashMap::new()));
 
     tauri::Builder::default()
         .setup(|app| {
