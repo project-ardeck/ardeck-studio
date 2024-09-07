@@ -42,7 +42,7 @@ use std::{
 pub struct Ardeck {
     continue_flag: AtomicBool,
 
-    port: Box<dyn SerialPort>,
+    port: Arc<Mutex<Box<dyn SerialPort>>>,
     port_data: ArdeckData,
 }
 
@@ -65,7 +65,7 @@ impl Ardeck {
                 println!("Port Opened.");
                 Ok(Ardeck {
                     continue_flag: AtomicBool::new(true),
-                    port,
+                    port: Arc::new(Mutex::new(port)),
                     port_data: ArdeckData::new(),
                 }) // TODO: Arcを外す
             }
@@ -87,9 +87,13 @@ impl Ardeck {
         &self.continue_flag
     }
     
-    pub fn port(&self) -> &Box<dyn SerialPort> {
-        &self.port
+    pub fn port(&self) -> Arc<Mutex<Box<dyn SerialPort>>> {
+        // &self.port
+        // &self.port
+        Arc::clone(&self.port)
     }
+
+
     
     pub fn port_data(&self) -> &ArdeckData {
         &self.port_data

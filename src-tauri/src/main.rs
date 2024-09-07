@@ -4,12 +4,12 @@ Copyright (C) 2024 project-ardeck
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or 
+the Free Software Foundation; either version 3 of the License, or
 (at your option) any later version.
 
-This program is distributed in the hope that it will be useful, 
+This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
@@ -32,7 +32,8 @@ use std::{
     hash::Hash,
     io,
     sync::{
-        mpsc::{channel, Receiver, Sender}, Arc, Mutex, OnceLock
+        mpsc::{channel, Receiver, Sender},
+        Arc, Mutex, OnceLock,
     },
     thread::{self, park_timeout},
     time::Duration,
@@ -42,8 +43,13 @@ use once_cell::sync::{Lazy, OnceCell};
 
 use ardeck_studio::{
     ardeck::{
-        command::ArdeckCommand, data::{ActionData, ArdeckData}, manager::ArdeckManager, Ardeck
-    }, plugin::{core::PluginServe, manager::PluginManager, PluginManifest, PLUGIN_DIR}, service::settings::{DeviceSettingOptions, DeviceSettings}
+        command::ArdeckCommand,
+        data::{ActionData, ArdeckData},
+        manager::ArdeckManager,
+        Ardeck,
+    },
+    plugin::{core::PluginServe, manager::PluginManager, PluginManifest, PLUGIN_DIR},
+    service::settings::{DeviceSettingOptions, DeviceSettings},
 };
 
 use chrono::{format, Utc};
@@ -116,9 +122,10 @@ fn get_device_settings() -> Vec<DeviceSettingOptions> {
 
 #[tauri::command]
 async fn open_port(
-    ardeck_manager: TauriState<>
+    app: TauriState<'_, Mutex<AppHandle>>,
+    ardeck_manager: TauriState<'_, Mutex<HashMap<String, Arc<Mutex<Ardeck>>>>>,
     port_name: &str,
-    baud_rate: u32
+    baud_rate: u32,
 ) -> Result<u32, u32> {
     // # protocol_version バージョンの考案日付
     // "2024-0-17": [DATA] ... 未実装
@@ -138,6 +145,7 @@ async fn open_port(
 
     let command = ArdeckCommand::new();
 
+    // 正常に接続されたら、readする準備をする
     match serial {
         Ok(ardeck_serial) => {
             // let ardeck_serial = Arc::new(Mutex::new(ardeck_serial));
@@ -146,53 +154,51 @@ async fn open_port(
             // 5秒間受信しなければエラー
             ardeck_serial
                 .port()
+                .lock().unwrap()
                 .set_timeout(Duration::from_millis(5000))
                 .unwrap();
 
             // 受信したデータが正しければ、プラグインの部分に投げる
-            ardeck_serial
-                .port_data()
-                .on_complete(move |data| {
-                    TAURI_APP
-                        .get()
-                        .unwrap()
-                        .emit_all("on-message-serial", data)
-                        .unwrap();
-                    // command.on_data(data);
-                });
+            ardeck_serial.port_data().on_complete(move |data| {
+                app.lock()
+                    .unwrap()
+                    .emit_all("on-message-serial", data)
+                    .unwrap();
+            });
 
+            // readするためのスレッド
             let port_name_for_thread = port_name.to_string().clone();
             tokio::spawn(async move {
                 loop {
                     // println!("[{}] Thread Start", port_name_for_thread);
 
-                    let mut serials = ARDECK_MANAGER.lock().unwrap().clone();
-                    let serial = serials.get_mut(&port_name_for_thread.to_string());
+                    let mut serials = ardeck_manager.lock().unwrap();
+                    // let serial = serials.get_mut(&port_name_for_thread.to_string());
+                    let mut _serial = serials.get_mut(&port_name_for_thread.to_string());
 
-                    if serial.is_none() {
+                    if _serial.is_none() {
                         return;
                     }
 
-                    if serial
-                        .as_ref()
-                        .unwrap()
+                    let mut serial = _serial.unwrap();
+
+                    if serial // 終了命令があった場合、切断処理
                         .lock()
                         .unwrap()
                         .continue_flag()
                         .load(std::sync::atomic::Ordering::SeqCst)
                         == false
                     {
-                        ARDECK_MANAGER
+                        ardeck_manager
                             .lock()
                             .unwrap()
                             .remove(&port_name_for_thread.to_string())
                             .unwrap();
 
-                        TAURI_APP
-                            .get()
+                        app.lock()
                             .unwrap()
-                            .emit_all("on-close-serial", port_name_for_thread.clone())
-                            .unwrap();
+                            .app_handle()
+                            .emit_all("on-close-serial", port_name_for_thread.clone());
 
                         println!(
                             "[{}] Connection Stoped for Bool.",
@@ -205,11 +211,12 @@ async fn open_port(
                     let mut serial_buf: Vec<u8> = vec![0; 1];
 
                     // let port_arc = ;
-                    let mut port = serial.unwrap().port();
+                    let mut port = serial.lock().unwrap().port();
 
                     // println!("[{}] Reading...", port_name_for_thread);
 
-                    let try_read = port.read(&mut serial_buf);
+                    // read
+                    let try_read = port.lock().unwrap().read(&mut serial_buf);
 
                     match try_read {
                         Ok(_) => {
@@ -227,15 +234,13 @@ async fn open_port(
                                 port_name_for_thread.to_string()
                             );
                             println!("Kind: {:?}", Kind);
-
-                            ARDECK_MANAGER
+                            ardeck_manager
                                 .lock()
                                 .unwrap()
                                 .remove(&port_name_for_thread.to_string())
                                 .unwrap();
-
-                            TAURI_APP
-                                .get()
+                            
+                            app.lock()
                                 .unwrap()
                                 .emit_all("on-close-serial", port_name_for_thread.clone())
                                 .unwrap();
@@ -253,10 +258,15 @@ async fn open_port(
                 }
             });
 
-            let mut serials = ARDECK_MANAGER.lock().unwrap();
+            let mut serials = ardeck_manager.lock().unwrap();
             serials.insert(port_name.to_string(), ardeck_serial);
-            TAURI_APP
-                .get()
+            // TAURI_APP
+            //     .get()
+            //     .unwrap()
+            //     .emit_all("on-open-serial", port_name)
+            //     .unwrap();
+
+            app.lock()
                 .unwrap()
                 .emit_all("on-open-serial", port_name)
                 .unwrap();
@@ -299,7 +309,7 @@ fn get_connecting_serials() -> Vec<String> {
 }
 
 #[tauri::command]
-fn test(state1: TauriState<Mutex<AppHandle>>, state2: TauriState<Mutex<_AppData>>) {
+fn test(state1: TauriState<'_, Arc<Mutex<AppHandle>>>, state2: TauriState<Mutex<_AppData>>) {
     state1.lock().unwrap().emit_all("test", "");
     println!("{:?}", state2.lock().unwrap().welcome_message);
 }
@@ -380,7 +390,7 @@ async fn main() {
     tokio::spawn(init_plugin());
 
     // TODO: Lazy to Arc
-    let ardeck_manager: Arc<Mutex<HashMap<String, Ardeck>>> = Arc::new(Mutex::new(HashMap::new()));
+    let ardeck_manager: Mutex<HashMap<String, Arc<Mutex<Ardeck>>>> = Mutex::new(HashMap::new());
 
     tauri::Builder::default()
         .setup(|app| {
@@ -389,8 +399,9 @@ async fn main() {
             // serial(for_serial_app);
             serial();
 
-            let _for_manage = app.app_handle();
-            app.manage(Mutex::new(_for_manage));
+            let for_manage = app.app_handle();
+            app.manage(Mutex::new(for_manage));
+            app.manage(ardeck_manager);
             let _app_data = _AppData {
                 welcome_message: "WelcmeToTOTOTOtTToToTOt",
             };
