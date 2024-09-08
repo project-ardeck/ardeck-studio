@@ -120,10 +120,56 @@ fn get_device_settings() -> Vec<DeviceSettingOptions> {
     DeviceSettings::get_settings().unwrap()
 }
 
+async fn _port_read() {
+    tokio::spawn(async move {
+
+    });
+}
+
+async fn _open_port(
+    app: tauri::AppHandle,
+    ardeck_manager: TauriState<'_, Mutex<HashMap<String, Ardeck>>>,
+    port_name: &str,
+    baud_rate: u32,
+) -> Result<u32, u32> {
+    // 接続済みのポートならば何もしない
+    if ardeck_manager.lock().unwrap().get(port_name).is_some() {
+        println!("[{}] Already Opened.", port_name);
+        return Err(501);
+    }
+
+    let ardeck = match Ardeck::open(port_name, baud_rate) {
+        Ok(f) => f,
+        Err(e) => {
+            println!("Open Error !!!!!! {}", port_name);
+
+            return Err(500);
+        }
+    };
+
+    ardeck
+        .port()
+        .lock()
+        .unwrap()
+        .set_timeout(Duration::from_millis(5000))
+        .unwrap();
+
+    ardeck.port_data().lock().unwrap().on_complete(move |data| {
+        app.clone()
+            .emit_all("on-message-serial", data)
+            .unwrap();
+
+        // TODO: send to plugin manager
+    });
+
+    Ok(200)
+}
+
 #[tauri::command]
 async fn open_port(
-    app: TauriState<'_, Mutex<AppHandle>>,
-    ardeck_manager: TauriState<'_, Mutex<HashMap<String, Arc<Mutex<Ardeck>>>>>,
+    // app: TauriState<'_, Mutex<AppHandle>>,
+    app: tauri::AppHandle,
+    ardeck_manager: TauriState<'_, Mutex<HashMap<String, Ardeck>>>,
     port_name: &str,
     baud_rate: u32,
 ) -> Result<u32, u32> {
@@ -134,6 +180,10 @@ async fn open_port(
 
     println!("[{}] Opening", port_name);
 
+    return _open_port(app, ardeck_manager, port_name, baud_rate).await;
+
+    /*
+
     // すでに接続中であればエラーを投げて終わる
     if is_connecting_serial(&port_name.to_string()) {
         println!("[{}] Already Opened.", port_name);
@@ -141,29 +191,30 @@ async fn open_port(
     }
 
     // 接続開始
-    let serial = Ardeck::open(&port_name.to_string(), baud_rate);
+    let mut serial = Ardeck::open(&port_name.to_string(), baud_rate);
 
     let command = ArdeckCommand::new();
 
     // 正常に接続されたら、readする準備をする
     match serial {
-        Ok(ardeck_serial) => {
-            // let ardeck_serial = Arc::new(Mutex::new(ardeck_serial));
+        Ok(mut ardeck_serial) => {
+            let mut ardeck_serial = Arc::new(Mutex::new(ardeck_serial));
             println!("[{}] Opened", port_name);
 
             // 5秒間受信しなければエラー
             ardeck_serial
+                .lock().unwrap()
                 .port()
                 .lock().unwrap()
                 .set_timeout(Duration::from_millis(5000))
                 .unwrap();
 
             // 受信したデータが正しければ、プラグインの部分に投げる
-            ardeck_serial.port_data().on_complete(move |data| {
-                app.lock()
-                    .unwrap()
-                    .emit_all("on-message-serial", data)
-                    .unwrap();
+            ardeck_serial.lock().unwrap().port_data().on_complete(move |data| {
+                // app.clone().lock()
+                //     .unwrap()
+                //     .emit_all("on-message-serial", data)
+                //     .unwrap();
             });
 
             // readするためのスレッド
@@ -172,7 +223,7 @@ async fn open_port(
                 loop {
                     // println!("[{}] Thread Start", port_name_for_thread);
 
-                    let mut serials = ardeck_manager.lock().unwrap();
+                    // let mut serials = ardeck_manager.lock().unwrap();
                     // let serial = serials.get_mut(&port_name_for_thread.to_string());
                     let mut _serial = serials.get_mut(&port_name_for_thread.to_string());
 
@@ -189,16 +240,16 @@ async fn open_port(
                         .load(std::sync::atomic::Ordering::SeqCst)
                         == false
                     {
-                        ardeck_manager
-                            .lock()
-                            .unwrap()
-                            .remove(&port_name_for_thread.to_string())
-                            .unwrap();
+                        // ardeck_manager
+                        //     .lock()
+                        //     .unwrap()
+                        //     .remove(&port_name_for_thread.to_string())
+                        //     .unwrap();
 
-                        app.lock()
-                            .unwrap()
-                            .app_handle()
-                            .emit_all("on-close-serial", port_name_for_thread.clone());
+                        // app.lock()
+                        //     .unwrap()
+                        //     .app_handle()
+                        //     .emit_all("on-close-serial", port_name_for_thread.clone());
 
                         println!(
                             "[{}] Connection Stoped for Bool.",
@@ -222,11 +273,11 @@ async fn open_port(
                         Ok(_) => {
                             // println!("[{}] Readed", port_name_for_thread);
 
-                            let ardeck_data = serials
-                                .get_mut(&port_name_for_thread.to_string())
-                                .unwrap()
-                                .port_data();
-                            ardeck_data.on_data(serial_buf);
+                            // let ardeck_data = serials
+                            //     .get_mut(&port_name_for_thread.to_string())
+                            //     .unwrap()
+                            //     .port_data();
+                            // ardeck_data.on_data(serial_buf);
                         }
                         Err(Kind) => {
                             println!(
@@ -234,16 +285,16 @@ async fn open_port(
                                 port_name_for_thread.to_string()
                             );
                             println!("Kind: {:?}", Kind);
-                            ardeck_manager
-                                .lock()
-                                .unwrap()
-                                .remove(&port_name_for_thread.to_string())
-                                .unwrap();
-                            
-                            app.lock()
-                                .unwrap()
-                                .emit_all("on-close-serial", port_name_for_thread.clone())
-                                .unwrap();
+                            // ardeck_manager
+                            //     .lock()
+                            //     .unwrap()
+                            //     .remove(&port_name_for_thread.to_string())
+                            //     .unwrap();
+
+                            // app.lock()
+                            //     .unwrap()
+                            //     .emit_all("on-close-serial", port_name_for_thread.clone())
+                            //     .unwrap();
 
                             println!(
                                 "[{}] Connection Stoped for Error.",
@@ -258,18 +309,18 @@ async fn open_port(
                 }
             });
 
-            let mut serials = ardeck_manager.lock().unwrap();
-            serials.insert(port_name.to_string(), ardeck_serial);
+            // let mut serials = ardeck_manager.lock().unwrap();
+            // serials.insert(port_name.to_string(), ardeck_serial);
             // TAURI_APP
             //     .get()
             //     .unwrap()
             //     .emit_all("on-open-serial", port_name)
             //     .unwrap();
 
-            app.lock()
-                .unwrap()
-                .emit_all("on-open-serial", port_name)
-                .unwrap();
+            // app.lock()
+            //     .unwrap()
+            //     .emit_all("on-open-serial", port_name)
+            //     .unwrap();
 
             Ok(200)
         }
@@ -279,6 +330,7 @@ async fn open_port(
             Err(500)
         }
     }
+    */
 }
 
 #[tauri::command]
@@ -291,6 +343,8 @@ async fn close_port(port_name: &str) -> Result<u32, u32> {
         println!("[{}] closing...", target_port);
 
         serial
+            .unwrap()
+            .lock()
             .unwrap()
             .continue_flag()
             .store(false, std::sync::atomic::Ordering::SeqCst);
@@ -390,9 +444,10 @@ async fn main() {
     tokio::spawn(init_plugin());
 
     // TODO: Lazy to Arc
-    let ardeck_manager: Mutex<HashMap<String, Arc<Mutex<Ardeck>>>> = Mutex::new(HashMap::new());
+    let ardeck_manager: Mutex<HashMap<String, Ardeck>> = Mutex::new(HashMap::new());
 
     tauri::Builder::default()
+        .manage(ardeck_manager)
         .setup(|app| {
             let for_serial_app = app.app_handle();
             TAURI_APP.get_or_init(|| for_serial_app);
@@ -401,7 +456,6 @@ async fn main() {
 
             let for_manage = app.app_handle();
             app.manage(Mutex::new(for_manage));
-            app.manage(ardeck_manager);
             let _app_data = _AppData {
                 welcome_message: "WelcmeToTOTOTOtTToToTOt",
             };

@@ -38,12 +38,12 @@ use std::{
     time::Duration,
 };
 
-
+#[derive(Clone)]
 pub struct Ardeck {
-    continue_flag: AtomicBool,
+    continue_flag: Arc<Mutex<AtomicBool>>,
 
     port: Arc<Mutex<Box<dyn SerialPort>>>,
-    port_data: ArdeckData,
+    port_data: Arc<Mutex<ArdeckData>>,
 }
 
 /* State List
@@ -56,7 +56,7 @@ pub enum OpenError {
 }
 
 impl Ardeck {
-    pub fn open(port_name: &String, baud_rate: u32) -> Result<Ardeck, OpenError> {
+    pub fn open(port_name: &str, baud_rate: u32) -> Result<Ardeck, OpenError> {
         println!("Open Port: {} - {}", port_name, baud_rate);
         let port = serialport::new(port_name, baud_rate).open();
 
@@ -64,9 +64,9 @@ impl Ardeck {
             Ok(mut port) => {
                 println!("Port Opened.");
                 Ok(Ardeck {
-                    continue_flag: AtomicBool::new(true),
+                    continue_flag: Arc::new(Mutex::new(AtomicBool::new(true))),
                     port: Arc::new(Mutex::new(port)),
-                    port_data: ArdeckData::new(),
+                    port_data: Arc::new(Mutex::new(ArdeckData::new())),
                 }) // TODO: Arcを外す
             }
             Err(_) => Err(OpenError::Unknown),
@@ -79,28 +79,20 @@ impl Ardeck {
         ports
     }
     
-    pub fn get_state(&self) -> bool {
-        self.continue_flag.load(Ordering::Relaxed)
+    pub fn get_continue_flag(&self) -> bool {
+        self.continue_flag.lock().unwrap().load(Ordering::Relaxed)
     }
     
-    pub fn state(&self) -> &AtomicBool {
-        &self.continue_flag
+    pub fn continue_flag(&self) -> Arc<Mutex<AtomicBool>> {
+        Arc::clone(&self.continue_flag)
     }
     
     pub fn port(&self) -> Arc<Mutex<Box<dyn SerialPort>>> {
-        // &self.port
-        // &self.port
         Arc::clone(&self.port)
     }
-
-
     
-    pub fn port_data(&self) -> &ArdeckData {
-        &self.port_data
-    }
-    
-    pub fn continue_flag(&self) -> &AtomicBool {
-        &self.continue_flag
+    pub fn port_data(&self) -> Arc<Mutex<ArdeckData>> {
+        Arc::clone(&self.port_data)
     }
 }
 
