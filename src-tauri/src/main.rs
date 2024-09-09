@@ -43,12 +43,9 @@ use once_cell::sync::{Lazy, OnceCell};
 
 use ardeck_studio::{
     ardeck::{
-        command::ArdeckCommand,
-        data::{ActionData, ArdeckData},
-        manager::ArdeckManager,
-        Ardeck,
+        self, data::{ActionData, ArdeckData}, manager::ArdeckManager, Ardeck
     },
-    plugin::{core::PluginServe, manager::PluginManager, PluginManifest, PLUGIN_DIR},
+    plugin::{core::PluginCore, manager::PluginManager, PluginManifest, PLUGIN_DIR},
     service::settings::{DeviceSettingOptions, DeviceSettings},
 };
 
@@ -120,9 +117,13 @@ fn get_device_settings() -> Vec<DeviceSettingOptions> {
     DeviceSettings::get_settings().unwrap()
 }
 
-async fn _port_read() {
+fn _port_read(app: tauri::AppHandle, port_name: &str, ardeck: Ardeck) {
     tokio::spawn(async move {
-
+        loop {
+            if ardeck.get_continue_flag() == false {
+                ardeck.close_requset();
+            }
+        }
     });
 }
 
@@ -154,13 +155,17 @@ async fn _open_port(
         .set_timeout(Duration::from_millis(5000))
         .unwrap();
 
+    let app_for_data = app.app_handle();
     ardeck.port_data().lock().unwrap().on_complete(move |data| {
-        app.clone()
+        app_for_data
+            .clone()
             .emit_all("on-message-serial", data)
             .unwrap();
 
         // TODO: send to plugin manager
     });
+
+    _port_read(app.app_handle(), port_name, ardeck);
 
     Ok(200)
 }
@@ -334,23 +339,21 @@ async fn open_port(
 }
 
 #[tauri::command]
-async fn close_port(port_name: &str) -> Result<u32, u32> {
-    let mut serials = ARDECK_MANAGER.lock().unwrap();
+async fn close_port(
+    app: tauri::AppHandle,
+    ardeck_manager: TauriState<'_, Mutex<HashMap<String, Ardeck>>>,
+    port_name: &str,
+) -> Result<u32, u32> {
+    match ardeck_manager.lock().unwrap().get_mut(port_name) {
+        Some(a) => {
+            a.close_requset();
 
-    let target_port = port_name.to_string();
-    let serial = serials.get_mut(&target_port);
-    if !serial.is_none() {
-        println!("[{}] closing...", target_port);
-
-        serial
-            .unwrap()
-            .lock()
-            .unwrap()
-            .continue_flag()
-            .store(false, std::sync::atomic::Ordering::SeqCst);
-    }
-
-    Ok(200)
+            return Ok(200);
+        }
+        None => {
+            return Err(501);
+        }
+    };
 }
 
 // 現在接続中のポートの名前一覧を取得する
@@ -500,6 +503,7 @@ async fn main() {
             close_port,
             test
         ])
+        .plugin(ardeck::tauri::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -24,7 +24,7 @@ use manager::{
     PluginManager,
 };
 use core::{
-    PluginServe
+    PluginCore
 };
 
 use std::sync::{

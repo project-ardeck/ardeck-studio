@@ -16,17 +16,17 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+use std::collections::HashMap;
 
-use super::ActionData;
+use super::{manager::ArdeckManager, Ardeck};
 
-pub struct ArdeckCommand {
 
+pub struct ArdeckCore {
+    ardeck_manager: HashMap<String, Ardeck>,
 }
 
-impl ArdeckCommand {
-    pub fn new() -> ArdeckCommand {
-        ArdeckCommand {}
+impl ArdeckCore {
+    pub async fn start_read(ardeck: Ardeck) {
+        
     }
-
-    // pub fn 
 }

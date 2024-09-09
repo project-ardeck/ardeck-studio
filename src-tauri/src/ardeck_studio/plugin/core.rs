@@ -37,10 +37,11 @@ use super::manager::PluginManager;
 
 use super::{Plugin, PluginManifest, PluginMessage, PluginMessageData, PluginOpCode, PLUGIN_DIR};
 
-pub struct PluginServe {
+pub struct PluginCore {
     plugin: PluginManager,
 }
-impl PluginServe {
+
+impl PluginCore {
     pub async fn start(plugins_state: Mutex<PluginManager>) {
         let listener = TcpListener::bind("localhost::3322").await.unwrap();
 

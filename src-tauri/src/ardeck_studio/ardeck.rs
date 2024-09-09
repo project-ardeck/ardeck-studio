@@ -17,11 +17,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 
-pub mod command;
+pub mod core;
 pub mod data;
 pub mod manager;
+pub mod tauri;
 
-use command::ArdeckCommand;
 use data::{
     ArdeckData,
     ActionData,
@@ -93,6 +93,10 @@ impl Ardeck {
     
     pub fn port_data(&self) -> Arc<Mutex<ArdeckData>> {
         Arc::clone(&self.port_data)
+    }
+
+    pub fn close_requset(&self) {
+        self.continue_flag.lock().unwrap().store(false, Ordering::SeqCst)
     }
 }
 
