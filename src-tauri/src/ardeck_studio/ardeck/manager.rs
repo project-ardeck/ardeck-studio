@@ -21,24 +21,12 @@ use std::{collections::HashMap, hash::Hash, sync::{Arc, Mutex}};
 
 use super::Ardeck;
 
+pub type ArdeckManager = HashMap<String, Ardeck>;
 
-pub trait ArdeckManager {
-
+pub trait ArdeckManagerTrait {
 }
 
-impl ArdeckManager for HashMap<&str, Ardeck> {
-
-}
-
-impl ArdeckManager for HashMap<&str, Arc<Mutex<Ardeck>>> {
-
-}
-
-impl ArdeckManager for HashMap<String, Ardeck> {
-
-}
-
-impl ArdeckManager for HashMap<String, Arc<Mutex<Ardeck>>> {
+impl ArdeckManagerTrait for HashMap<String, Ardeck> {
 
 }
 
