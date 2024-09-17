@@ -79,7 +79,7 @@ impl Ardeck {
         ports
     }
     
-    pub fn get_continue_flag(&self) -> bool {
+    pub fn is_continue(&self) -> bool {
         self.continue_flag.lock().unwrap().load(Ordering::Relaxed)
     }
     

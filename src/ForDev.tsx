@@ -75,18 +75,18 @@ export default function ForDev() {
     }
 
     const getPorts = async () => {
-        let ports = await invoke("get_ports") as SerialPortInfo[];
+        let ports = await invoke("plugin:ardeck|get_ports") as SerialPortInfo[];
         setPortList(ports);
     }
 
     const getConnectingPorts = async () => {
-        let ports = await invoke("get_connecting_serials") as string[];
+        let ports = await invoke("plugin:ardeck|get_connecting_serials") as string[];
 
         setConnectedSerialList(ports);
     }
 
     const serialOpenRequest = async (portName: string) => {
-        invoke("open_port", { portName: portName, baudRate: 19200 })
+        invoke("plugin:ardeck|open_port", { portName: portName, baudRate: 19200 })
             .then(() => {
                 // addCS(portName);
                 // pushLog(`OPEN: ${portName}`);
@@ -103,7 +103,7 @@ export default function ForDev() {
     }
 
     const closeHandler = async (portName: string) => {
-        invoke("close_port", { portName: portName })
+        invoke("plugin:ardeck|close_port", { portName: portName })
             .then(() => {
                 // rmvCS(portName);
                 // pushLog(`CLOSE: ${portName}`);
@@ -126,6 +126,7 @@ export default function ForDev() {
 
             listen("on-ports", (e) => { // ポートリストの更新
                 setPortList(e.payload as SerialPortInfo[]);
+                pushLog("aaa");
             });
 
             listen("on-open-serial", (e) => { // シリアル通信の開始

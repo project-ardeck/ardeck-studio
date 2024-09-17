@@ -19,6 +19,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 pub mod core;
 pub mod manager;
+pub mod tauri;
 
 use manager::{
     PluginManager,

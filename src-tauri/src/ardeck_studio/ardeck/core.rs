@@ -22,10 +22,20 @@ use super::{manager::ArdeckManager, Ardeck};
 
 
 pub struct ArdeckCore {
-    ardeck_manager: HashMap<String, Ardeck>,
+    ardeck_manager: ArdeckManager, // TODO: Arc
 }
 
 impl ArdeckCore {
+    pub fn new() -> Self {
+        Self {
+            ardeck_manager: ArdeckManager::new(),
+        }
+    }
+
+    pub fn manager(&mut self) -> &mut ArdeckManager {
+        &mut self.ardeck_manager
+    }
+
     pub async fn start_read(ardeck: Ardeck) {
         
     }

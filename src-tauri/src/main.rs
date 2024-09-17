@@ -43,9 +43,9 @@ use once_cell::sync::{Lazy, OnceCell};
 
 use ardeck_studio::{
     ardeck::{
-        self, data::{ActionData, ArdeckData}, manager::ArdeckManager, Ardeck
+        self, Ardeck 
     },
-    plugin::{core::PluginCore, manager::PluginManager, PluginManifest, PLUGIN_DIR},
+    plugin::{self, manager::PluginManager, PluginManifest, PLUGIN_DIR},
     service::settings::{DeviceSettingOptions, DeviceSettings},
 };
 
@@ -54,7 +54,7 @@ use chrono::{format, Utc};
 use serde::{Deserialize, Serialize};
 use serialport::SerialPort;
 use tauri::{
-    plugin, AppHandle, CustomMenuItem, Manager, State as TauriState, SystemTray, SystemTrayEvent,
+    AppHandle, CustomMenuItem, Manager, State as TauriState, SystemTray, SystemTrayEvent,
     SystemTrayMenu, SystemTrayMenuItem,
 };
 use window_shadows::set_shadow;
@@ -117,43 +117,11 @@ fn get_device_settings() -> Vec<DeviceSettingOptions> {
     DeviceSettings::get_settings().unwrap()
 }
 
-
-// 現在接続中のポートの名前一覧を取得する
-#[tauri::command]
-fn get_connecting_serials() -> Vec<String> {
-    let serials = ARDECK_MANAGER.lock().unwrap();
-
-    let keys = serials.keys();
-    keys.cloned().collect()
-}
-
-#[tauri::command]
-fn test(state1: TauriState<'_, Arc<Mutex<AppHandle>>>, state2: TauriState<Mutex<_AppData>>) {
-    state1.lock().unwrap().emit_all("test", "");
-    println!("{:?}", state2.lock().unwrap().welcome_message);
-}
-
-fn serial() {
-    // ポートリストを定期的に更新し、イベントを発火する
-    let refresh_fps = 1000 / 4;
-    thread::spawn(move || {
-        let tauri_app_port_list = TAURI_APP.get().unwrap().clone();
-        let mut last_ports: Vec<serialport::SerialPortInfo> = vec![];
-        loop {
-            let ports = serialport::available_ports().unwrap();
-
-            if last_ports.clone() != ports.clone() {
-                tauri_app_port_list
-                    .emit_all("on-ports", ports.clone())
-                    .unwrap();
-            }
-
-            last_ports = ports;
-
-            park_timeout(Duration::from_millis(refresh_fps));
-        }
-    });
-}
+// #[tauri::command]
+// fn test(state1: TauriState<'_, Arc<Mutex<AppHandle>>>, state2: TauriState<Mutex<_AppData>>) {
+//     state1.lock().unwrap().emit_all("test", "");
+//     println!("{:?}", state2.lock().unwrap().welcome_message);
+// }
 
 async fn init_plugin_serve() {
     // let aaa = PLUGIN_MANAGER.get().unwrap();
@@ -161,6 +129,7 @@ async fn init_plugin_serve() {
 }
 
 async fn init_plugin() {
+    return;
     PLUGIN_MANAGER.get_or_init(|| Mutex::new(PluginManager::new()));
 
     tokio::spawn(init_plugin_serve());
@@ -217,8 +186,7 @@ async fn main() {
             let for_serial_app = app.app_handle();
             TAURI_APP.get_or_init(|| for_serial_app);
             // serial(for_serial_app);
-            serial();
-
+            // serial();
             let for_manage = app.app_handle();
             app.manage(Mutex::new(for_manage));
             let _app_data = _AppData {
@@ -260,11 +228,10 @@ async fn main() {
         .invoke_handler(tauri::generate_handler![
             greet,
             get_ports,
-            get_connecting_serials,
-            // open_port,
-            // close_port,
-            test
+            // test
         ])
+        .plugin(ardeck_studio::ardeck::tauri::init())
+        .plugin(ardeck_studio::plugin::tauri::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
