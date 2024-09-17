@@ -31,11 +31,16 @@ use once_cell::sync::Lazy;
 use tauri::plugin;
 use tokio::net::TcpListener;
 
+use crate::ardeck_studio::ardeck::manager::ArdeckManager;
 use crate::ardeck_studio::service::dir::Directories;
 
 use super::manager::PluginManager;
 
 use super::{Plugin, PluginManifest, PluginMessage, PluginMessageData, PluginOpCode, PLUGIN_DIR};
+
+static PLUGIN_MANAGER: Lazy<Mutex<ArdeckManager>> = Lazy::new(|| {
+    Mutex::new(ArdeckManager::new())
+});
 
 pub struct PluginCore {
     plugin: PluginManager,
