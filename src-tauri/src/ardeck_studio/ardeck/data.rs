@@ -57,8 +57,8 @@ pub struct ActionData {
 }
 
 impl ActionData {
-    pub fn new() -> ActionData {
-        ActionData {
+    pub fn new() -> Self {
+        Self {
             switch_type: SwitchType::Unknown,
             id: 0,
             state: 0,
@@ -126,9 +126,9 @@ impl ArdeckData {
     const HEADER_LEN: usize = Self::HEADER.len();
     const BODY_SIZE: usize = 2;
 
-    pub fn new() -> ArdeckData {
+    pub fn new() -> Self {
         let header_len = Self::HEADER.len();
-        ArdeckData {
+        Self {
             header_buf: String::new(),
             is_reading: false,
             read_count: 0,

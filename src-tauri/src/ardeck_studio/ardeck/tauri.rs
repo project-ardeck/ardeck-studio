@@ -165,12 +165,6 @@ fn serial_watch<R: Runtime>(tauri_app: tauri::AppHandle<R>) {
     });
 }
 
-#[derive(Default)]
-struct MyState {
-  s: std::sync::Mutex<String>,
-  t: std::sync::Mutex<std::collections::HashMap<String, String>>,
-}
-
 // ポートの一覧を取得する
 #[tauri::command]
 fn get_ports() -> Vec<serialport::SerialPortInfo> {

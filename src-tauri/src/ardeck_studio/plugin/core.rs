@@ -4,18 +4,17 @@ Copyright (C) 2024 project-ardeck
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or 
+the Free Software Foundation; either version 3 of the License, or
 (at your option) any later version.
 
-This program is distributed in the hope that it will be useful, 
+This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
-
 
 use std::borrow::Borrow;
 use std::fs::{self, File};
@@ -26,6 +25,7 @@ use axum::extract::ws::WebSocket;
 use axum::extract::{State, WebSocketUpgrade};
 use axum::response::IntoResponse;
 use axum::routing::get;
+use axum::serve::Serve;
 use axum::{serve, Router};
 use once_cell::sync::Lazy;
 use tauri::plugin;
@@ -38,31 +38,40 @@ use super::manager::PluginManager;
 
 use super::{Plugin, PluginManifest, PluginMessage, PluginMessageData, PluginOpCode, PLUGIN_DIR};
 
-static PLUGIN_MANAGER: Lazy<Mutex<ArdeckManager>> = Lazy::new(|| {
-    Mutex::new(ArdeckManager::new())
-});
+static PLUGIN_MANAGER: Lazy<Mutex<ArdeckManager>> = Lazy::new(|| Mutex::new(ArdeckManager::new()));
 
 pub struct PluginCore {
-    plugin: PluginManager,
+    plugin: Arc<Mutex<PluginManager>>,
+    serve: Option<tokio::task::JoinHandle<()>>,
 }
 
 impl PluginCore {
-    pub async fn start(plugins_state: Mutex<PluginManager>) {
+    pub fn new() -> Self {
+        Self {
+            plugin: Arc::new(Mutex::new(PluginManager::new())),
+            serve: None,
+        }
+    }
+
+    pub async fn start(&mut self) {
         let listener = TcpListener::bind("localhost::3322").await.unwrap();
 
-        let state = Arc::new(plugins_state);
         let app = Router::new()
             .route("/", get(RouteHandler::plugin_socket))
             // .route("/state", get(Self::state))
             .route("/plugin", get(RouteHandler::plugin_list))
             .route("/plugin/:id", get(RouteHandler::plugin_id))
             .fallback(get(RouteHandler::err_404))
-            .with_state(Arc::clone(&state));
+            .with_state(Arc::clone(&self.plugin));
 
-        serve(listener, app).await.unwrap();
+        self.serve = Some(tokio::spawn(async move {
+            serve(listener, app).await.unwrap();
+        }));
+
+        // Ok(())
     }
 
-    pub async fn execute_plugin_all() {
+    pub async fn execute_plugin_all(&self) {
         let dir = Directories::get_or_init(Path::new(PLUGIN_DIR)).unwrap();
 
         for entry in dir {
@@ -80,13 +89,22 @@ impl PluginCore {
             }
 
             let manifest: PluginManifest = serde_json::from_reader(manifest_file.unwrap()).unwrap();
-            
+
             let plugin_main_path = format!("{}/{}", path.display(), manifest.main);
 
-            let plugin_process = std::process::Command::new(plugin_main_path)
+            let process = std::process::Command::new(plugin_main_path)
                 .spawn()
                 .expect("Failed to execute plugin");
-            }
+
+            let plugin = Plugin {
+                manifest,
+                process: Arc::new(Mutex::new(process)),
+                session
+            };
+
+            self.plugin.lock().unwrap().insert(manifest.id, plugin_process);
+        }
+
     }
 
     // pub async fn
