@@ -32,9 +32,13 @@ fn close<R: Runtime>(
 ) {
     let mut ardeck_manager = ARDECK_MANAGER.lock().unwrap();
     ardeck_manager.remove(port_name);
+    
+    app.emit_all("on-close-serial", port_name).unwrap();
+    
+    println!("[{}] closed.", port_name);
 }
 
-fn port_read<R: Runtime>(
+async fn port_read<R: Runtime>(
     app: tauri::AppHandle<R>,
     port_name: &str,
 ) {
@@ -48,23 +52,27 @@ fn port_read<R: Runtime>(
             };
 
             if !ardeck.is_continue() {
+                drop(am);
                 close(app.app_handle(), &port_name);
                 break;
             }
 
-            let mut serial_buf: Vec<u8> = Vec::new();
-            serial_buf.fill(0);
+            let mut serial_buf: Vec<u8> = vec![0; 1];
+            // serial_buf.fill(0);
 
             let port = ardeck.port();
             let try_read = port.lock().unwrap().read(&mut serial_buf);
             match try_read {
                 Ok(_) => {
-                    let mut port_data = ardeck.port_data();
+                    drop(port);
+                    let port_data = ardeck.port_data();
                     port_data.lock().unwrap().on_data(serial_buf);
+                    drop(am);
                 },
                 Err(kind) => {
                     println!("[{}] Connection error. Connection stoped.\nKind: {}", &port_name, kind);
-
+                    drop(port);
+                    drop(am);
                     close(app.app_handle(), &port_name);
 
                     break;
@@ -94,12 +102,13 @@ async fn close_port<R: Runtime>(
 
 // invoke("plugin:ardeck|open_port");
 #[tauri::command]
-fn open_port<R: Runtime>(
+async fn open_port<R: Runtime>(
     // app: tauri::AppHandle
     app: tauri::AppHandle<R>,
     port_name: &str,
     baud_rate: u32,
 ) -> Result<u32, u32> {
+    println!("[{}] plugin:ardeck|open_port", port_name);
     // 接続済みのポートならば何もしない
     if ARDECK_MANAGER.lock().unwrap().get(port_name).is_some() {
         println!("[{}] Already Opened.", port_name);
@@ -126,18 +135,23 @@ fn open_port<R: Runtime>(
     // データを受信し、1回分のデータが完成した時の処理
     let app_for_data = app.app_handle();
     ardeck.port_data().lock().unwrap().on_complete(move |data| {
+        println!("\n\n[] ardeck.portdata.on_complete\n\n");
+
         app_for_data
-            .clone()
             .emit_all("on-message-serial", data)
             .unwrap();
 
         // TODO: send to plugin manager
     });
 
+    ARDECK_MANAGER.lock().unwrap().insert(port_name.to_string(), ardeck);
+
+    app.emit_all("on-open-serial", port_name).unwrap();
+
     port_read(
         app.app_handle(),
-        port_name.clone(),
-    );
+        port_name,
+    ).await;
 
     Ok(200)
 }

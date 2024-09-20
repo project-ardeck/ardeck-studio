@@ -96,13 +96,13 @@ impl PluginCore {
                 .spawn()
                 .expect("Failed to execute plugin");
 
-            let plugin = Plugin {
-                manifest,
-                process: Arc::new(Mutex::new(process)),
-                session
-            };
+        //     let plugin = Plugin {
+        //         manifest,
+        //         process: Arc::new(Mutex::new(process)),
+        //         session
+        //     };
 
-            self.plugin.lock().unwrap().insert(manifest.id, plugin_process);
+        //     self.plugin.lock().unwrap().insert(manifest.id, plugin_process);
         }
 
     }

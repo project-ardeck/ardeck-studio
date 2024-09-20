@@ -146,6 +146,7 @@ export default function ForDev() {
             listen("on-message-serial", (e) => { // シリアル通信のメッセージ
                 const payload = e.payload as SwitchData;
                 // console.log(payload);
+                // pushLog(`${payload.switchType}`)
 
                 const data = {
                     state: payload.state,

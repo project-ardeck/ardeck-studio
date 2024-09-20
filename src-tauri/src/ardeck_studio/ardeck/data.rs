@@ -30,8 +30,8 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 //     Analog,
 // }
 
-#[derive(Clone, Copy, Deserialize_repr, Serialize_repr, Debug)]
-#[repr(i8)]
+#[derive(Clone, Copy, Deserialize, Serialize, Debug)]
+// #[repr(i8)]
 #[serde(rename_all = "camelCase")]
 pub enum SwitchType {
     Unknown = -1,
