@@ -30,9 +30,9 @@ use serde_repr::{Deserialize_repr, Serialize_repr};
 //     Analog,
 // }
 
-#[derive(Clone, Copy, Deserialize, Serialize, Debug)]
-// #[repr(i8)]
+#[derive(Clone, Copy, Deserialize_repr, Serialize_repr, Debug)]
 #[serde(rename_all = "camelCase")]
+#[repr(i8)]
 pub enum SwitchType {
     Unknown = -1,
     Digital = 0,
@@ -49,11 +49,11 @@ enum BodyLen {
 #[derive(Clone, Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct ActionData {
-    switch_type: SwitchType, // -1: Unknown, 0: Digital, 1: Analog
-    id: u8,
-    state: u16,
-    raw_data: Vec<u8>, // TODO: raw_value
-    timestamp: i64,
+    pub switch_type: SwitchType, // -1: Unknown, 0: Digital, 1: Analog
+    pub id: u8,
+    pub state: u16,
+    pub raw_data: Vec<u8>, // TODO: raw_value
+    pub timestamp: i64,
 }
 
 impl ActionData {

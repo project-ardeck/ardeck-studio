@@ -41,29 +41,26 @@ pub static PLUGIN_DIR: &'static str = "./plugins";
 #[derive(Clone, Debug)]
 pub struct Plugin {
     pub manifest: PluginManifest, //TODO: PluginManifest
+    pub actions: PluginActionList,
     pub process: Arc<Mutex<std::process::Child>>,
-    pub session: Arc<Mutex<WebSocket>>,
+    // pub session: Arc<Mutex<WebSocket>>,
 }
 
 impl Plugin {
     pub fn new(
         manifest: PluginManifest,
+        actions: PluginActionList,
         process: Arc<Mutex<std::process::Child>>,
-        session: Arc<Mutex<WebSocket>>
+        // session: Arc<Mutex<WebSocket>>
     ) -> Plugin {
         Plugin {
             manifest,
+            actions,
             process,
-            session
+            // session
         }
     }
 }
-// struct Builder {}
-// impl Builder {
-// }
-
-
-
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -76,11 +73,21 @@ pub struct PluginManifest {
     pub main: String,
 }
 
+#[derive(Clone, Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+pub struct PluginAction {
+    name: String,
+    id: String,
+    description: Option<String>,
+}
+
+type PluginActionList = Vec<PluginAction>;
+
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PluginMessage {
     pub op: PluginOpCode,
-    pub data: PluginMessageData
+    pub data: PluginMessageData,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
@@ -103,10 +110,11 @@ impl Default for PluginMessageData {
 #[serde(rename_all = "camelCase")]
 #[repr(i32)]
 pub enum PluginOpCode {
-    Authorize = 0,              // plugin -> host
-    AuthorizeSuccess = 1,       // host -> plugin
-    Message = 2,                // plugin <-> host
-    Action = 3,                 // host -> plugin
-    Log = 4,                    // plugin -> host
-    Error = -1                 // plugin <-> host
+    // ardeck plugin websocket 0.0.1
+    Hello = 0,              // host -> plugin
+    Challenge = 1,          // plugin -> host
+    Success = 2,            // host -> plugin
+    Error = 3,              // host <-> plugin
+    Action = 8,             // host -> plugin
+    Message = 9,            // host <-> plugin
 }

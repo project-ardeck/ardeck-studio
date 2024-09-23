@@ -18,11 +18,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use std::borrow::Borrow;
 use std::fs::{self, File};
+use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
 use axum::extract::ws::WebSocket;
-use axum::extract::{State, WebSocketUpgrade};
+use axum::extract::{ConnectInfo, State, WebSocketUpgrade};
 use axum::response::IntoResponse;
 use axum::routing::get;
 use axum::serve::Serve;
@@ -43,6 +44,7 @@ static PLUGIN_MANAGER: Lazy<Mutex<ArdeckManager>> = Lazy::new(|| Mutex::new(Arde
 pub struct PluginCore {
     plugin: Arc<Mutex<PluginManager>>,
     serve: Option<tokio::task::JoinHandle<()>>,
+    
 }
 
 impl PluginCore {
@@ -53,8 +55,12 @@ impl PluginCore {
         }
     }
 
-    pub async fn start(&mut self) {
-        let listener = TcpListener::bind("localhost::3322").await.unwrap();
+    pub fn test() -> Result<(), std::io::Error> {
+        Ok(())
+    }
+
+    pub async fn start(&mut self) -> Result<(), std::io::Error> {
+        let listener = TcpListener::bind("localhost::3322").await?;
 
         let app = Router::new()
             .route("/", get(RouteHandler::plugin_socket))
@@ -68,10 +74,12 @@ impl PluginCore {
             serve(listener, app).await.unwrap();
         }));
 
-        // Ok(())
+        println!("plugin server started.");
+
+        Ok(())
     }
 
-    pub async fn execute_plugin_all(&self) {
+    pub fn execute_plugin_all(&self) {
         let dir = Directories::get_or_init(Path::new(PLUGIN_DIR)).unwrap();
 
         for entry in dir {
@@ -118,8 +126,12 @@ impl PluginCore {
 
 struct RouteHandler {}
 impl RouteHandler {
-    pub async fn plugin_socket() -> impl IntoResponse {
-        "OK"
+    pub async fn plugin_socket(
+        ws: WebSocketUpgrade,
+        // user_agent/>
+        ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    ) -> impl IntoResponse {
+        ws.on_upgrade(move |socket| handle_socket(socket, addr))
     }
 
     pub async fn plugin_list(State(state): State<Arc<Mutex<PluginManager>>>) -> impl IntoResponse {
@@ -132,5 +144,20 @@ impl RouteHandler {
 
     pub async fn err_404() -> impl IntoResponse {
         "Not Found"
+    }
+}
+
+async fn handle_socket(mut socket: WebSocket, who: SocketAddr) {
+    let data = PluginMessage {
+        op: PluginOpCode::Hello,
+        data: PluginMessageData::default(),
+    };
+
+    let data_string = serde_json::to_string(&data).unwrap();
+
+    socket.send(axum::extract::ws::Message::Text(data_string)).await.unwrap();
+
+    loop {
+        let recv = socket.recv().await;
     }
 }

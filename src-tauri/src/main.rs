@@ -117,22 +117,9 @@ fn get_device_settings() -> Vec<DeviceSettingOptions> {
     DeviceSettings::get_settings().unwrap()
 }
 
-// #[tauri::command]
-// fn test(state1: TauriState<'_, Arc<Mutex<AppHandle>>>, state2: TauriState<Mutex<_AppData>>) {
-//     state1.lock().unwrap().emit_all("test", "");
-//     println!("{:?}", state2.lock().unwrap().welcome_message);
-// }
-
-async fn init_plugin_serve() {
-    // let aaa = PLUGIN_MANAGER.get().unwrap();
-    // let serve = PluginServe::init(aaa);
-}
-
 async fn init_plugin() {
     return;
     PLUGIN_MANAGER.get_or_init(|| Mutex::new(PluginManager::new()));
-
-    tokio::spawn(init_plugin_serve());
 
     let plugin_dir = fs::read_dir(PLUGIN_DIR).unwrap();
 
@@ -231,9 +218,7 @@ async fn main() {
             // test
         ])
         .plugin(ardeck_studio::ardeck::tauri::init())
-        .plugin(ardeck_studio::plugin::tauri::init())
+        .plugin(ardeck_studio::plugin::tauri::init().await)
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
-
-// [{"port_name":"COM3","port_type":{"UsbPort":{"vid":9025,"pid":32822,"serial_number":"HIDPC","manufacturer":"Arduino LLC (www.arduino.cc)","product":"Arduino Leonardo (COM3)"}}}]
