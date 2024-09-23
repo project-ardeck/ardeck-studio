@@ -22,7 +22,7 @@ use super::{manager::ArdeckManager, Ardeck};
 
 
 pub struct ArdeckCore {
-    ardeck_manager: ArdeckManager, // TODO: Arc
+    ardeck_manager: ArdeckManager,
 }
 
 impl ArdeckCore {

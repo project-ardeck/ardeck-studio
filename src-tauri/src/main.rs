@@ -164,7 +164,6 @@ async fn main() {
 
     tokio::spawn(init_plugin());
 
-    // TODO: Lazy to Arc
     let ardeck_manager: Mutex<HashMap<String, Ardeck>> = Mutex::new(HashMap::new());
 
     tauri::Builder::default()

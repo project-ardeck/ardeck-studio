@@ -22,6 +22,7 @@ use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
 
+use axum::extract::ws::Message::Text;
 use axum::extract::ws::WebSocket;
 use axum::extract::{ConnectInfo, State, WebSocketUpgrade};
 use axum::response::IntoResponse;
@@ -31,18 +32,18 @@ use axum::{serve, Router};
 use once_cell::sync::Lazy;
 use tauri::plugin;
 use tokio::net::TcpListener;
+use tokio::sync::Mutex as TokioMutex;
 
-use crate::ardeck_studio::ardeck::manager::ArdeckManager;
 use crate::ardeck_studio::service::dir::Directories;
 
 use super::manager::PluginManager;
 
 use super::{Plugin, PluginManifest, PluginMessage, PluginMessageData, PluginOpCode, PLUGIN_DIR};
 
-static PLUGIN_MANAGER: Lazy<Mutex<ArdeckManager>> = Lazy::new(|| Mutex::new(ArdeckManager::new()));
+static PLUGIN_MANAGER: Lazy<Mutex<PluginManager>> = Lazy::new(|| Mutex::new(PluginManager::new()));
 
 pub struct PluginCore {
-    plugin: Arc<Mutex<PluginManager>>,
+    plugin_manager: Arc<Mutex<PluginManager>>,
     serve: Option<tokio::task::JoinHandle<()>>,
     
 }
@@ -50,13 +51,9 @@ pub struct PluginCore {
 impl PluginCore {
     pub fn new() -> Self {
         Self {
-            plugin: Arc::new(Mutex::new(PluginManager::new())),
+            plugin_manager: Arc::new(Mutex::new(PluginManager::new())),
             serve: None,
         }
-    }
-
-    pub fn test() -> Result<(), std::io::Error> {
-        Ok(())
     }
 
     pub async fn start(&mut self) -> Result<(), std::io::Error> {
@@ -68,7 +65,7 @@ impl PluginCore {
             .route("/plugin", get(RouteHandler::plugin_list))
             .route("/plugin/:id", get(RouteHandler::plugin_id))
             .fallback(get(RouteHandler::err_404))
-            .with_state(Arc::clone(&self.plugin));
+            .with_state(Arc::clone(&self.plugin_manager));
 
         self.serve = Some(tokio::spawn(async move {
             serve(listener, app).await.unwrap();
@@ -130,6 +127,7 @@ impl RouteHandler {
         ws: WebSocketUpgrade,
         // user_agent/>
         ConnectInfo(addr): ConnectInfo<SocketAddr>,
+        State(plugin_manager): State<Arc<Mutex<PluginManager>>>,
     ) -> impl IntoResponse {
         ws.on_upgrade(move |socket| handle_socket(socket, addr))
     }
@@ -147,17 +145,70 @@ impl RouteHandler {
     }
 }
 
-async fn handle_socket(mut socket: WebSocket, who: SocketAddr) {
-    let data = PluginMessage {
+async fn handle_socket(socket: WebSocket, who: SocketAddr) {
+    let socket = Arc::new(TokioMutex::new(socket));
+    let hello_message = PluginMessage {
         op: PluginOpCode::Hello,
         data: PluginMessageData::default(),
     };
 
-    let data_string = serde_json::to_string(&data).unwrap();
+    let data_string = serde_json::to_string(&hello_message).unwrap();
 
-    socket.send(axum::extract::ws::Message::Text(data_string)).await.unwrap();
+    socket.lock().await.send(Text(data_string)).await.unwrap();
 
     loop {
-        let recv = socket.recv().await;
+        let recv = socket.lock().await.recv().await;
+
+        if recv.is_none() {
+            println!("Plugin session recv is none");
+            return;
+        }
+
+        match recv.unwrap() {
+            Ok(m) => {
+                let msg_str = match m.to_text() {
+                    Ok(msg) => msg,
+                    Err(msg) => continue,
+                };
+                
+                let msg: PluginMessage = match serde_json::from_str(msg_str) {
+                    Ok(msg) => msg,
+                    Err(msg) => continue,
+                };
+
+                let op = msg.op;
+                let data = msg.data;
+
+                match op {
+                    PluginOpCode::Challenge => {
+                        // TODO: データがなかったらError
+                        let plugin_version = data.plugin_version.unwrap();
+                        let plugin_id = data.plugin_id.unwrap();
+
+                        PLUGIN_MANAGER.lock().unwrap().get_mut(&plugin_id).unwrap().set_session(Arc::clone(&socket));
+
+                        let success_data = PluginMessage {
+                            op: PluginOpCode::Success,
+                            data: {
+                                PluginMessageData::default()
+                            }
+                        };
+
+                        socket.lock().await.send(Text(serde_json::to_string(&success_data).unwrap())).await.unwrap();
+                    }
+                    PluginOpCode::Error => {
+
+                    }
+                    PluginOpCode::Message => {
+
+                    }
+                    _ => {}
+                }
+            }
+            Err(e) => {
+                
+            }
+        }
+
     }
 }

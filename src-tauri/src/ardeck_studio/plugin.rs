@@ -4,37 +4,33 @@ Copyright (C) 2024 project-ardeck
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or 
+the Free Software Foundation; either version 3 of the License, or
 (at your option) any later version.
 
-This program is distributed in the hope that it will be useful, 
+This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-
 pub mod core;
 pub mod manager;
 pub mod tauri;
 
-use manager::{
-    PluginManager,
-};
-use core::{
-    PluginCore
-};
+use core::PluginCore;
+use manager::PluginManager;
 
-use std::sync::{
-    Arc,
-    Mutex,
-};
 use axum::extract::ws::WebSocket;
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
+use std::sync::{Arc, Mutex};
+
+use tokio::sync::Mutex as TokioMutex;
+
+use super::ardeck::data::ActionData;
 
 pub static PLUGIN_DIR: &'static str = "./plugins";
 
@@ -43,7 +39,7 @@ pub struct Plugin {
     pub manifest: PluginManifest, //TODO: PluginManifest
     pub actions: PluginActionList,
     pub process: Arc<Mutex<std::process::Child>>,
-    // pub session: Arc<Mutex<WebSocket>>,
+    pub session: Option<Arc<TokioMutex<WebSocket>>>,
 }
 
 impl Plugin {
@@ -57,8 +53,29 @@ impl Plugin {
             manifest,
             actions,
             process,
-            // session
+            session: None,
         }
+    }
+
+    pub fn set_session(&mut self, session: Arc<TokioMutex<WebSocket>>) {
+        self.session = Some(session);
+    }
+
+    pub async fn put_action(&mut self, action: ActionData) {
+        if self.session.is_none() {
+            // Error!: Plugin session has not started yet.
+            return;
+        }
+
+        let action_str = serde_json::to_string(&action).unwrap();
+        self.session
+            .as_mut()
+            .unwrap()
+            .lock()
+            .await
+            .send(axum::extract::ws::Message::Text(action_str))
+            .await
+            .unwrap();
     }
 }
 
@@ -93,15 +110,36 @@ pub struct PluginMessage {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct PluginMessageData {
-    pub log: Option<String>,
+    pub ardeck_plugin_web_socket_version: Option<String>,
+
+    // op0
+    pub ardeck_studio_version: Option<String>,
+
+    // op1
+    pub plugin_version: Option<String>,
+    pub plugin_id: Option<String>,
+
+    // op8
     pub action_id: Option<String>,
+    pub action_data: Option<ActionData>,
+
+    pub log: Option<String>,
 }
 
 impl Default for PluginMessageData {
     fn default() -> Self {
         PluginMessageData {
+            ardeck_plugin_web_socket_version: None,
+
+            ardeck_studio_version: None,
+
+            plugin_version: None,
+            plugin_id: None,
+
+            action_id: None,
+            action_data: None,
+
             log: None,
-            action_id: None
         }
     }
 }
@@ -111,10 +149,10 @@ impl Default for PluginMessageData {
 #[repr(i32)]
 pub enum PluginOpCode {
     // ardeck plugin websocket 0.0.1
-    Hello = 0,              // host -> plugin
-    Challenge = 1,          // plugin -> host
-    Success = 2,            // host -> plugin
-    Error = 3,              // host <-> plugin
-    Action = 8,             // host -> plugin
-    Message = 9,            // host <-> plugin
+    Hello = 0,     // host -> plugin
+    Challenge = 1, // plugin -> host
+    Success = 2,   // host -> plugin
+    Error = 3,     // host <-> plugin
+    Action = 8,    // host -> plugin
+    Message = 9,   // host <-> plugin
 }

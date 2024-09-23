@@ -67,7 +67,7 @@ impl Ardeck {
                     continue_flag: Arc::new(Mutex::new(AtomicBool::new(true))),
                     port: Arc::new(Mutex::new(port)),
                     port_data: Arc::new(Mutex::new(ArdeckData::new())),
-                }) // TODO: Arcを外す
+                })
             }
             Err(_) => Err(OpenError::Unknown),
         }
