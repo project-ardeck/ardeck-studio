@@ -40,8 +40,6 @@ use super::manager::PluginManager;
 
 use super::{Plugin, PluginManifest, PluginMessage, PluginMessageData, PluginOpCode, PLUGIN_DIR};
 
-static PLUGIN_MANAGER: Lazy<Mutex<PluginManager>> = Lazy::new(|| Mutex::new(PluginManager::new()));
-
 pub struct PluginCore {
     plugin_manager: Arc<Mutex<PluginManager>>,
     serve: Option<tokio::task::JoinHandle<()>>,
@@ -67,9 +65,11 @@ impl PluginCore {
             .fallback(get(RouteHandler::err_404))
             .with_state(Arc::clone(&self.plugin_manager));
 
-        self.serve = Some(tokio::spawn(async move {
+        // self.serve = Some(
+        tokio::spawn(async move {
             serve(listener, app).await.unwrap();
-        }));
+        });
+        // );
 
         println!("plugin server started.");
 
@@ -129,7 +129,7 @@ impl RouteHandler {
         ConnectInfo(addr): ConnectInfo<SocketAddr>,
         State(plugin_manager): State<Arc<Mutex<PluginManager>>>,
     ) -> impl IntoResponse {
-        ws.on_upgrade(move |socket| handle_socket(socket, addr))
+        ws.on_upgrade(move |socket| handle_socket(socket, addr, plugin_manager))
     }
 
     pub async fn plugin_list(State(state): State<Arc<Mutex<PluginManager>>>) -> impl IntoResponse {
@@ -145,7 +145,7 @@ impl RouteHandler {
     }
 }
 
-async fn handle_socket(socket: WebSocket, who: SocketAddr) {
+async fn handle_socket(socket: WebSocket, who: SocketAddr, plugin_manager: Arc<Mutex<PluginManager>>) {
     let socket = Arc::new(TokioMutex::new(socket));
     let hello_message = PluginMessage {
         op: PluginOpCode::Hello,
@@ -185,7 +185,7 @@ async fn handle_socket(socket: WebSocket, who: SocketAddr) {
                         let plugin_version = data.plugin_version.unwrap();
                         let plugin_id = data.plugin_id.unwrap();
 
-                        PLUGIN_MANAGER.lock().unwrap().get_mut(&plugin_id).unwrap().set_session(Arc::clone(&socket));
+                        plugin_manager.lock().unwrap().get_mut(&plugin_id).unwrap().set_session(Arc::clone(&socket));
 
                         let success_data = PluginMessage {
                             op: PluginOpCode::Success,

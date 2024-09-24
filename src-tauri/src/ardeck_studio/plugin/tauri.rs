@@ -23,7 +23,7 @@ pub async fn init<R: Runtime>() -> TauriPlugin<R> {
             RunEvent::Ready => {
                 let mut core = PLGUIN_CORE.lock().unwrap();
 
-                // core.execute_plugin_all();
+                core.execute_plugin_all();
             }
             _ => {}
         })
