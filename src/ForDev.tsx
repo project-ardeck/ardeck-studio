@@ -21,6 +21,8 @@ import { ReactNode, useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/tauri";
 import { emit, listen } from "@tauri-apps/api/event";
 
+import { Store } from "tauri-plugin-store-api";
+
 type switchStatesObject = {
     state: number,
     timestamp: Date,
@@ -94,12 +96,6 @@ export default function ForDev() {
             .catch((e) => {
                 pushLog(e);
             });
-    }
-
-    const testHandler = async () => {
-        pushLog("TEST");
-
-        invoke("test");
     }
 
     const closeHandler = async (portName: string) => {
@@ -179,16 +175,11 @@ export default function ForDev() {
 
             });
 
-            listen("test", (e) => {
-                pushLog("GOT TEST");
-            });
-
             getPorts();
 
             getConnectingPorts();
 
             getThemeInfos();
-            // console.log("fook test");
 
             window.windowTheme.setTheme(
                 window.localStorage.getItem("theme") as ThemeList ?? "default-dark"
@@ -199,173 +190,157 @@ export default function ForDev() {
     return (
         <div className="font-fordev w-full h-full bg-bg-primary text-text-primary flex flex-col">
             <div data-tauri-drag-region className="p-4 h-full flex-1 overflow-auto flex flex-col gap-2">
-                <Infomations>
-                    <input className="border-2 p-2 bg-bg-tertiary cursor-pointer" type="button" value="TEST" onClick={testHandler} />
-                </Infomations>
-                <Infomations>
-                    <h2 className="text-xl font-bold mb-2 pb-2 border-b-2">
-                        Port
-                    </h2>
+                <Infomations title="Port">
                     <div>
-                        <div>
-                            <input
-                                type="checkbox"
-                                className="rounded-lg"
-                                name="isArduinoOnly"
-                                checked={isShowotherArduinoDevice}
-                                onChange={(e) => {
-                                    setIsShowotherArduinoDevice(e.target.checked);
-                                }}
-                            />
-                            <label htmlFor="isArduinoOnly">Show other than Arduino</label>
+                        <input
+                            type="checkbox"
+                            className="rounded-lg"
+                            name="isArduinoOnly"
+                            id="isArduinoOnly"
+                            checked={isShowotherArduinoDevice}
+                            onChange={(e) => {
+                                setIsShowotherArduinoDevice(e.target.checked);
+                            }}
+                        />
+                        <label htmlFor="isArduinoOnly" className="select-none">{" "}Show other than Arduino</label>
 
-                        </div>
-                        <div className="flex gap-2 mt-2">
-
-                            {portList.map((port) => {
-                                if (port.port_type.UsbPort?.vid != 0x2341 && !isShowotherArduinoDevice) {
-                                    return null;
-                                }
-
-                                let product = port.port_type.UsbPort?.product ?
-                                    port.port_type.UsbPort?.product :
-                                    "Unknown";
-
-                                let serialNum = port.port_type.UsbPort?.serial_number ?
-                                    port.port_type.UsbPort.serial_number :
-                                    "Unknown";
-
-                                let isConnect = connectedSerialList.some(val => {
-                                    return port.port_name == val;
-                                })
-
-                                return (
-                                    <div key={port.port_name} className="bg-bg-secondary p-2 rounded-lg border-bg-4 border-2 shadow-lg">
-                                        <div>
-                                            {port.port_name}
-                                        </div>
-                                        <div>
-                                            {product}
-                                        </div>
-                                        <div className="text-sm text-text-primary text-opacity-50">
-                                            {serialNum}
-                                        </div>
-                                        <div className="flex flex-col gap-2 mt-2">
-                                            <button
-                                                disabled={isConnect}
-                                                className="bg-accent-positive rounded-lg text-bg-primary px-4 transition-colors disabled:bg-bg-quaternary disabled:text-text-primary disabled:text-opacity-50"
-                                                onClick={() => {
-                                                    serialOpenRequest(port.port_name);
-                                                    // buttonLoadingAnimation;
-                                                }}
-                                            >
-                                                Connect
-                                            </button>
-                                            <button
-                                                disabled={!isConnect}
-                                                className="bg-accent-negative rounded-lg text-bg-primary px-2 transition-colors disabled:bg-bg-quaternary disabled:text-text-primary disabled:text-opacity-50"
-                                                onClick={() => {
-                                                    closeHandler(port.port_name);
-                                                    // buttonLoadingAnimation;
-                                                }}
-                                            >
-                                                Disconnect
-                                            </button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
                     </div>
+                    <div className="flex gap-2 mt-2">
 
-                </Infomations>
-                <Infomations>
-                    <h2 className="text-xl font-bold mb-2 pb-2 border-b-2">
-                        Device Info
-                    </h2>
-                    <div>
-                        <h3 className="font-bold text-lg mt-4">
-                            Digital
-                        </h3>
-                        {Array.from(switchStates.Digital).map(([pin, state]) => {
-                            const className = state.state ? "border-accent-primary border-opacity-50" : "border-bg-quaternary";
-                            const date = state.timestamp.getDate().toString().padStart(2, '0');
-                            const hour = state.timestamp.getHours().toString().padStart(2, '0');
-                            const minute = state.timestamp.getMinutes().toString().padStart(2, '0');
-                            const second = state.timestamp.getSeconds().toString().padStart(2, '0');
-                            const millisecond = state.timestamp.getMilliseconds().toString().padStart(3, '0');
-                            const time = `${hour}:${minute}:${second}.${millisecond}`;
-
-                            // console.log(state.timestamp);
-
-                            return (
-
-                                <div className={`${className} px-4 mb-1 border-2 rounded-md flex items-center place-content-between transition-colors relative`}>
-                                    <div>
-
-                                        {`${pin.toString().padStart(2, '0')} : ${state.state ? "HIGH" : "LOW"}`}
-                                    </div>
-                                    <div className="absolute top-0 left-0 right-0 bottom-0 flex justify-center items-center pointer-events-none">
-                                        {state.raw.map((val, index) => {
-                                            return (
-                                                <span key={index} className="text-sm pointer-events-auto">
-                                                    {val.toString(2).padStart(8, '0')}
-                                                </span>
-                                            );
-                                        })}
-                                    </div>
-                                    <div className="text-sm text-text-primary text-opacity-50">
-                                        {time}
-                                    </div>
-                                </div>
-                            )
-                        })}
-                        <h3 className="font-bold text-lg mt-4">
-                            Analog
-                        </h3>
-                        {Array.from(switchStates.Analog).map(([pin, state]) => {
-                            const className = state.state ? "border-accent-primary border-opacity-50" : "border-bg-quaternary";
-                            const date = state.timestamp.getDate().toString().padStart(2, '0');
-                            const hour = state.timestamp.getHours().toString().padStart(2, '0');
-                            const minute = state.timestamp.getMinutes().toString().padStart(2, '0');
-                            const second = state.timestamp.getSeconds().toString().padStart(2, '0');
-                            const millisecond = state.timestamp.getMilliseconds().toString().padStart(3, '0');
-                            const time = `${hour}:${minute}:${second}.${millisecond}`;
-
-                            // console.log(state.timestamp);
-
-                            const style = {
-                                "width": `${state.state / 1023 * 100}%`
+                        {portList.map((port) => {
+                            if (port.port_type.UsbPort?.vid != 0x2341 && !isShowotherArduinoDevice) {
+                                return null;
                             }
 
-                            return (
+                            let product = port.port_type.UsbPort?.product ?
+                                port.port_type.UsbPort?.product :
+                                "Unknown";
 
-                                <div className={`${className} px-4 mb-1 border-2 rounded-md flex items-center place-content-between transition-colors relative`}>
-                                    <div className="z-10">
-                                        {`${pin.toString().padStart(2, '0')} : ${state.state}`}
+                            let serialNum = port.port_type.UsbPort?.serial_number ?
+                                port.port_type.UsbPort.serial_number :
+                                "Unknown";
+
+                            let isConnect = connectedSerialList.some(val => {
+                                return port.port_name == val;
+                            })
+
+                            return (
+                                <div key={port.port_name} className="bg-bg-secondary p-2 rounded-lg border-bg-4 border-2 shadow-lg">
+                                    <div>
+                                        {port.port_name}
                                     </div>
-                                    <div className="z-10 absolute top-0 left-0 right-0 bottom-0 flex gap-2 justify-center items-center pointer-events-none">
-                                        {state.raw.map((val, index) => {
-                                            return (
-                                                <span key={index} className="text-sm pointer-events-auto">
-                                                    {val.toString(2).padStart(8, '0')}
-                                                </span>
-                                            );
-                                        })}
+                                    <div>
+                                        {product}
                                     </div>
-                                    <div className="z-10 text-sm text-text-primary text-opacity-50">
-                                        {time}
+                                    <div className="text-sm text-text-primary text-opacity-50">
+                                        {serialNum}
                                     </div>
-                                    <div className="z-0 absolute top-0 left-0 bottom-0 bg-accent-primary opacity-25 pointer-events-none" style={style}></div>
+                                    <div className="flex flex-col gap-2 mt-2">
+                                        <button
+                                            disabled={isConnect}
+                                            className="bg-accent-positive rounded-lg text-bg-primary px-4 transition-colors disabled:bg-bg-quaternary disabled:text-text-primary disabled:text-opacity-50"
+                                            onClick={() => {
+                                                serialOpenRequest(port.port_name);
+                                                // buttonLoadingAnimation;
+                                            }}
+                                        >
+                                            Connect
+                                        </button>
+                                        <button
+                                            disabled={!isConnect}
+                                            className="bg-accent-negative rounded-lg text-bg-primary px-2 transition-colors disabled:bg-bg-quaternary disabled:text-text-primary disabled:text-opacity-50"
+                                            onClick={() => {
+                                                closeHandler(port.port_name);
+                                                // buttonLoadingAnimation;
+                                            }}
+                                        >
+                                            Disconnect
+                                        </button>
+                                    </div>
                                 </div>
-                            )
+                            );
                         })}
                     </div>
                 </Infomations>
-                <Infomations>
-                    <h2 className="text-xl font-bold mb-2 pb-2 border-b-2">
-                        Logs
-                    </h2>
+                <Infomations title="Device Info">
+                    <h3 className="font-bold text-lg mt-4">
+                        Digital
+                    </h3>
+                    {Array.from(switchStates.Digital).map(([pin, state]) => {
+                        const className = state.state ? "border-accent-primary border-opacity-50" : "border-bg-quaternary";
+                        const date = state.timestamp.getDate().toString().padStart(2, '0');
+                        const hour = state.timestamp.getHours().toString().padStart(2, '0');
+                        const minute = state.timestamp.getMinutes().toString().padStart(2, '0');
+                        const second = state.timestamp.getSeconds().toString().padStart(2, '0');
+                        const millisecond = state.timestamp.getMilliseconds().toString().padStart(3, '0');
+                        const time = `${hour}:${minute}:${second}.${millisecond}`;
+
+                        // console.log(state.timestamp);
+
+                        return (
+
+                            <div className={`${className} px-4 mb-1 border-2 rounded-md flex items-center place-content-between transition-colors relative`}>
+                                <div>
+
+                                    {`${pin.toString().padStart(2, '0')} : ${state.state ? "HIGH" : "LOW"}`}
+                                </div>
+                                <div className="absolute top-0 left-0 right-0 bottom-0 flex justify-center items-center pointer-events-none">
+                                    {state.raw.map((val, index) => {
+                                        return (
+                                            <span key={index} className="text-sm pointer-events-auto">
+                                                {val.toString(2).padStart(8, '0')}
+                                            </span>
+                                        );
+                                    })}
+                                </div>
+                                <div className="text-sm text-text-primary text-opacity-50">
+                                    {time}
+                                </div>
+                            </div>
+                        )
+                    })}
+                    <h3 className="font-bold text-lg mt-4">
+                        Analog
+                    </h3>
+                    {Array.from(switchStates.Analog).map(([pin, state]) => {
+                        const className = state.state ? "border-accent-primary border-opacity-50" : "border-bg-quaternary";
+                        const date = state.timestamp.getDate().toString().padStart(2, '0');
+                        const hour = state.timestamp.getHours().toString().padStart(2, '0');
+                        const minute = state.timestamp.getMinutes().toString().padStart(2, '0');
+                        const second = state.timestamp.getSeconds().toString().padStart(2, '0');
+                        const millisecond = state.timestamp.getMilliseconds().toString().padStart(3, '0');
+                        const time = `${hour}:${minute}:${second}.${millisecond}`;
+
+                        // console.log(state.timestamp);
+
+                        const style = {
+                            "width": `${state.state / 1023 * 100}%`
+                        }
+
+                        return (
+
+                            <div className={`${className} px-4 mb-1 border-2 rounded-md flex items-center place-content-between transition-colors relative`}>
+                                <div className="z-10">
+                                    {`${pin.toString().padStart(2, '0')} : ${state.state}`}
+                                </div>
+                                <div className="z-10 absolute top-0 left-0 right-0 bottom-0 flex gap-2 justify-center items-center pointer-events-none">
+                                    {state.raw.map((val, index) => {
+                                        return (
+                                            <span key={index} className="text-sm pointer-events-auto">
+                                                {val.toString(2).padStart(8, '0')}
+                                            </span>
+                                        );
+                                    })}
+                                </div>
+                                <div className="z-10 text-sm text-text-primary text-opacity-50">
+                                    {time}
+                                </div>
+                                <div className="z-0 absolute top-0 left-0 bottom-0 bg-accent-primary opacity-25 pointer-events-none" style={style}></div>
+                            </div>
+                        )
+                    })}
+                </Infomations>
+                <Infomations title="Logs">
                     <div className="h-80 overflow-auto">
                         <pre>
                             {devLogs.map((msg) => {
@@ -379,42 +354,39 @@ export default function ForDev() {
                     </div>
                 </Infomations>
 
-                <Infomations>
-                    <h2 className="text-xl font-bold mb-2 pb-2 border-b-2">
-                        port info
-                    </h2>
-                    <div>
-                        <pre>
-                            {JSON.stringify(portList, null, "\t")}
-                        </pre>
-                    </div>
+                <Infomations title="port info">
+                    <pre>
+                        {JSON.stringify(portList, null, "\t")}
+                    </pre>
                 </Infomations>
 
-                <Infomations>
-                    <h2 className="text-xl font-bold mb-2 pb-2 border-b-2">
-                        Theme
-                    </h2>
-                    <div>
-                        <select
-                            className="rounded-md bg-bg-quaternary text-text-primary px-4 py-2 w-full"
-                            onChange={(e) => {
-                                window.localStorage.setItem("theme", e.target.value);
-                                window.windowTheme.setTheme(e.target.value as ThemeList);
-                            }}
-                        >
-                            {themeInfos.map((theme) => {
-                                return (
-                                    <option
-                                        key={theme.id}
-                                        value={theme.id}
-                                        selected={theme.id == window.windowTheme.theme ? true : false}
-                                    >
-                                        {theme.name}
-                                    </option>
-                                );
-                            })}
-                        </select>
-                    </div>
+                <Infomations title="Theme">
+                    <select
+                        className="rounded-md bg-bg-quaternary text-text-primary px-4 py-2 w-full"
+                        onChange={(e) => {
+                            window.localStorage.setItem("theme", e.target.value);
+                            window.windowTheme.setTheme(e.target.value as ThemeList);
+                        }}
+                    >
+                        {themeInfos.map((theme) => {
+                            return (
+                                <option
+                                    key={theme.id}
+                                    value={theme.id}
+                                    selected={theme.id == window.windowTheme.theme ? true : false}
+                                >
+                                    {theme.name}
+                                </option>
+                            );
+                        })}
+                    </select>
+                </Infomations>
+
+                <Infomations title="Settings">
+                </Infomations>
+
+                <Infomations title="Mappings">
+
                 </Infomations>
             </div>
         </div>
@@ -422,13 +394,21 @@ export default function ForDev() {
 }
 
 function Infomations({
+    title,
     children
 }: {
-    children: ReactNode
+    title?: string,
+    children?: ReactNode
 }) {
     return (
         <div className="p-4 bg-bg-secondary rounded-lg">
-            {children}
+            <h2 className="text-xl font-bold mb-2 pb-2 border-b-2">
+                {title}
+            </h2>
+            <div>
+
+                {children}
+            </div>
         </div>
     );
 }
