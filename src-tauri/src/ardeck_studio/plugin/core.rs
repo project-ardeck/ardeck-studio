@@ -27,6 +27,7 @@ use axum::extract::ws::WebSocket;
 use axum::extract::{ConnectInfo, State, WebSocketUpgrade};
 use axum::response::IntoResponse;
 use axum::routing::get;
+use axum::extract::Path as TauriPath;
 use axum::serve::Serve;
 use axum::{serve, Router};
 use once_cell::sync::Lazy;
@@ -55,7 +56,7 @@ impl PluginCore {
     }
 
     pub async fn start(&mut self) -> Result<(), std::io::Error> {
-        let listener = TcpListener::bind("localhost::3322").await?;
+        let listener = TcpListener::bind("localhost:3322").await?;
 
         let app = Router::new()
             .route("/", get(RouteHandler::plugin_socket))
@@ -133,11 +134,30 @@ impl RouteHandler {
     }
 
     pub async fn plugin_list(State(state): State<Arc<Mutex<PluginManager>>>) -> impl IntoResponse {
-        "OK"
+        let lock = state.lock().unwrap();
+        let keys: Vec<String> = lock.keys().map(|s| s.to_string()).collect();
+        keys.join("\n");
     }
 
-    pub async fn plugin_id(State(state): State<Arc<Mutex<PluginManager>>>) -> impl IntoResponse {
-        "OK"
+    pub async fn plugin_id(TauriPath(id): TauriPath<String>, State(state): State<Arc<Mutex<PluginManager>>>) -> impl IntoResponse {
+        let lock = state.lock().unwrap();
+        let plugin = lock.get(&id);
+        if plugin.is_none() {
+            return "Not Found".to_string();
+        }
+
+        let manifest = plugin.unwrap().manifest.clone();
+
+        let res = format!(
+            "{}\nid: {}\nversion: {}\nauthor: {}\ndescription: {:?}\n",
+            manifest.name,
+            manifest.id,
+            manifest.version,
+            manifest.author,
+            manifest.description
+        );
+
+        res
     }
 
     pub async fn err_404() -> impl IntoResponse {
