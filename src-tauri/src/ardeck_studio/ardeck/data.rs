@@ -46,11 +46,13 @@ enum BodyLen {
     Analog = 2,
 }
 
+pub type SwitchId = u8;
+
 #[derive(Clone, Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct ActionData {
     pub switch_type: SwitchType, // -1: Unknown, 0: Digital, 1: Analog
-    pub id: u8,
+    pub id: SwitchId,
     pub state: u16,
     pub raw_data: Vec<u8>, // TODO: raw_value
     pub timestamp: i64,

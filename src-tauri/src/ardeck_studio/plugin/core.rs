@@ -24,10 +24,10 @@ use std::sync::{Arc, Mutex};
 
 use axum::extract::ws::Message::Text;
 use axum::extract::ws::WebSocket;
+use axum::extract::Path as TauriPath;
 use axum::extract::{ConnectInfo, State, WebSocketUpgrade};
 use axum::response::IntoResponse;
 use axum::routing::get;
-use axum::extract::Path as TauriPath;
 use axum::serve::Serve;
 use axum::{serve, Router};
 use once_cell::sync::Lazy;
@@ -35,16 +35,19 @@ use tauri::plugin;
 use tokio::net::TcpListener;
 use tokio::sync::Mutex as TokioMutex;
 
+use crate::ardeck_studio::ardeck::data::ActionData;
 use crate::ardeck_studio::service::dir::Directories;
 
 use super::manager::PluginManager;
 
-use super::{Plugin, PluginManifest, PluginMessage, PluginMessageData, PluginOpCode, PLUGIN_DIR};
+use super::{
+    Plugin, PluginAction, PluginManifest, PluginMessage, PluginMessageData, PluginOpCode,
+    PLUGIN_DIR,
+};
 
 pub struct PluginCore {
     plugin_manager: Arc<Mutex<PluginManager>>,
     serve: Option<tokio::task::JoinHandle<()>>,
-    
 }
 
 impl PluginCore {
@@ -78,7 +81,14 @@ impl PluginCore {
     }
 
     pub fn execute_plugin_all(&self) {
-        let dir = Directories::get_or_init(Path::new(PLUGIN_DIR)).unwrap();
+        // let dir = Directories::get_or_init(Path::new(PLUGIN_DIR)).unwrap();
+        let dir = match Directories::get(Path::new(PLUGIN_DIR)) {
+            Ok(read_dir) => read_dir,
+            Err(_) => {
+                println!("[plugin.core]: plugins dir is not found");
+                return;
+            }
+        };
 
         for entry in dir {
             if entry.is_err() {
@@ -94,7 +104,15 @@ impl PluginCore {
                 continue;
             }
 
+            let actions_file = File::open(format!("{}/actions.json", path.display()));
+            if manifest_file.is_err() {
+                println!("Failed to open actions.json");
+                continue;
+            }
+
             let manifest: PluginManifest = serde_json::from_reader(manifest_file.unwrap()).unwrap();
+            let actions: Vec<PluginAction> =
+                serde_json::from_reader(actions_file.unwrap()).unwrap();
 
             let plugin_main_path = format!("{}/{}", path.display(), manifest.main);
 
@@ -102,24 +120,20 @@ impl PluginCore {
                 .spawn()
                 .expect("Failed to execute plugin");
 
-        //     let plugin = Plugin {
-        //         manifest,
-        //         process: Arc::new(Mutex::new(process)),
-        //         session
-        //     };
-
-        //     self.plugin.lock().unwrap().insert(manifest.id, plugin_process);
+            self.plugin_manager
+                .lock()
+                .unwrap()
+                .insert(
+                    manifest.clone().id,
+                    Plugin::new(manifest, actions, Arc::new(Mutex::new(process))),
+                )
+                .unwrap();
         }
-
     }
 
-    // pub async fn
-
-    // async fn socket_handler(ws: WebSocketUpgrade) {
-    //     ws.on_upgrade(move |socket: WebSocket| self)
-    // }
-
-    // async fn plugin_session(mut socket: WebSocket) {}
+    pub fn put_action(&self) {
+        // TODO: switch_typeとswitch_idからマッピングの設定を見つけ、そのプラグインに（あれば）put_actionする
+    }
 }
 
 struct RouteHandler {}
@@ -139,7 +153,10 @@ impl RouteHandler {
         keys.join("\n");
     }
 
-    pub async fn plugin_id(TauriPath(id): TauriPath<String>, State(state): State<Arc<Mutex<PluginManager>>>) -> impl IntoResponse {
+    pub async fn plugin_id(
+        TauriPath(id): TauriPath<String>,
+        State(state): State<Arc<Mutex<PluginManager>>>,
+    ) -> impl IntoResponse {
         let lock = state.lock().unwrap();
         let plugin = lock.get(&id);
         if plugin.is_none() {
@@ -150,11 +167,7 @@ impl RouteHandler {
 
         let res = format!(
             "{}\nid: {}\nversion: {}\nauthor: {}\ndescription: {:?}\n",
-            manifest.name,
-            manifest.id,
-            manifest.version,
-            manifest.author,
-            manifest.description
+            manifest.name, manifest.id, manifest.version, manifest.author, manifest.description
         );
 
         res
@@ -165,15 +178,22 @@ impl RouteHandler {
     }
 }
 
-async fn handle_socket(socket: WebSocket, who: SocketAddr, plugin_manager: Arc<Mutex<PluginManager>>) {
+async fn handle_socket(
+    socket: WebSocket,
+    who: SocketAddr,
+    plugin_manager: Arc<Mutex<PluginManager>>,
+) {
     let socket = Arc::new(TokioMutex::new(socket));
     let hello_message = PluginMessage {
         op: PluginOpCode::Hello,
-        data: PluginMessageData::default(),
+        data: PluginMessageData {
+            ardeck_studio_version: Some("0.0.8".to_string()),
+            ardeck_plugin_web_socket_version: Some("0.0.1".to_string()),
+            ..Default::default()
+        },
     };
 
     let data_string = serde_json::to_string(&hello_message).unwrap();
-
     socket.lock().await.send(Text(data_string)).await.unwrap();
 
     loop {
@@ -190,7 +210,7 @@ async fn handle_socket(socket: WebSocket, who: SocketAddr, plugin_manager: Arc<M
                     Ok(msg) => msg,
                     Err(msg) => continue,
                 };
-                
+
                 let msg: PluginMessage = match serde_json::from_str(msg_str) {
                     Ok(msg) => msg,
                     Err(msg) => continue,
@@ -205,30 +225,34 @@ async fn handle_socket(socket: WebSocket, who: SocketAddr, plugin_manager: Arc<M
                         let plugin_version = data.plugin_version.unwrap();
                         let plugin_id = data.plugin_id.unwrap();
 
-                        plugin_manager.lock().unwrap().get_mut(&plugin_id).unwrap().set_session(Arc::clone(&socket));
+                        // wsセッションを保存
+                        plugin_manager
+                            .lock()
+                            .unwrap()
+                            .get_mut(&plugin_id)
+                            .unwrap()
+                            .set_session(Arc::clone(&socket));
 
                         let success_data = PluginMessage {
                             op: PluginOpCode::Success,
-                            data: {
-                                PluginMessageData::default()
-                            }
+                            data: PluginMessageData {
+                                ..Default::default()
+                            },
                         };
 
-                        socket.lock().await.send(Text(serde_json::to_string(&success_data).unwrap())).await.unwrap();
+                        socket
+                            .lock()
+                            .await
+                            .send(Text(serde_json::to_string(&success_data).unwrap()))
+                            .await
+                            .unwrap();
                     }
-                    PluginOpCode::Error => {
-
-                    }
-                    PluginOpCode::Message => {
-
-                    }
+                    PluginOpCode::Error => {}
+                    PluginOpCode::Message => {}
                     _ => {}
                 }
             }
-            Err(e) => {
-                
-            }
+            Err(e) => {}
         }
-
     }
 }

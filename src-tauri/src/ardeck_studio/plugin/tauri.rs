@@ -2,9 +2,10 @@ use std::sync::Mutex;
 
 use once_cell::sync::Lazy;
 use tauri::{
-    plugin::{Builder, TauriPlugin},
-    RunEvent, Runtime,
+    plugin::{Builder, TauriPlugin}, Manager, RunEvent, Runtime
 };
+
+use crate::ardeck_studio::ardeck::data::ActionData;
 
 use super::{core::PluginCore, manager::PluginManager};
 
@@ -23,10 +24,14 @@ pub async fn init<R: Runtime>() -> TauriPlugin<R> {
             RunEvent::Ready => {
                 let mut core = PLGUIN_CORE.lock().unwrap();
 
-
-                // core.execute_plugin_all();
+                core.execute_plugin_all();
             }
             _ => {}
         })
         .build()
+}
+
+pub fn put_action(data: ActionData) {
+    println!("Got push_action in plugin.tauri: {:?}", data);
+    // TODO: 1つ前のデータ(同じスイッチのアクションデータ)と値が変わっていればCoreのput_actionに投げる
 }

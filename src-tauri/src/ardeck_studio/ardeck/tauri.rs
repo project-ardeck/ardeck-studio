@@ -10,6 +10,8 @@ use tauri::{
     AppHandle, Invoke, Manager, Runtime, State as TauriState,
 };
 
+use crate::ardeck_studio::plugin;
+
 use super::{manager::ArdeckManager, Ardeck};
 
 static ARDECK_MANAGER: Lazy<Mutex<ArdeckManager>> = Lazy::new(|| {
@@ -88,6 +90,7 @@ async fn close_port<R: Runtime>(
     app: tauri::AppHandle<R>,
     port_name: &str,
 ) -> Result<u32, u32> {
+    // TODO: もっとスムーズに停止するように調整する
     match ARDECK_MANAGER.lock().unwrap().get_mut(port_name) {
         Some(a) => {
             a.close_requset();
@@ -138,8 +141,10 @@ async fn open_port<R: Runtime>(
         println!("\n\n[] ardeck.portdata.on_complete\n\n");
 
         app_for_data
-            .emit_all("on-message-serial", data)
+            .emit_all("on-message-serial", data.clone())
             .unwrap();
+
+        plugin::tauri::put_action(data);
 
         // TODO: send to plugin manager
     });

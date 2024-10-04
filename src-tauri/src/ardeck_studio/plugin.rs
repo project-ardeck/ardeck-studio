@@ -30,7 +30,7 @@ use std::sync::{Arc, Mutex};
 
 use tokio::sync::Mutex as TokioMutex;
 
-use super::ardeck::data::ActionData;
+use super::ardeck::data::{ActionData, SwitchId, SwitchType};
 
 pub static PLUGIN_DIR: &'static str = "./plugins";
 
@@ -61,13 +61,22 @@ impl Plugin {
         self.session = Some(session);
     }
 
-    pub async fn put_action(&mut self, action: ActionData) {
+    pub async fn put_action(&mut self, action_id: String, action: ActionData) {
         if self.session.is_none() {
             // Error!: Plugin session has not started yet.
             return;
         }
 
-        let action_str = serde_json::to_string(&action).unwrap();
+        let action_message = PluginMessage {
+            op: PluginOpCode::Action,
+            data: PluginMessageData {
+                action_id: Some(action_id),
+                action_data: Some(action),
+                ..Default::default()
+            },
+        };
+
+        let action_str = serde_json::to_string(&action_message).unwrap();
         self.session
             .as_mut()
             .unwrap()
@@ -155,4 +164,13 @@ pub enum PluginOpCode {
     Error = 3,     // host <-> plugin
     Action = 8,    // host -> plugin
     Message = 9,   // host <-> plugin
+}
+
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ActionMap {
+    switch_type: SwitchType,
+    switch_id: SwitchId,
+    plugin_id: String,
+    action_id: String,
 }

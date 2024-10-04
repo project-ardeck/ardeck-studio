@@ -20,7 +20,6 @@ use std::collections::HashMap;
 
 use super::{manager::ArdeckManager, Ardeck};
 
-
 pub struct ArdeckCore {
     ardeck_manager: ArdeckManager,
 }
