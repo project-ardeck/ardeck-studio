@@ -35,24 +35,24 @@ declare global {
         name?: string;
         author?: string;
     }
-    
+
     type Theme = ThemeInfo & {
         base: "dark" | "light";
-    
+
         colors: {
             "bg-titlebar": number[];
-    
+
             "bg-primary": number[];
             "bg-secondary"?: number[];
             "bg-tertiary"?: number[];
             "bg-quaternary"?: number[];
-    
+
             "text-primary": number[];
             "text-reverse"?: number[];
-    
+
             "accent-primary": number[];
             "accent-secondary"?: number[];
-    
+
             "accent-positive": number[];
             "accent-caution": number[];
             "accent-negative": number[];
@@ -60,8 +60,6 @@ declare global {
         }
     };
 }
-
-
 
 class themeConfigs {
     static themeFormatting(theme: Theme): Theme {
@@ -106,6 +104,7 @@ declare global {
 
 type WindowThemeProps = {
     children: React.ReactNode;
+    // className: string;
 };
 
 export default class WindowTheme extends React.Component<WindowThemeProps> {
@@ -119,23 +118,23 @@ export default class WindowTheme extends React.Component<WindowThemeProps> {
         console.log("getting list...");
 
         let list: ThemeInfo[] = [];
-        
-        for (let i = 0; i < themeList.length; i ++) {
+
+        for (let i = 0; i < themeList.length; i++) {
             const themeConfig = await themeConfigs.getTheme(themeList[i]);
-            
+
             const tmp = {
                 id: themeConfig.id,
                 name: themeConfig.name,
                 author: themeConfig.author,
             }
-            
+
             list.push(tmp);
         }
-        
+
         return list;
     }
-    
-    
+
+
 
     constructor(props: WindowThemeProps) {
         super(props);

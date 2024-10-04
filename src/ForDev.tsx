@@ -22,6 +22,8 @@ import { invoke } from "@tauri-apps/api/tauri";
 import { emit, listen } from "@tauri-apps/api/event";
 
 import { Store } from "tauri-plugin-store-api";
+import ActionMappingForm from "./component/ActionMappingForm";
+import { SerialPortInfo, SwitchData } from "./types/ardeck";
 
 type switchStatesObject = {
     state: number,
@@ -32,6 +34,31 @@ type switchStatesObject = {
 const SerialProtocolVersionList = ["2014-06-03", "2024-06-17"] as const;
 type SerialProtocolVersion = typeof SerialProtocolVersionList[number];
 
+const BaudRateList = [
+    150,
+    200,
+    300,
+    600,
+    1200,
+    1800,
+    2400,
+    4800,
+    9600,
+    19200, //default
+    28800,
+    38400,
+    57600,
+    76800,
+    115200,
+    230400,
+    576000,
+    921600
+] as const;
+type BaudRate = typeof BaudRateList[number];
+
+
+
+
 const devLogLimit = 100;
 
 export default function ForDev() {
@@ -39,11 +66,13 @@ export default function ForDev() {
 
     const [isShowotherArduinoDevice, setIsShowotherArduinoDevice] = useState(false);
 
-    const [themeInfos, setThemeInfos] = useState([] as ThemeInfo[]);
+    const [themeInfos, setThemeInfos] = useState<ThemeInfo[]>([]);
 
-    const [portList, setPortList] = useState([] as SerialPortInfo[]);
-    const [devLogs, setDevLogs] = useState([] as string[]);
-    const [connectedSerialList, setConnectedSerialList] = useState([] as string[]);
+    const [deviceList, setDeviceList] = useState<SerialPortInfo[]>([]);
+    const [devLogs, setDevLogs] = useState<string[]>([]);
+    const [connectedSerialList, setConnectedSerialList] = useState<string[]>([]);
+
+    const [baudRateOption, setBaudRateOption] = useState<BaudRate>(19200);
 
     const [switchStates, setSwitchStates] = useState({
         Analog: new Map<number, switchStatesObject>(),
@@ -78,7 +107,7 @@ export default function ForDev() {
 
     const getPorts = async () => {
         let ports = await invoke("plugin:ardeck|get_ports") as SerialPortInfo[];
-        setPortList(ports);
+        setDeviceList(ports);
     }
 
     const getConnectingPorts = async () => {
@@ -88,7 +117,7 @@ export default function ForDev() {
     }
 
     const serialOpenRequest = async (portName: string) => {
-        invoke("plugin:ardeck|open_port", { portName: portName, baudRate: 19200 })
+        invoke("plugin:ardeck|open_port", { portName: portName, baudRate: baudRateOption })
             .then(() => {
                 // addCS(portName);
                 // pushLog(`OPEN: ${portName}`);
@@ -121,7 +150,7 @@ export default function ForDev() {
             isInit.current = true;
 
             listen("on-ports", (e) => { // ポートリストの更新
-                setPortList(e.payload as SerialPortInfo[]);
+                setDeviceList(e.payload as SerialPortInfo[]);
                 pushLog("aaa");
             });
 
@@ -142,6 +171,7 @@ export default function ForDev() {
             listen("on-message-serial", (e) => { // シリアル通信のメッセージ
                 const payload = e.payload as SwitchData;
                 // console.log(payload);
+                // document.getElementById("raw_data")!.innerHTML = JSON.stringify(payload, null, 2);
                 // pushLog(`${payload.switchType}`)
 
                 const data = {
@@ -150,7 +180,8 @@ export default function ForDev() {
                     raw: payload.rawData
                 };
 
-                if (payload.switchType == "digital") {
+                // TODO: enumを使うか、enumをほかのものに置き換えるか、Switchデータをクラスにしてis_digital()のようなメソッドを作る
+                if (payload.switchType === 0) {
                     // console.log("0");
                     setSwitchStates(prevState => {
                         const newState = new Map(prevState.Digital);
@@ -160,7 +191,7 @@ export default function ForDev() {
                             Digital: newState
                         }
                     });
-                } else if (payload.switchType == "analog") {
+                } else if (payload.switchType === 1) {
                     // console.log("1");
                     setSwitchStates(prevState => {
                         const newState = new Map(prevState.Analog);
@@ -191,23 +222,43 @@ export default function ForDev() {
         <div className="font-fordev w-full h-full bg-bg-primary text-text-primary flex flex-col">
             <div data-tauri-drag-region className="p-4 h-full flex-1 overflow-auto flex flex-col gap-2">
                 <Infomations title="Port">
-                    <div>
-                        <input
-                            type="checkbox"
-                            className="rounded-lg"
-                            name="isArduinoOnly"
-                            id="isArduinoOnly"
-                            checked={isShowotherArduinoDevice}
-                            onChange={(e) => {
-                                setIsShowotherArduinoDevice(e.target.checked);
-                            }}
-                        />
-                        <label htmlFor="isArduinoOnly" className="select-none">{" "}Show other than Arduino</label>
+                    <div className="flex flex-col gap-2">
+                        <div>
+                            <select
+                                value={baudRateOption}
+                                className="rounded-md bg-bg-quaternary text-text-primary px-4 py-2 w-full"
+                                onChange={e => {
+                                    setBaudRateOption(Number(e.target.value) as BaudRate);
+                                }}
+                            >
+                                {BaudRateList.map(e => {
+                                    return (
+                                        <option>
+                                            {e}
+                                        </option>
+                                    )
+                                })}
+                            </select>
+                        </div>
+                        <div>
+
+                            <input
+                                type="checkbox"
+                                className="rounded-lg"
+                                name="isArduinoOnly"
+                                id="isArduinoOnly"
+                                checked={isShowotherArduinoDevice}
+                                onChange={(e) => {
+                                    setIsShowotherArduinoDevice(e.target.checked);
+                                }}
+                            />
+                            <label htmlFor="isArduinoOnly" className="select-none">{" "}Show other than Arduino</label>
+                        </div>
 
                     </div>
                     <div className="flex gap-2 mt-2">
 
-                        {portList.map((port) => {
+                        {deviceList.map((port) => {
                             if (port.port_type.UsbPort?.vid != 0x2341 && !isShowotherArduinoDevice) {
                                 return null;
                             }
@@ -237,8 +288,8 @@ export default function ForDev() {
                                     </div>
                                     <div className="flex flex-col gap-2 mt-2">
                                         <button
-                                            disabled={isConnect}
-                                            className="bg-accent-positive rounded-lg text-bg-primary px-4 transition-colors disabled:bg-bg-quaternary disabled:text-text-primary disabled:text-opacity-50"
+                                            aria-disabled={isConnect}
+                                            className="bg-accent-positive rounded-lg text-bg-primary px-4 transition-colors aria-disabled:bg-bg-quaternary aria-disabled:text-text-primary aria-disabled:text-opacity-50 aria-disabled:cursor-default"
                                             onClick={() => {
                                                 serialOpenRequest(port.port_name);
                                                 // buttonLoadingAnimation;
@@ -247,8 +298,8 @@ export default function ForDev() {
                                             Connect
                                         </button>
                                         <button
-                                            disabled={!isConnect}
-                                            className="bg-accent-negative rounded-lg text-bg-primary px-2 transition-colors disabled:bg-bg-quaternary disabled:text-text-primary disabled:text-opacity-50"
+                                            aria-disabled={!isConnect}
+                                            className="bg-accent-negative rounded-lg text-bg-primary px-2 transition-colors aria-disabled:bg-bg-quaternary aria-disabled:text-text-primary aria-disabled:text-opacity-50 aria-disabled:cursor-default"
                                             onClick={() => {
                                                 closeHandler(port.port_name);
                                                 // buttonLoadingAnimation;
@@ -356,7 +407,7 @@ export default function ForDev() {
 
                 <Infomations title="port info">
                     <pre>
-                        {JSON.stringify(portList, null, "\t")}
+                        {JSON.stringify(deviceList, null, "\t")}
                     </pre>
                 </Infomations>
 
@@ -386,7 +437,20 @@ export default function ForDev() {
                 </Infomations>
 
                 <Infomations title="Mappings">
-
+                    <div className=" flex flex-col gap-2">
+                        {deviceList.map(e => {
+                            return (
+                                <div key={e.port_name} className="bg-bg-secondary rounded-lg border-2 p-2">
+                                    <h2>
+                                        {e.port_name}
+                                    </h2>
+                                    <div className="flex gap-2">
+                                        <ActionMappingForm portName={e.port_name} />
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
                 </Infomations>
             </div>
         </div>

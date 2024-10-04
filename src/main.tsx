@@ -22,6 +22,7 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import TitleBar from "./component/TitleBar";
 import WindowTheme from "./component/WindowTheme";
+import { ErrorBoundary } from "react-error-boundary";
 
 import "./main.css";
 
@@ -35,7 +36,7 @@ ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
                 <header>
                     <TitleBar />
                 </header>
-                <main className="flex-1 overflow-auto">
+                <main className="flex-1 overflow-auto scrollbar-theme">
                     <App />
                 </main>
             </div>
