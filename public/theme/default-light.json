@@ -13,7 +13,7 @@
         "bg-tertiary": [235, 238, 242],
         "bg-quaternary": [230, 233, 237],
 
-        "text-primary": [0, 0, 0],
+        "text-primary": [64, 64, 64],
         "text-reverse": [201, 209, 217],
 
         "accent-primary": [88, 166, 255],
