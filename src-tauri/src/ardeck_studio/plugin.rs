@@ -165,12 +165,3 @@ pub enum PluginOpCode {
     Action = 8,    // host -> plugin
     Message = 9,   // host <-> plugin
 }
-
-#[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase")]
-pub struct ActionMap {
-    switch_type: SwitchType,
-    switch_id: SwitchId,
-    plugin_id: String,
-    action_id: String,
-}

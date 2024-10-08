@@ -132,30 +132,18 @@ async fn open_port<R: Runtime>(
     // データを受信し、1回分のデータが完成した時の処理
     let app_for_data = app.app_handle();
 
-    // ardeck.port_data().lock().unwrap().on_complete(move |data| {
-    //     println!("\n\n[] ardeck.portdata.on_complete\n\n");
-
-    //     app_for_data
-    //         .emit_all("on-message-serial", data.clone())
-    //         .unwrap();
-
-    //     plugin::tauri::put_action(data);
-
-    //     // TODO: ActionManagerに投げる
-    //     // *MARK: ActionManager.put_action
-    // });
-
-    ardeck.port_data().lock().unwrap().on_change_action(move |data| {
+    ardeck.port_data().lock().unwrap().on_complete(move |data| {
         println!("\n\n[] ardeck.portdata.on_complete\n\n");
 
         app_for_data
             .emit_all("on-message-serial", data.clone())
             .unwrap();
+    });
+
+    ardeck.port_data().lock().unwrap().on_change_action(move |data| {
+        println!("\n\n[] ardeck.portdata.on_complete\n\n");
 
         plugin::tauri::put_action(data);
-
-        // TODO: ActionManagerに投げる
-        // *MARK: ActionManager.put_action
     });
 
     ARDECK_MANAGER

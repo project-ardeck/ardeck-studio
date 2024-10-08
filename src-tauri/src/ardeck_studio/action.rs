@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 pub mod compare;
+pub mod map;
 
 use compare::ActionCompare;
 use ::serde::{Deserialize, Serialize};

@@ -16,6 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+use std::path::PathBuf;
 
 use std::{
     f32::consts::E, fs::{self, DirBuilder, ReadDir}, io::{
@@ -26,6 +27,16 @@ use std::{
 pub struct Directories {}
 
 impl Directories {
+    #[cfg(feature="portable")]
+    pub fn get_config_dir() -> PathBuf {
+        PathBuf::from("./")
+    }
+
+    #[cfg(not(feature="portable"))]
+    pub fn get_config_dir() -> PathBuf {
+        dirs::config_dir().unwrap()
+    }
+
     pub fn init(path: &Path) -> Result<(), Error> {
         DirBuilder::new().recursive(false).create(path)
     }
