@@ -50,12 +50,14 @@ impl ActionCompare {
 
     fn compare(&self, switch_id: SwitchId) {
         // TODO: prevとnowで違いがあったらon_action
-
         if let Some(prev_action) = self.prev_actions.get(&switch_id) {
             let now_action = self.actions.get(&switch_id).unwrap();
             if now_action.get_switch_state() != prev_action.get_switch_state() {
                 self.on_change_action_emit_all(now_action.clone());
             }
+        } else {
+            let now_action = self.actions.get(&switch_id).unwrap();
+            self.on_change_action_emit_all(now_action.clone());
         }
     }
 
