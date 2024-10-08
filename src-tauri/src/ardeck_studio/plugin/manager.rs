@@ -24,8 +24,6 @@ use std::{
     sync::{Arc, Mutex},
 };
 
-use crate::util::manager::Manager;
-
 use super::{Plugin, PluginManifest};
 
 pub type PluginManager = HashMap<String, Plugin>;

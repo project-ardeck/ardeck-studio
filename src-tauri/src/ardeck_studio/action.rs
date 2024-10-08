@@ -4,31 +4,24 @@ Copyright (C) 2024 project-ardeck
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or 
+the Free Software Foundation; either version 3 of the License, or
 (at your option) any later version.
 
-This program is distributed in the hope that it will be useful, 
+This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+pub mod compare;
 
-use std::vec;
-
+use compare::ActionCompare;
 use ::serde::{Deserialize, Serialize};
-use chrono::{Local, TimeZone, Utc};
+use chrono::Utc;
 use serde_repr::{Deserialize_repr, Serialize_repr};
-
-// #[derive(Clone, Copy)]
-// pub enum SwitchType {
-//     Unknown,
-//     Digital,
-//     Analog,
-// }
 
 #[derive(Clone, Copy, Deserialize_repr, Serialize_repr, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -50,21 +43,21 @@ pub type SwitchId = u8;
 
 #[derive(Clone, Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
-pub struct ActionData {
+pub struct Action {
     pub switch_type: SwitchType, // -1: Unknown, 0: Digital, 1: Analog
-    pub id: SwitchId,
-    pub state: u16,
-    pub raw_data: Vec<u8>, // TODO: raw_value
+    pub switch_id: SwitchId,
+    pub switch_state: u16,
+    pub raw_value: Vec<u8>, // TODO: raw_value
     pub timestamp: i64,
 }
 
-impl ActionData {
+impl Action {
     pub fn new() -> Self {
         Self {
             switch_type: SwitchType::Unknown,
-            id: 0,
-            state: 0,
-            raw_data: Vec::new(),
+            switch_id: 0,
+            switch_state: 0,
+            raw_value: Vec::new(),
             timestamp: 0,
         }
     }
@@ -73,44 +66,44 @@ impl ActionData {
         self.switch_type = switch_type;
     }
 
-    pub fn switch_type(&self) -> SwitchType {
+    pub fn get_switch_type(&self) -> SwitchType {
         self.switch_type
     }
 
-    pub fn set_id(&mut self, id: u8) {
-        self.id = id;
+    pub fn set_switch_id(&mut self, id: u8) {
+        self.switch_id = id;
     }
 
-    pub fn id(&self) -> u8 {
-        self.id
+    pub fn get_switch_id(&self) -> u8 {
+        self.switch_id
     }
 
-    pub fn set_state(&mut self, state: u16) {
-        self.state = state;
+    pub fn set_switch_state(&mut self, state: u16) {
+        self.switch_state = state;
     }
 
-    pub fn state(&self) -> u16 {
-        self.state
+    pub fn get_switch_state(&self) -> u16 {
+        self.switch_state
     }
 
-    pub fn set_raw_data(&mut self, raw_data: Vec<u8>) {
-        self.raw_data = raw_data;
+    pub fn set_raw_value(&mut self, raw_data: Vec<u8>) {
+        self.raw_value = raw_data;
     }
 
-    pub fn raw_data(&self) -> Vec<u8> {
-        self.raw_data.clone()
+    pub fn get_raw_value(&self) -> Vec<u8> {
+        self.raw_value.clone()
     }
 
     pub fn set_timestamp(&mut self, timestamp: i64) {
         self.timestamp = timestamp;
     }
 
-    pub fn timestamp(&self) -> i64 {
+    pub fn get_timestamp(&self) -> i64 {
         self.timestamp
     }
 }
 
-pub struct ArdeckData {
+pub struct ActionDataParser {
     header_buf: String,
     is_reading: bool,
     read_count: u8,
@@ -118,12 +111,13 @@ pub struct ArdeckData {
     data_len: usize, // Digital: 4, Analog: 5
     body_len: BodyLen,
     has_collect: bool,
-    on_correct_handler: Box<dyn Fn(ActionData) + Send + 'static>,
+    on_correct_handler: Vec<Box<dyn Fn(Action) + Send + 'static>>,
     complete_count: u128,
-    switch_data_buf: ActionData,
+    switch_data_buf: Action,
+    compare: ActionCompare,
 }
 
-impl ArdeckData {
+impl ActionDataParser {
     const HEADER: &'static str = "ADEC";
     const HEADER_LEN: usize = Self::HEADER.len();
     const BODY_SIZE: usize = 2;
@@ -138,9 +132,10 @@ impl ArdeckData {
             data_len: 0,
             body_len: BodyLen::Unknown,
             has_collect: false,
-            on_correct_handler: Box::new(|data| {}),
+            on_correct_handler: Vec::new(),
             complete_count: 0,
-            switch_data_buf: ActionData::new(),
+            switch_data_buf: Action::new(),
+            compare: ActionCompare::new(),
         }
     }
 
@@ -171,7 +166,7 @@ impl ArdeckData {
 
     fn clear_buf(&mut self) {
         self.header_buf.clear();
-        self.switch_data_buf = ActionData::new();
+        self.switch_data_buf = Action::new();
     }
 
     fn get_time_millis() -> i64 {
@@ -179,8 +174,8 @@ impl ArdeckData {
     }
 
     fn format_switch_data(&mut self) {
-        let switch_type = self.switch_data_buf.switch_type();
-        let raw_data = self.switch_data_buf.raw_data();
+        let switch_type = self.switch_data_buf.get_switch_type();
+        let raw_data = self.switch_data_buf.get_raw_value();
         // println!("{:08b}", raw_data[0]);
         let mut id: u8;
         let mut state: u16;
@@ -199,8 +194,8 @@ impl ArdeckData {
             }
         }
 
-        self.switch_data_buf.set_id(id);
-        self.switch_data_buf.set_state(state);
+        self.switch_data_buf.set_switch_id(id);
+        self.switch_data_buf.set_switch_state(state);
 
         let time = Self::get_time_millis();
         self.switch_data_buf.set_timestamp(time);
@@ -239,7 +234,7 @@ impl ArdeckData {
         if self.is_reading && self.read_count == 2 || self.read_count == 3 {
             // self.data_buf[] = _data.clone();
 
-            let switch_type = self.switch_data_buf.switch_type();
+            let switch_type = self.switch_data_buf.get_switch_type();
 
             print!("Switch-Type: {:?}", switch_type);
 
@@ -259,18 +254,18 @@ impl ArdeckData {
                         SwitchType::Digital => {
                             self.data_of_digital_switch();
 
-                            let mut raw_data = self.switch_data_buf.raw_data();
+                            let mut raw_data = self.switch_data_buf.get_raw_value();
                             raw_data.push(_data);
-                            self.switch_data_buf.set_raw_data(raw_data);
+                            self.switch_data_buf.set_raw_value(raw_data);
 
                             // print!("\tCollect-Data-Digital");
                         }
                         SwitchType::Analog => {
                             self.data_of_analog_switch();
 
-                            let mut raw_data = self.switch_data_buf.raw_data();
+                            let mut raw_data = self.switch_data_buf.get_raw_value();
                             raw_data.push(_data);
-                            self.switch_data_buf.set_raw_data(raw_data);
+                            self.switch_data_buf.set_raw_value(raw_data);
 
                             print!("\tCollect-Data-Analog-0");
                         }
@@ -281,9 +276,9 @@ impl ArdeckData {
                 }
                 SwitchType::Analog => {
                     // self.data_buf.push(_data);
-                    let mut raw_data = self.switch_data_buf.raw_data();
+                    let mut raw_data = self.switch_data_buf.get_raw_value();
                     raw_data.push(_data);
-                    self.switch_data_buf.set_raw_data(raw_data);
+                    self.switch_data_buf.set_raw_value(raw_data);
 
                     print!("\tCollect-Data-Analog-1");
                 }
@@ -320,7 +315,7 @@ impl ArdeckData {
 
                 self.format_switch_data();
 
-                self.on_correct_emit(self.switch_data_buf.clone());
+                self.on_complete_emit_all(self.switch_data_buf.clone());
 
                 return true;
             } else {
@@ -352,26 +347,36 @@ impl ArdeckData {
         //     let time = Self::get_time_millis();
         //     self.countup_complete();
         //     self.on_correct_handler.as_mut()(self.switch_data_buf.clone());
-            // println!("On Correct! {}", Local.timestamp_millis_opt(time).unwrap());
-            // println!("------------------------------------------------");
+        // println!("On Correct! {}", Local.timestamp_millis_opt(time).unwrap());
+        // println!("------------------------------------------------");
         // }
 
         // if Self::HEADER == self.header_buf {
-            // println("Header Complete!");
+        // println("Header Complete!");
         //     // bufをクリア
         // }
     }
 
-    pub fn on_complete<F: Fn(ActionData) + Send + 'static>(&mut self, handler: F) {
-        self.on_correct_handler = Box::new(handler);
+    pub fn on_complete<F: Fn(Action) + Send + 'static>(&mut self, callback: F) {
+        self.on_correct_handler.push(Box::new(callback));
     }
 
-    fn on_correct_emit(&mut self, data: ActionData) {
-        let time = Self::get_time_millis();
-        // println!("Switch data: {:?}", data);
+    pub fn on_change_action<F: Fn(Action) + Send + 'static>(&mut self, callback: F) {
+        self.compare.on_change_action(callback);
+    }
+
+    fn on_complete_emit_all(&mut self, action: Action) {
         self.countup_complete();
-        self.on_correct_handler.as_mut()(data);
-        // println!("On Correct! {}", Local.timestamp_millis_opt(time).unwrap());
-        // println!("------------------------------------------------");
+        self.compare.put_action(action.clone()); // on change actionのために
+
+        for h in self.on_correct_handler.iter() {
+            
+            let time = Self::get_time_millis();
+            // println!("Switch data: {:?}", data);
+            // *h.as_mut()(data.clone());
+            h(action.clone());
+            // println!("On Correct! {}", Local.timestamp_millis_opt(time).unwrap());
+            // println!("------------------------------------------------");
+        }
     }
 }

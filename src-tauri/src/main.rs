@@ -23,7 +23,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 // mod ardeck_data;
 
 mod ardeck_studio;
-mod util;
 
 use core::panic;
 use std::{

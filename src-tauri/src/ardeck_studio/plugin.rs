@@ -30,7 +30,7 @@ use std::sync::{Arc, Mutex};
 
 use tokio::sync::Mutex as TokioMutex;
 
-use super::ardeck::data::{ActionData, SwitchId, SwitchType};
+use super::action::{Action, SwitchId, SwitchType};
 
 pub static PLUGIN_DIR: &'static str = "./plugins";
 
@@ -61,7 +61,7 @@ impl Plugin {
         self.session = Some(session);
     }
 
-    pub async fn put_action(&mut self, action_id: String, action: ActionData) {
+    pub async fn put_action(&mut self, action_id: String, action: Action) {
         if self.session.is_none() {
             // Error!: Plugin session has not started yet.
             return;
@@ -130,7 +130,7 @@ pub struct PluginMessageData {
 
     // op8
     pub action_id: Option<String>,
-    pub action_data: Option<ActionData>,
+    pub action_data: Option<Action>,
 
     pub log: Option<String>,
 }

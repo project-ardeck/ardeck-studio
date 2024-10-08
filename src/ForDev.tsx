@@ -23,7 +23,7 @@ import { emit, listen } from "@tauri-apps/api/event";
 
 import { Store } from "tauri-plugin-store-api";
 import ActionMappingForm from "./component/ActionMappingForm";
-import { SerialPortInfo, SwitchData } from "./types/ardeck";
+import { SerialPortInfo, Action } from "./types/ardeck";
 
 type switchStatesObject = {
     state: number,
@@ -43,13 +43,14 @@ const BaudRateList = [
     1800,
     2400,
     4800,
-    9600,
-    19200, //default
+    9600, //default
+    19200,
     28800,
     38400,
     57600,
     76800,
     115200,
+    192000, // ?!
     230400,
     576000,
     921600
@@ -72,7 +73,7 @@ export default function ForDev() {
     const [devLogs, setDevLogs] = useState<string[]>([]);
     const [connectedSerialList, setConnectedSerialList] = useState<string[]>([]);
 
-    const [baudRateOption, setBaudRateOption] = useState<BaudRate>(19200);
+    const [baudRateOption, setBaudRateOption] = useState<BaudRate>(9600);
 
     const [switchStates, setSwitchStates] = useState({
         Analog: new Map<number, switchStatesObject>(),
@@ -169,15 +170,15 @@ export default function ForDev() {
             });
 
             listen("on-message-serial", (e) => { // シリアル通信のメッセージ
-                const payload = e.payload as SwitchData;
+                const payload = e.payload as Action;
                 // console.log(payload);
                 // document.getElementById("raw_data")!.innerHTML = JSON.stringify(payload, null, 2);
                 // pushLog(`${payload.switchType}`)
 
                 const data = {
-                    state: payload.state,
+                    state: payload.switchState,
                     timestamp: new Date(payload.timestamp),
-                    raw: payload.rawData
+                    raw: payload.rawValue
                 };
 
                 // TODO: enumを使うか、enumをほかのものに置き換えるか、Switchデータをクラスにしてis_digital()のようなメソッドを作る
@@ -185,7 +186,7 @@ export default function ForDev() {
                     // console.log("0");
                     setSwitchStates(prevState => {
                         const newState = new Map(prevState.Digital);
-                        newState.set(payload.id, data);
+                        newState.set(payload.switchId, data);
                         return {
                             ...prevState,
                             Digital: newState
@@ -195,7 +196,7 @@ export default function ForDev() {
                     // console.log("1");
                     setSwitchStates(prevState => {
                         const newState = new Map(prevState.Analog);
-                        newState.set(payload.id, data);
+                        newState.set(payload.switchId, data);
                         return {
                             ...prevState,
                             Analog: newState

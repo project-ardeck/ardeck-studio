@@ -4,28 +4,21 @@ Copyright (C) 2024 project-ardeck
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or 
+the Free Software Foundation; either version 3 of the License, or
 (at your option) any later version.
 
-This program is distributed in the hope that it will be useful, 
+This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-
 pub mod core;
-pub mod data;
 pub mod manager;
 pub mod tauri;
-
-use data::{
-    ArdeckData,
-    ActionData,
-};
 
 use serialport::{self, SerialPort};
 
@@ -38,12 +31,15 @@ use std::{
     time::Duration,
 };
 
+use crate::ardeck_studio::action::ActionDataParser;
+
+
 #[derive(Clone)]
 pub struct Ardeck {
     continue_flag: Arc<Mutex<AtomicBool>>,
 
     port: Arc<Mutex<Box<dyn SerialPort>>>,
-    port_data: Arc<Mutex<ArdeckData>>,
+    port_data: Arc<Mutex<ActionDataParser>>,
 }
 
 /* State List
@@ -66,7 +62,7 @@ impl Ardeck {
                 Ok(Ardeck {
                     continue_flag: Arc::new(Mutex::new(AtomicBool::new(true))),
                     port: Arc::new(Mutex::new(port)),
-                    port_data: Arc::new(Mutex::new(ArdeckData::new())),
+                    port_data: Arc::new(Mutex::new(ActionDataParser::new())),
                 })
             }
             Err(_) => Err(OpenError::Unknown),
@@ -78,25 +74,28 @@ impl Ardeck {
 
         ports
     }
-    
+
     pub fn is_continue(&self) -> bool {
         self.continue_flag.lock().unwrap().load(Ordering::Relaxed)
     }
-    
+
     pub fn continue_flag(&self) -> Arc<Mutex<AtomicBool>> {
         Arc::clone(&self.continue_flag)
     }
-    
+
     pub fn port(&self) -> Arc<Mutex<Box<dyn SerialPort>>> {
         Arc::clone(&self.port)
     }
-    
-    pub fn port_data(&self) -> Arc<Mutex<ArdeckData>> {
+
+    pub fn port_data(&self) -> Arc<Mutex<ActionDataParser>> {
         Arc::clone(&self.port_data)
     }
 
     pub fn close_requset(&self) {
-        self.continue_flag.lock().unwrap().store(false, Ordering::SeqCst)
+        self.continue_flag
+            .lock()
+            .unwrap()
+            .store(false, Ordering::SeqCst)
     }
 }
 

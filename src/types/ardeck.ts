@@ -61,11 +61,11 @@ export type OnMessageSerial = {
     timestamp: number;
 }
 
-export type SwitchData = {
+export type Action = {
     switchType: SwitchType;
-    id: number;
-    state: number;
-    rawData: number[];
+    switchId: number;
+    switchState: number;
+    rawValue: number[];
     timestamp: number;
 }
 

@@ -35,7 +35,6 @@ use tauri::plugin;
 use tokio::net::TcpListener;
 use tokio::sync::Mutex as TokioMutex;
 
-use crate::ardeck_studio::ardeck::data::ActionData;
 use crate::ardeck_studio::service::dir::Directories;
 
 use super::manager::PluginManager;

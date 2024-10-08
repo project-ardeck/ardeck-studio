@@ -1,9 +1,9 @@
 use std::{
-    collections::HashMap, sync::{Arc, Mutex}, thread::park_timeout, time::Duration
+    collections::HashMap, io, sync::{Arc, Mutex}, thread::park_timeout, time::Duration
 };
 
 use once_cell::sync::Lazy;
-use serialport::SerialPortInfo;
+use serialport::{SerialPort, SerialPortInfo};
 use tauri::{
     generate_handler,
     plugin::{Builder, Plugin, TauriPlugin},
@@ -14,9 +14,8 @@ use crate::ardeck_studio::plugin;
 
 use super::{manager::ArdeckManager, Ardeck};
 
-static ARDECK_MANAGER: Lazy<Mutex<ArdeckManager>> = Lazy::new(|| {
-    Mutex::new(ArdeckManager::new())
-});
+static ARDECK_MANAGER: Lazy<Mutex<ArdeckManager>> = Lazy::new(|| Mutex::new(ArdeckManager::new()));
+// static ACTION_MANAGER: Lazy<Mutex<ArdeckManager>> = Lazy::new(|| Mutex::new(ActionManager::new()));
 
 // 現在接続中のポートの名前一覧を取得する
 // invoke("plugin:ardeck|get_connecting_serials");
@@ -28,33 +27,30 @@ fn get_connecting_serials() -> Vec<String> {
     keys.cloned().collect()
 }
 
-fn close<R: Runtime>(
-    app: tauri::AppHandle<R>,
-    port_name: &str
-) {
+fn close<R: Runtime>(app: tauri::AppHandle<R>, port_name: &str) {
     let mut ardeck_manager = ARDECK_MANAGER.lock().unwrap();
     ardeck_manager.remove(port_name);
-    
+
     app.emit_all("on-close-serial", port_name).unwrap();
-    
+
     println!("[{}] closed.", port_name);
 }
 
-async fn port_read<R: Runtime>(
-    app: tauri::AppHandle<R>,
-    port_name: &str,
-) {
+fn get_port(port_name: &str) -> io::Result<Arc<Mutex<Box<dyn SerialPort>>>> {
+    let mut am = ARDECK_MANAGER.lock().unwrap();
+    match am.get_mut(port_name) {
+        Some(a) => Ok(a.port()),
+        None => Err(io::Error::new(io::ErrorKind::NotFound, "error")),
+    }
+}
+
+async fn port_read<R: Runtime>(app: tauri::AppHandle<R>, port_name: &str) {
     let port_name = port_name.to_string();
     tokio::spawn(async move {
         loop {
-            let mut am = ARDECK_MANAGER.lock().unwrap();
-            let mut ardeck = match am.get_mut(&port_name) {
-                Some(a) => a,
-                None => return,
-            };
 
-            if !ardeck.is_continue() {
-                drop(am);
+            if !ARDECK_MANAGER.lock().unwrap().get(&port_name).unwrap().is_continue() {
+                // drop(am);
                 close(app.app_handle(), &port_name);
                 break;
             }
@@ -62,23 +58,24 @@ async fn port_read<R: Runtime>(
             let mut serial_buf: Vec<u8> = vec![0; 1];
             // serial_buf.fill(0);
 
-            let port = ardeck.port();
+            let port = get_port(&port_name).unwrap();
             let try_read = port.lock().unwrap().read(&mut serial_buf);
             match try_read {
                 Ok(_) => {
                     drop(port);
-                    let port_data = ardeck.port_data();
+                    let port_data = ARDECK_MANAGER.lock().unwrap().get(&port_name).unwrap().port_data();
                     port_data.lock().unwrap().on_data(serial_buf);
-                    drop(am);
-                },
+                }
                 Err(kind) => {
-                    println!("[{}] Connection error. Connection stoped.\nKind: {}", &port_name, kind);
+                    println!(
+                        "[{}] Connection error. Connection stoped.\nKind: {}",
+                        &port_name, kind
+                    );
                     drop(port);
-                    drop(am);
                     close(app.app_handle(), &port_name);
 
                     break;
-                },
+                }
             }
         }
     });
@@ -86,10 +83,7 @@ async fn port_read<R: Runtime>(
 
 // invoke("plugin:ardeck|close_port");
 #[tauri::command]
-async fn close_port<R: Runtime>(
-    app: tauri::AppHandle<R>,
-    port_name: &str,
-) -> Result<u32, u32> {
+async fn close_port<R: Runtime>(app: tauri::AppHandle<R>, port_name: &str) -> Result<u32, u32> {
     // TODO: もっとスムーズに停止するように調整する
     match ARDECK_MANAGER.lock().unwrap().get_mut(port_name) {
         Some(a) => {
@@ -137,7 +131,21 @@ async fn open_port<R: Runtime>(
 
     // データを受信し、1回分のデータが完成した時の処理
     let app_for_data = app.app_handle();
-    ardeck.port_data().lock().unwrap().on_complete(move |data| {
+
+    // ardeck.port_data().lock().unwrap().on_complete(move |data| {
+    //     println!("\n\n[] ardeck.portdata.on_complete\n\n");
+
+    //     app_for_data
+    //         .emit_all("on-message-serial", data.clone())
+    //         .unwrap();
+
+    //     plugin::tauri::put_action(data);
+
+    //     // TODO: ActionManagerに投げる
+    //     // *MARK: ActionManager.put_action
+    // });
+
+    ardeck.port_data().lock().unwrap().on_change_action(move |data| {
         println!("\n\n[] ardeck.portdata.on_complete\n\n");
 
         app_for_data
@@ -146,17 +154,18 @@ async fn open_port<R: Runtime>(
 
         plugin::tauri::put_action(data);
 
-        // TODO: send to plugin manager
+        // TODO: ActionManagerに投げる
+        // *MARK: ActionManager.put_action
     });
 
-    ARDECK_MANAGER.lock().unwrap().insert(port_name.to_string(), ardeck);
+    ARDECK_MANAGER
+        .lock()
+        .unwrap()
+        .insert(port_name.to_string(), ardeck);
 
     app.emit_all("on-open-serial", port_name).unwrap();
 
-    port_read(
-        app.app_handle(),
-        port_name,
-    ).await;
+    port_read(app.app_handle(), port_name).await;
 
     Ok(200)
 }
@@ -167,14 +176,13 @@ fn serial_watch<R: Runtime>(tauri_app: tauri::AppHandle<R>) {
 
     tokio::spawn(async move {
         let mut last_ports: Vec<SerialPortInfo> = Vec::new();
-        
+
         loop {
             let ports = serialport::available_ports().unwrap();
-            
+
             if last_ports.clone() != ports.clone() {
                 println!("serial.watch");
-                tauri_app.emit_all("on-ports", ports.clone())
-                .unwrap();
+                tauri_app.emit_all("on-ports", ports.clone()).unwrap();
             }
 
             last_ports = ports;
@@ -195,7 +203,12 @@ fn get_ports() -> Vec<serialport::SerialPortInfo> {
 
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("ardeck")
-        .invoke_handler(tauri::generate_handler![open_port, close_port, get_connecting_serials, get_ports])
+        .invoke_handler(tauri::generate_handler![
+            open_port,
+            close_port,
+            get_connecting_serials,
+            get_ports
+        ])
         .setup(|app| {
             serial_watch(app.app_handle());
             // app.manage(Mutex::new(ArdeckManager::new()));
