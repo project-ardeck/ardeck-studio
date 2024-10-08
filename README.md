@@ -2,4 +2,5 @@
 Ardeck
 
 # TODO
-- Update to tauri 2.0
+- `Tauri 2.0`にアップデートする
+- `plugin`, `ardeck`を`host.rs`, `config.rs`など機能ごとで分割する
