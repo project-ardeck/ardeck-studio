@@ -28,3 +28,7 @@ pub struct ActionMap {
     plugin_id: String,
     action_id: String,
 }
+
+struct Mapping {
+    
+}

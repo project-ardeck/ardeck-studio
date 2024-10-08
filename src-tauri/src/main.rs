@@ -44,8 +44,8 @@ use ardeck_studio::{
     ardeck::{
         self, Ardeck 
     },
-    plugin::{self, manager::PluginManager, PluginManifest, PLUGIN_DIR},
-    service::settings::{DeviceSettingOptions, DeviceSettings},
+    plugin::{self, manager::PluginManager, PluginManifestJSON, PLUGIN_DIR},
+    service::config::{DeviceSettingOptions, ArdeckStudioConfig},
 };
 
 use chrono::{format, Utc};
@@ -60,7 +60,7 @@ use window_shadows::set_shadow;
 
 #[tauri::command]
 fn get_device_settings() -> Vec<DeviceSettingOptions> {
-    DeviceSettings::get_settings().unwrap()
+    ArdeckStudioConfig::get_config().unwrap()
 }
 
 #[tokio::main]

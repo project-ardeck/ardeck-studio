@@ -18,7 +18,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 
 use std::sync::{atomic::AtomicBool, Mutex, OnceLock};
-use std::fs;
+use std::{fs, io};
 use serde::{Deserialize, Serialize};
 
 static WAS_CHANGED_SETTING: AtomicBool = AtomicBool::new(false);
@@ -36,18 +36,15 @@ pub struct DeviceSettingOptions {
 #[derive(Debug)]
 pub enum GetDeviceSettingError {
     NotFound,
-    // IoError(std::io::Error),
+    IoError(io::ErrorKind),
     SerdeError(serde_json::Error),
 }
 
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct DeviceSettings; // TODO: DeviceSettings -> Settings
-impl DeviceSettings {
-    // TODO: アプリで使うディレクトリを(存在しなければ)作成する関数
-    pub fn init_dir() {}
-
-    pub fn get_settings() -> Result<Vec<DeviceSettingOptions>, GetDeviceSettingError> {
-        let settings_path = "settings/device_settings.json";
+pub struct ArdeckStudioConfig; // TODO: DeviceSettings -> Settings
+impl ArdeckStudioConfig {
+    pub fn get_config() -> Result<Vec<DeviceSettingOptions>, GetDeviceSettingError> {
+        let settings_path = "config/device_settings.json";
         let settings_str = match fs::read_to_string(settings_path) {
             Ok(s) => s,
             Err(_) => return Ok(Vec::new()),
@@ -59,7 +56,7 @@ impl DeviceSettings {
     }
 
     pub fn get_settings_device(serial_number: &str) -> Result<DeviceSettingOptions, GetDeviceSettingError> {
-        let settings = Self::get_settings()?;
+        let settings = Self::get_config()?;
         for setting in settings {
             if setting.serial_number == serial_number {
                 return Ok(setting);

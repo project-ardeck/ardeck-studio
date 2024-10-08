@@ -19,6 +19,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 pub mod core;
 pub mod manager;
 pub mod tauri;
+pub mod config_singleton;
 
 use core::PluginCore;
 use manager::PluginManager;
@@ -36,16 +37,16 @@ pub static PLUGIN_DIR: &'static str = "./plugins";
 
 #[derive(Clone, Debug)]
 pub struct Plugin {
-    pub manifest: PluginManifest, //TODO: PluginManifest
-    pub actions: PluginActionList,
+    pub manifest: PluginManifestJSON, //TODO: PluginManifest
+    pub actions: PluginActionJSON,
     pub process: Arc<Mutex<std::process::Child>>,
     pub session: Option<Arc<TokioMutex<WebSocket>>>,
 }
 
 impl Plugin {
     pub fn new(
-        manifest: PluginManifest,
-        actions: PluginActionList,
+        manifest: PluginManifestJSON,
+        actions: PluginActionJSON,
         process: Arc<Mutex<std::process::Child>>,
         // session: Arc<Mutex<WebSocket>>
     ) -> Plugin {
@@ -90,7 +91,7 @@ impl Plugin {
 
 #[derive(Clone, Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PluginManifest {
+pub struct PluginManifestJSON {
     pub name: String,
     pub version: String,
     pub id: String,
@@ -107,7 +108,7 @@ pub struct PluginAction {
     description: Option<String>,
 }
 
-type PluginActionList = Vec<PluginAction>;
+type PluginActionJSON = Vec<PluginAction>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -165,3 +166,5 @@ pub enum PluginOpCode {
     Action = 8,    // host -> plugin
     Message = 9,   // host <-> plugin
 }
+
+// TODO: add host.rs

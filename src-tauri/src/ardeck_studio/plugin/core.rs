@@ -40,7 +40,7 @@ use crate::ardeck_studio::service::dir::Directories;
 use super::manager::PluginManager;
 
 use super::{
-    Plugin, PluginAction, PluginManifest, PluginMessage, PluginMessageData, PluginOpCode,
+    Plugin, PluginAction, PluginManifestJSON, PluginMessage, PluginMessageData, PluginOpCode,
     PLUGIN_DIR,
 };
 
@@ -109,7 +109,7 @@ impl PluginCore {
                 continue;
             }
 
-            let manifest: PluginManifest = serde_json::from_reader(manifest_file.unwrap()).unwrap();
+            let manifest: PluginManifestJSON = serde_json::from_reader(manifest_file.unwrap()).unwrap();
             let actions: Vec<PluginAction> =
                 serde_json::from_reader(actions_file.unwrap()).unwrap();
 
