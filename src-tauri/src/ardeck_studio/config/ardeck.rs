@@ -20,44 +20,48 @@ use std::fs;
 
 use serde::{Deserialize, Serialize};
 
-use super::GetDeviceSettingError;
+use crate::config_keys;
+
+// use super::GetDeviceSettingError;
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct ArdeckProfileConfigOption {
-    pub serial_number: String,
-
-    pub device_name: Option<String>,
-    pub baud_rate: Option<u32>, // default: 19200
-    pub description: Option<String>,
+config_keys! {
+    pub struct ArdeckProfileConfigOption {
+        pub serial_number: String,
+    
+        pub device_name: Option<String>,
+        pub baud_rate: Option<u32>, // default: 19200
+        pub description: Option<String>,
+    }
 }
 
-#[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct ArdeckProfileConfig; // TODO: DeviceSettings -> Settings
-impl ArdeckProfileConfig {
-    pub fn get_config() -> Result<Vec<ArdeckProfileConfigOption>, GetDeviceSettingError> {
-        let settings_path = "config/device_settings.json";
-        let settings_str = match fs::read_to_string(settings_path) {
-            Ok(s) => s,
-            Err(_) => return Ok(Vec::new()),
-        };
-        match serde_json::from_str(&settings_str) {
-            Ok(settings) => Ok(settings),
-            Err(e) => Err(GetDeviceSettingError::SerdeError(e)),
-        }
-    }
+// #[derive(Serialize, Deserialize, Clone, Debug)]
+// pub struct ArdeckProfileConfig; // TODO: DeviceSettings -> Settings
+// impl ArdeckProfileConfig {
+//     pub fn get_config() -> Result<Vec<ArdeckProfileConfigOption>, GetDeviceSettingError> {
+//         let settings_path = "config/device_settings.json";
+//         let settings_str = match fs::read_to_string(settings_path) {
+//             Ok(s) => s,
+//             Err(_) => return Ok(Vec::new()),
+//         };
+//         match serde_json::from_str(&settings_str) {
+//             Ok(settings) => Ok(settings),
+//             Err(e) => Err(GetDeviceSettingError::SerdeError(e)),
+//         }
+//     }
 
-    pub fn get_settings_device(serial_number: &str) -> Result<ArdeckProfileConfigOption, GetDeviceSettingError> {
-        let settings = Self::get_config()?;
-        for setting in settings {
-            if setting.serial_number == serial_number {
-                return Ok(setting);
-            }
-        }
-        Err(GetDeviceSettingError::NotFound)
-    }
+//     pub fn get_settings_device(serial_number: &str) -> Result<ArdeckProfileConfigOption, GetDeviceSettingError> {
+//         let settings = Self::get_config()?;
+//         for setting in settings {
+//             if setting.serial_number == serial_number {
+//                 return Ok(setting);
+//             }
+//         }
+//         Err(GetDeviceSettingError::IoError(std::io::Error::new(std::io::ErrorKind::NotFound, "error")))
+//     }
     
-    pub fn set_setting_studio(key: String, value: String) {} // ardeck studioの設定
+//     pub fn set_setting_studio(key: String, value: String) {} // ardeck studioの設定
     
-    pub fn set_setting_ardeck() {}
-}
+//     pub fn set_setting_ardeck() {}
+// }
