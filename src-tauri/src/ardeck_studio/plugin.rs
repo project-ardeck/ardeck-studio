@@ -20,6 +20,8 @@ pub mod core;
 pub mod manager;
 pub mod tauri;
 pub mod config_singleton;
+// pub mod execute;
+// pub mod server;
 
 use core::PluginCore;
 use manager::PluginManager;

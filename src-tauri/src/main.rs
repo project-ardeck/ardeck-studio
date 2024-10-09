@@ -23,6 +23,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 // mod ardeck_data;
 
 mod ardeck_studio;
+mod service;
 
 use core::panic;
 use std::{
@@ -45,7 +46,6 @@ use ardeck_studio::{
         self, Ardeck 
     },
     plugin::{self, manager::PluginManager, PluginManifestJSON, PLUGIN_DIR},
-    service::config::{DeviceSettingOptions, ArdeckStudioConfig},
 };
 
 use chrono::{format, Utc};
@@ -57,11 +57,6 @@ use tauri::{
     SystemTrayMenu, SystemTrayMenuItem,
 };
 use window_shadows::set_shadow;
-
-#[tauri::command]
-fn get_device_settings() -> Vec<DeviceSettingOptions> {
-    ArdeckStudioConfig::get_config().unwrap()
-}
 
 #[tokio::main]
 async fn main() {

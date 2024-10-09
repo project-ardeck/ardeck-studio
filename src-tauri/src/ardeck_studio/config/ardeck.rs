@@ -16,16 +16,15 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+use std::fs;
 
-use std::sync::{atomic::AtomicBool, Mutex, OnceLock};
-use std::{fs, io};
 use serde::{Deserialize, Serialize};
 
-static WAS_CHANGED_SETTING: AtomicBool = AtomicBool::new(false);
+use super::GetDeviceSettingError;
 
 #[derive(Serialize, Deserialize, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct DeviceSettingOptions {
+pub struct ArdeckProfileConfigOption {
     pub serial_number: String,
 
     pub device_name: Option<String>,
@@ -33,17 +32,10 @@ pub struct DeviceSettingOptions {
     pub description: Option<String>,
 }
 
-#[derive(Debug)]
-pub enum GetDeviceSettingError {
-    NotFound,
-    IoError(io::ErrorKind),
-    SerdeError(serde_json::Error),
-}
-
 #[derive(Serialize, Deserialize, Clone, Debug)]
-pub struct ArdeckStudioConfig; // TODO: DeviceSettings -> Settings
-impl ArdeckStudioConfig {
-    pub fn get_config() -> Result<Vec<DeviceSettingOptions>, GetDeviceSettingError> {
+pub struct ArdeckProfileConfig; // TODO: DeviceSettings -> Settings
+impl ArdeckProfileConfig {
+    pub fn get_config() -> Result<Vec<ArdeckProfileConfigOption>, GetDeviceSettingError> {
         let settings_path = "config/device_settings.json";
         let settings_str = match fs::read_to_string(settings_path) {
             Ok(s) => s,
@@ -55,7 +47,7 @@ impl ArdeckStudioConfig {
         }
     }
 
-    pub fn get_settings_device(serial_number: &str) -> Result<DeviceSettingOptions, GetDeviceSettingError> {
+    pub fn get_settings_device(serial_number: &str) -> Result<ArdeckProfileConfigOption, GetDeviceSettingError> {
         let settings = Self::get_config()?;
         for setting in settings {
             if setting.serial_number == serial_number {
@@ -68,11 +60,4 @@ impl ArdeckStudioConfig {
     pub fn set_setting_studio(key: String, value: String) {} // ardeck studioの設定
     
     pub fn set_setting_ardeck() {}
-}
-
-pub struct SettingsStudio {
-}
-
-impl SettingsStudio {
-    pub fn Theme(id: String) {}
 }
