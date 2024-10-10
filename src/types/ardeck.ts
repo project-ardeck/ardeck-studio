@@ -36,6 +36,14 @@ export type ActionMap = {
     pluginId: string;
     actionId: string;
 }
+
+export type ActionMapPreset = {
+    presetId: string;
+    presetName?: string;
+
+    mapping: ActionMap[];
+}
+
 export type ActionMapConfig = {
     [key: string]: ActionMap[];
 }

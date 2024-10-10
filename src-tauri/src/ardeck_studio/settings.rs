@@ -19,6 +19,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 pub mod ardeck;
 pub mod ardeck_studio;
 pub mod plugin;
+pub mod mapping_presets;
 
 use serde::{Deserialize, Serialize};
 use serde_json::from_reader;
@@ -35,30 +36,19 @@ pub enum GetDeviceSettingError {
     SerdeError(serde_json::Error),
 }
 
-#[macro_export]
-macro_rules! config_keys {
-    (pub struct $s_name:ident {$($f_name:ident: $f_type:ty), *}) => {
-        struct $s_name {
-            $($f_name: $f_type), *
-        }
-
-        impl $s_name {
-            fn keys() -> &'static [&'static str] {
-                static NAMES: &'static [&'static str] = &[$(stringify!($fname)),*];
-                NAMES
-            }
-        }
-    };
-}
-
-pub trait Config {
+pub trait Settings {
     fn config_path() -> &'static str;
 
     fn get_config() -> Option<Result<serde_json::Value, serde_json::Error>> {
         let file = match File::open(Self::config_path()) {
             Ok(f) => f,
             Err(e) => {
-                return None;
+                match e.kind() {
+                    io::ErrorKind::NotFound => {
+                        return None;
+                    }
+                    _ => return None // TODO: match
+                }
             }
         };
         let reader = BufReader::new(file);

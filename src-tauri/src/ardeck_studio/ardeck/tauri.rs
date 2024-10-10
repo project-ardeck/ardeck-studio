@@ -84,7 +84,6 @@ async fn port_read<R: Runtime>(app: tauri::AppHandle<R>, port_name: &str) {
 // invoke("plugin:ardeck|close_port");
 #[tauri::command]
 async fn close_port<R: Runtime>(app: tauri::AppHandle<R>, port_name: &str) -> Result<u32, u32> {
-    // TODO: もっとスムーズに停止するように調整する
     match ARDECK_MANAGER.lock().unwrap().get_mut(port_name) {
         Some(a) => {
             a.close_requset();

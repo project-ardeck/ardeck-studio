@@ -11,7 +11,8 @@ type ActionMapKey = "switchType" | "switchId" | "pluginId" | "actionId";
 
 
 export default function ActionMappingForm(props: {
-    portName: string
+    onChange?: (e: ActionMapWithUIDList) => {}
+    onSubmit?: (e: ActionMapWithUIDList) => {}
 }) {
     const isInit = useRef(false);
     const [item, setItem] = useState<ActionMapWithUIDList>([]);
@@ -35,7 +36,7 @@ export default function ActionMappingForm(props: {
 
     const removeItem = (_key: UID) => {
         setItem(e => e.filter(f => f.uid != _key));
-    }
+    };
 
     const editItem = (_key: UID, editcallback: (e: ActionMapWithUID) => ActionMapWithUID) => {
         setItem(e => {
@@ -53,13 +54,13 @@ export default function ActionMappingForm(props: {
             }
         })
         console.log("ActionMappingForm.item: ", item);
-    }
+    };
 
     // console.log("ActionMappingForm.item: ", item);
 
     const form = (action?: ActionMapWithUID) => {
 
-        const isNew = action? false : true; // actionがなければnew
+        const isNew = action ? false : true; // actionがなければnew
         console.log("isNew", isNew, action?.actionId);
 
         let buttonValue = isNew ? "+" : "-";
@@ -154,7 +155,7 @@ export default function ActionMappingForm(props: {
                     className="rounded-sm bg-bg-quaternary text-text-primary px-4 py-2 w-full flex-1"
                 />
                 <button
-                    id={`action-map-${isNew? "add" : "remove"}-action-map-${isNew ? temporaryUid : action?.uid}`}
+                    id={`action-map-${isNew ? "add" : "remove"}-action-map-${isNew ? temporaryUid : action?.uid}`}
                     onClick={() => {
                         if (isNew) {
                             const switchTypeElm = document.getElementById(`action-map-option-switch-type-${temporaryUid}`) as HTMLSelectElement;
@@ -167,7 +168,7 @@ export default function ActionMappingForm(props: {
                             }
 
                             let switchType;
-                            switch(Number(switchTypeElm.value)) {
+                            switch (Number(switchTypeElm.value)) {
                                 case SwitchType.Digital:
                                     switchType = SwitchType.Digital;
                                     break;
@@ -199,7 +200,7 @@ export default function ActionMappingForm(props: {
                 </button>
             </div>
         )
-    }
+    };
 
     useEffect(() => {
         if (!isInit.current) {
@@ -207,8 +208,14 @@ export default function ActionMappingForm(props: {
         }
     }, []);
 
+    const onSubmitHandler = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+    };
+
     return (
         <div className="w-full">
+
+            {/* <form onSubmit={(e) => {onSubmitHandler(e)}}> */}
             <div className="flex flex-col gap-2 w-full">
                 <div className="flex flex-col gap-1 w-full">
                     {Array.from(item).map((e, i) => {
@@ -218,7 +225,13 @@ export default function ActionMappingForm(props: {
                 <div className="w-full">
                     {form()}
                 </div>
+                <div className="mt-2">
+                    <button className="rounded-sm bg-bg-quaternary text-text-primary px-4 py-2 w-full">
+                        save
+                    </button>
+                </div>
             </div>
+            {/* </form> */}
         </div>
     );
 

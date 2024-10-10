@@ -23,7 +23,7 @@ import { emit, listen } from "@tauri-apps/api/event";
 
 import { Store } from "tauri-plugin-store-api";
 import ActionMappingForm from "./component/ActionMappingForm";
-import { SerialPortInfo, Action } from "./types/ardeck";
+import { SerialPortInfo, Action, SwitchType } from "./types/ardeck";
 
 type switchStatesObject = {
     state: number,
@@ -181,8 +181,7 @@ export default function ForDev() {
                     raw: payload.rawValue
                 };
 
-                // TODO: enumを使うか、enumをほかのものに置き換えるか、Switchデータをクラスにしてis_digital()のようなメソッドを作る
-                if (payload.switchType === 0) {
+                if (payload.switchType === SwitchType.Digital) {
                     // console.log("0");
                     setSwitchStates(prevState => {
                         const newState = new Map(prevState.Digital);
@@ -192,7 +191,7 @@ export default function ForDev() {
                             Digital: newState
                         }
                     });
-                } else if (payload.switchType === 1) {
+                } else if (payload.switchType === SwitchType.Analog) {
                     // console.log("1");
                     setSwitchStates(prevState => {
                         const newState = new Map(prevState.Analog);
@@ -439,18 +438,20 @@ export default function ForDev() {
 
                 <Infomations title="Mappings">
                     <div className=" flex flex-col gap-2">
-                        {deviceList.map(e => {
+                        {/* {deviceList.map(e => {
                             return (
                                 <div key={e.port_name} className="bg-bg-secondary rounded-lg border-2 p-2">
                                     <h2>
                                         {e.port_name}
                                     </h2>
                                     <div className="flex gap-2">
-                                        <ActionMappingForm portName={e.port_name} />
+                                        <ActionMappingForm />
                                     </div>
                                 </div>
                             )
-                        })}
+                        })} */}
+                        
+                        <ActionMappingForm />
                     </div>
                 </Infomations>
             </div>

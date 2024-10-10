@@ -48,7 +48,7 @@ pub struct Action {
     pub switch_type: SwitchType, // -1: Unknown, 0: Digital, 1: Analog
     pub switch_id: SwitchId,
     pub switch_state: u16,
-    pub raw_value: Vec<u8>, // TODO: raw_value
+    pub raw_value: Vec<u8>,
     pub timestamp: i64,
 }
 
