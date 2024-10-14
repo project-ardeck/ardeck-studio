@@ -438,20 +438,14 @@ export default function ForDev() {
 
                 <Infomations title="Mappings">
                     <div className=" flex flex-col gap-2">
-                        {/* {deviceList.map(e => {
-                            return (
-                                <div key={e.port_name} className="bg-bg-secondary rounded-lg border-2 p-2">
-                                    <h2>
-                                        {e.port_name}
-                                    </h2>
-                                    <div className="flex gap-2">
-                                        <ActionMappingForm />
-                                    </div>
-                                </div>
-                            )
-                        })} */}
-                        
-                        <ActionMappingForm />
+                        <select
+                            name=""
+                            id=""
+                            className="rounded-md bg-bg-quaternary text-text-primary px-4 py-2 w-full"
+                        >
+                            <option selected value="new">[new preset]</option>
+                        </select>
+                        <ActionMappingForm onSubmit={e => { return; }} />
                     </div>
                 </Infomations>
             </div>

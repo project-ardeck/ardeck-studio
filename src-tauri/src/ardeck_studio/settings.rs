@@ -16,17 +16,19 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-pub mod ardeck;
-pub mod ardeck_studio;
-pub mod plugin;
-pub mod mapping_presets;
+pub mod format;
 
+use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
 use serde_json::from_reader;
 use std::fs::File;
-use std::io::BufReader;
+use std::io::{BufReader, Write};
+use std::path::{Path, PathBuf};
 use std::sync::{atomic::AtomicBool, Mutex, OnceLock};
 use std::{fs, io};
+use tauri::utils::config;
+
+use crate::service::dir::{self, Directories};
 
 static WAS_CHANGED_SETTING: AtomicBool = AtomicBool::new(false);
 
@@ -36,10 +38,15 @@ pub enum GetDeviceSettingError {
     SerdeError(serde_json::Error),
 }
 
-pub trait Settings {
-    fn config_path() -> &'static str;
+// TODO: generics
+pub trait Settings<T: DeserializeOwned + Serialize> {
+    fn config_file() -> &'static str;
 
-    fn get_config() -> Option<Result<serde_json::Value, serde_json::Error>> {
+    fn config_path() -> PathBuf {
+        Directories::get_config_dir().join(Self::config_file())
+    }
+
+    fn get_config() -> Option<Result<T, serde_json::Error>> {
         let file = match File::open(Self::config_path()) {
             Ok(f) => f,
             Err(e) => {
@@ -47,18 +54,40 @@ pub trait Settings {
                     io::ErrorKind::NotFound => {
                         return None;
                     }
-                    _ => return None // TODO: match
+                    _ => {
+                        eprintln!("Error opening config file: {}", e);
+                        return None;
+                    }
                 }
             }
         };
         let reader = BufReader::new(file);
 
-        let json: Result<serde_json::Value, serde_json::Error> = from_reader(reader);
+        let json: Result<T, serde_json::Error> = from_reader(reader);
 
         Some(json)
     }
 
-    fn save_config() {
+    fn save_config(data: T) {
+        let mut file = match File::open(Self::config_path()) {
+            Ok(f) => f,
+            Err(e) => {
+                match e.kind() {
+                    io::ErrorKind::NotFound => {
+                        return;
+                    }
+                    _ => return, // TODO: match
+                }
+            }
+        };
+        let string = match serde_json::to_string(&data) {
+            Ok(s) => s,
+            Err(e) => {
+                eprintln!("Serialization error: {}", e);
+                return;
+            }
+        };
+        file.write_all(string.as_bytes());
         // TODO: save function
     }
 }

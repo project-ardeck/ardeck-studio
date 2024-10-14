@@ -1,6 +1,6 @@
-import { Component, RefCallback, useEffect, useRef, useState } from "react"
+import { Component, FunctionComponent, ReactNode, RefCallback, useEffect, useRef, useState } from "react"
 import { makeUid, randomStr } from "../util/props";
-import { ActionMap, ActionMapConfig, SwitchType } from "../types/ardeck";
+import { ActionMap, ActionMapConfig, ActionMapPreset, SwitchType } from "../types/ardeck";
 
 type UID = string;
 type ActionMapWithUID = {
@@ -11,8 +11,8 @@ type ActionMapKey = "switchType" | "switchId" | "pluginId" | "actionId";
 
 
 export default function ActionMappingForm(props: {
-    onChange?: (e: ActionMapWithUIDList) => {}
-    onSubmit?: (e: ActionMapWithUIDList) => {}
+    actionMapPreset?: ActionMapPreset,
+    onSubmit: (e: ActionMapPreset) => void
 }) {
     const isInit = useRef(false);
     const [item, setItem] = useState<ActionMapWithUIDList>([]);
@@ -58,6 +58,61 @@ export default function ActionMappingForm(props: {
 
     // console.log("ActionMappingForm.item: ", item);
 
+    const onSubmitHandler = (e: React.FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        const target: HTMLFormElement = e.currentTarget;
+        const switchTypeVal = target.switchtype.value;
+        const switchIdVal = target.switchid.value;
+        const pluginIdVal = target.pluginid.value;
+        const actionIdVal = target.actionid.value;
+        console.log(
+            "<submit>\n",
+            `\tswitchTypeVal: ${switchTypeVal}\n`,
+            `\tswitchIdVal: ${switchIdVal}\n`,
+            `\tpluginIdVal: ${pluginIdVal}\n`,
+            `\tactionIdVal: ${actionIdVal}\n`,
+        );
+        if (!(switchTypeVal && switchIdVal && pluginIdVal && actionIdVal)) {
+            return;
+        }
+        let switchType;
+        switch (Number(switchTypeVal)) {
+            case SwitchType.Digital:
+                switchType = SwitchType.Digital;
+                break;
+            case SwitchType.Analog:
+                switchType = SwitchType.Analog;
+                break;
+            default:
+                console.error("fawef");
+                return
+        }
+        const map: ActionMap = {
+            switchType,
+            switchId: Number(switchIdVal),
+            pluginId: pluginIdVal,
+            actionId: actionIdVal,
+        }
+        addItem(map);
+        console.log("OK");
+        target.reset();
+    };
+
+    const NewOptionForm: FunctionComponent<{ children: ReactNode, isNew: boolean }> = (props) => {
+        if (props.isNew) {
+            return (
+                <form onSubmit={(e) => { onSubmitHandler(e) }}>
+                    {props.children}
+                </form>
+            );
+        } else {
+            return (
+                <>{props.children}</>
+            );
+        }
+    }
+
+
     const form = (action?: ActionMapWithUID) => {
 
         const isNew = action ? false : true; // actionがなければnew
@@ -75,130 +130,105 @@ export default function ActionMappingForm(props: {
             isDigital = false;
         }
         return (
-            <div className="flex gap-1 w-full">
-                <select
-                    id={`action-map-option-switch-type-${isNew ? temporaryUid : action?.uid}`}
-                    value={action?.switchType}
-                    className="rounded-sm bg-bg-quaternary text-text-primary px-4 py-2"
-                    onChange={(e) => {
-                        if (action) {
-                            editItem(action?.uid, action => {
-                                // action.switchType = ;
-                                switch (Number(e.target.value)) {
-                                    case SwitchType.Digital:
-                                        action.switchType = SwitchType.Digital;
-                                        break;
-                                    case SwitchType.Analog:
-                                        action.switchType = SwitchType.Analog;
-                                        break;
-                                    default:
-                                        break;
-                                }
+            // <form onSubmit={(e) => { isNew ? onSubmitHandler(e) : e.preventDefault(); }}>
+            <NewOptionForm isNew={isNew}>
+                <div className="flex gap-1 w-full">
+                    <select
+                        id={`action-map-option-switch-type-${isNew ? temporaryUid : action?.uid}`}
+                        name="switchtype"
+                        value={action?.switchType}
+                        className="rounded-l-md bg-bg-quaternary text-text-primary px-4 py-2"
+                        onChange={(e) => {
+                            if (action) {
+                                editItem(action?.uid, action => {
+                                    // action.switchType = ;
+                                    switch (Number(e.target.value)) {
+                                        case SwitchType.Digital:
+                                            action.switchType = SwitchType.Digital;
+                                            break;
+                                        case SwitchType.Analog:
+                                            action.switchType = SwitchType.Analog;
+                                            break;
+                                        default:
+                                            break;
+                                    }
 
-                                // console.log("onChange.switchType", Number(e.target.value));
+                                    // console.log("onChange.switchType", Number(e.target.value));
 
-                                return action;
-                            });
-                        }
-                    }}
-                >
-                    <option value={0}>Digital</option>
-                    <option value={1}>Analog</option>
-                </select>
-                <input
-                    id={`action-map-option-switch-id-${isNew ? temporaryUid : action?.uid}`}
-                    type="number"
-                    placeholder="switchId"
-                    value={action?.switchId}
-                    min={0}
-                    className="rounded-sm bg-bg-quaternary text-text-primary px-4 py-2 w-32"
-                    onChange={(e) => {
-                        if (action) {
-                            editItem(action?.uid, (oldItem) => {
-                                oldItem.switchId = Number(e.target.value)
-
-                                return oldItem;
-                            });
-                        }
-                    }}
-                />
-                <input
-                    id={`action-map-option-plugin-id-${isNew ? temporaryUid : action?.uid}`}
-                    type="text"
-                    placeholder="pluginId"
-                    value={action?.pluginId}
-                    onChange={(e) => {
-                        if (action) {
-                            editItem(action?.uid, (oldItem) => {
-                                oldItem.pluginId = e.target.value;
-
-                                return oldItem;
-                            })
-                        }
-                    }}
-                    className="rounded-sm bg-bg-quaternary text-text-primary px-4 py-2 w-full flex-1"
-                />
-                <input
-                    id={`action-map-option-action-id-${isNew ? temporaryUid : action?.uid}`}
-                    type="text"
-                    placeholder="actionId"
-                    value={action?.actionId!}
-                    onChange={(e) => {
-                        if (action) {
-                            editItem(action?.uid, (oldItem) => {
-                                oldItem.actionId = e.target.value;
-
-                                return oldItem;
-                            })
-                        }
-                    }}
-                    className="rounded-sm bg-bg-quaternary text-text-primary px-4 py-2 w-full flex-1"
-                />
-                <button
-                    id={`action-map-${isNew ? "add" : "remove"}-action-map-${isNew ? temporaryUid : action?.uid}`}
-                    onClick={() => {
-                        if (isNew) {
-                            const switchTypeElm = document.getElementById(`action-map-option-switch-type-${temporaryUid}`) as HTMLSelectElement;
-                            const switchIdElm = document.getElementById(`action-map-option-switch-id-${temporaryUid}`) as HTMLInputElement;
-                            const pluginIdElm = document.getElementById(`action-map-option-plugin-id-${temporaryUid}`) as HTMLInputElement;
-                            const actionIdElm = document.getElementById(`action-map-option-action-id-${temporaryUid}`) as HTMLInputElement;
-
-                            if (!(switchTypeElm.value && switchIdElm.value && pluginIdElm.value && actionIdElm.value)) {
-                                return;
+                                    return action;
+                                });
                             }
+                        }}
+                    >
+                        <option value={0}>Digital</option>
+                        <option value={1}>Analog</option>
+                    </select>
+                    <input
+                        id={`action-map-option-switch-id-${isNew ? temporaryUid : action?.uid}`}
+                        type="number"
+                        name="switchid"
+                        placeholder="switchId"
+                        value={action?.switchId}
+                        min={0}
+                        className="bg-bg-quaternary text-text-primary px-4 py-2 w-32"
+                        onChange={(e) => {
+                            if (action) {
+                                editItem(action?.uid, (oldItem) => {
+                                    oldItem.switchId = Number(e.target.value)
 
-                            let switchType;
-                            switch (Number(switchTypeElm.value)) {
-                                case SwitchType.Digital:
-                                    switchType = SwitchType.Digital;
-                                    break;
-                                case SwitchType.Analog:
-                                    switchType = SwitchType.Analog;
-                                    break;
-                                default:
-                                    return
+                                    return oldItem;
+                                });
                             }
-                            const map: ActionMap = {
-                                switchType,
-                                switchId: Number(switchIdElm.value),
-                                pluginId: pluginIdElm.value,
-                                actionId: actionIdElm.value,
+                        }}
+                    />
+                    <input
+                        id={`action-map-option-plugin-id-${isNew ? temporaryUid : action?.uid}`}
+                        type="text"
+                        name="pluginid"
+                        placeholder="pluginId"
+                        value={action?.pluginId}
+                        onChange={(e) => {
+                            if (action) {
+                                editItem(action?.uid, (oldItem) => {
+                                    oldItem.pluginId = e.target.value;
+
+                                    return oldItem;
+                                })
                             }
+                        }}
+                        className="bg-bg-quaternary text-text-primary px-4 py-2 w-full flex-1"
+                    />
+                    <input
+                        id={`action-map-option-action-id-${isNew ? temporaryUid : action?.uid}`}
+                        type="text"
+                        name="actionid"
+                        placeholder="actionId"
+                        value={action?.actionId!}
+                        onChange={(e) => {
+                            if (action) {
+                                editItem(action?.uid, (oldItem) => {
+                                    oldItem.actionId = e.target.value;
 
-                            addItem(map);
-
-                            switchTypeElm.value = "0";
-                            switchIdElm.value = "";
-                            pluginIdElm.value = "";
-                            actionIdElm.value = "";
-                        } else {
-                            removeItem(action!.uid);
-                        }
-                    }}
-                    className="rounded-sm bg-bg-quaternary text-text-primary px-4 py-2">
-                    {buttonValue}
-                </button>
-            </div>
+                                    return oldItem;
+                                })
+                            }
+                        }}
+                        className="bg-bg-quaternary text-text-primary px-4 py-2 w-full flex-1"
+                    />
+                    <input
+                        type={isNew ? "submit" : "button"}
+                        id={`action-map-${isNew ? "add" : "remove"}-action-map-${isNew ? temporaryUid : action?.uid}`}
+                        onClick={() => {
+                            if (!isNew) {
+                                removeItem(action!.uid);
+                            }
+                        }}
+                        value={buttonValue}
+                        className="rounded-r-md bg-bg-quaternary text-text-primary px-4 py-2 cursor-pointer"
+                    />
+                </div>
+                {/* // </form> */}
+            </NewOptionForm>
         )
     };
 
@@ -208,14 +238,41 @@ export default function ActionMappingForm(props: {
         }
     }, []);
 
-    const onSubmitHandler = (e: React.FormEvent<HTMLFormElement>) => {
+    const onSave = (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
-    };
+        const target: HTMLFormElement = e.currentTarget;
+        const presetIdVal = target.presetid.value;
+        const presetNameVal = target.presetname.value;
+
+        if (!(presetIdVal && presetNameVal)) {
+            return;
+        }
+
+        const actionMapList: ActionMap[] = item.map(e => {
+            const actionMap: ActionMap  = {
+                actionId: e.actionId,
+                pluginId: e.pluginId,
+                switchId: e.switchId,
+                switchType: e.switchType
+            }
+
+            return actionMap;
+        })
+
+        console.log(actionMapList);
+        const actionMapPreset: ActionMapPreset = {
+            presetId: presetIdVal,
+            presetName: presetNameVal,
+            mapping: actionMapList
+        }
+
+        props.onSubmit(actionMapPreset);
+    }
 
     return (
         <div className="w-full">
 
-            {/* <form onSubmit={(e) => {onSubmitHandler(e)}}> */}
+            {/* <form onSubmit={(e) => { onSubmitHandler(e) }}> */}
             <div className="flex flex-col gap-2 w-full">
                 <div className="flex flex-col gap-1 w-full">
                     {Array.from(item).map((e, i) => {
@@ -225,11 +282,28 @@ export default function ActionMappingForm(props: {
                 <div className="w-full">
                     {form()}
                 </div>
-                <div className="mt-2">
-                    <button className="rounded-sm bg-bg-quaternary text-text-primary px-4 py-2 w-full">
-                        save
-                    </button>
-                </div>
+                <form onSubmit={(e) => { onSave(e) }}>
+                    <div className="flex gap-1 mt-2">
+                        <input
+                            type="text"
+                            name="presetid"
+                            placeholder="preset id"
+                            className="rounded-l-md bg-bg-quaternary text-text-primary px-4 py-2"
+                        />
+                        <input
+                            type="text"
+                            name="presetname"
+                            placeholder="preset name"
+                            className="bg-bg-quaternary text-text-primary px-4 py-2"
+                        />
+                        <input
+                            type="submit"
+                            name="savepreset"
+                            value="save"
+                            className="rounded-r-md bg-bg-quaternary text-text-primary px-4 py-2 w-full cursor-pointer"
+                        />
+                    </div>
+                </form>
             </div>
             {/* </form> */}
         </div>
