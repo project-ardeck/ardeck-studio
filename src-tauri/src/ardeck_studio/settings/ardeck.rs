@@ -16,7 +16,17 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-pub mod ardeck;
-pub mod ardeck_studio;
-pub mod plugin;
-pub mod mapping_presets;
+use serde::{Deserialize, Serialize};
+use struct_field_names_as_array::FieldNamesAsArray;
+
+#[derive(Debug, Serialize, Deserialize, Clone, FieldNamesAsArray)]
+#[serde(rename_all = "camelCase")]
+pub struct ArdeckProfileConfigItem {
+    pub serial_number: String,
+
+    pub device_name: Option<String>,
+    pub baud_rate: Option<u32>, // default: 19200
+    pub description: Option<String>,
+}
+
+pub type ArdeckProfileConfigJSON = Vec<ArdeckProfileConfigItem>;

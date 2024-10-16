@@ -21,6 +21,8 @@ use struct_field_names_as_array::FieldNamesAsArray;
 
 use crate::ardeck_studio::action::map::ActionMap;
 
+use super::Settings;
+
 #[derive(Debug, Serialize, Deserialize, Clone, FieldNamesAsArray)]
 #[serde(rename_all = "camelCase")]
 pub struct MappingPreset {
@@ -31,3 +33,9 @@ pub struct MappingPreset {
 }
 
 pub type MappingPresetsJSON = Vec<MappingPreset>;
+
+impl Settings for MappingPresetsJSON {
+    fn config_file() -> &'static str {
+        "mapping_presets.json"
+    }
+}

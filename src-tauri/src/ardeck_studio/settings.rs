@@ -16,7 +16,10 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-pub mod format;
+pub mod ardeck_studio;
+pub mod ardeck;
+pub mod mapping_presets;
+pub mod plugin;
 
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -30,8 +33,6 @@ use tauri::utils::config;
 
 use crate::service::dir::{self, Directories};
 
-static WAS_CHANGED_SETTING: AtomicBool = AtomicBool::new(false);
-
 #[derive(Debug)]
 pub enum GetDeviceSettingError {
     IoError(io::Error),
@@ -39,14 +40,14 @@ pub enum GetDeviceSettingError {
 }
 
 // TODO: generics
-pub trait Settings<T: DeserializeOwned + Serialize> {
+pub trait Settings: DeserializeOwned + Serialize {
     fn config_file() -> &'static str;
 
     fn config_path() -> PathBuf {
         Directories::get_config_dir().join(Self::config_file())
     }
 
-    fn get_config() -> Option<Result<T, serde_json::Error>> {
+    fn get_config() -> Option<Result<Self, serde_json::Error>> {
         let file = match File::open(Self::config_path()) {
             Ok(f) => f,
             Err(e) => {
@@ -63,31 +64,35 @@ pub trait Settings<T: DeserializeOwned + Serialize> {
         };
         let reader = BufReader::new(file);
 
-        let json: Result<T, serde_json::Error> = from_reader(reader);
+        let json: Result<Self, serde_json::Error> = from_reader(reader);
 
         Some(json)
     }
 
-    fn save_config(data: T) {
+    fn save_config(&self) {
         let mut file = match File::open(Self::config_path()) {
             Ok(f) => f,
             Err(e) => {
                 match e.kind() {
-                    io::ErrorKind::NotFound => {
-                        return;
-                    }
+                    io::ErrorKind::NotFound => match File::create(Self::config_path()) {
+                        Ok(f) => f,
+                        Err(e) => {
+                            eprintln!("Failed to create file: {}", e);
+                            return;
+                        }
+                    },
                     _ => return, // TODO: match
                 }
             }
         };
-        let string = match serde_json::to_string(&data) {
+        let string = match serde_json::to_string(&self) {
             Ok(s) => s,
             Err(e) => {
                 eprintln!("Serialization error: {}", e);
                 return;
             }
         };
-        file.write_all(string.as_bytes());
+        file.write_all(string.as_bytes()).unwrap();
         // TODO: save function
     }
 }

@@ -130,7 +130,6 @@ export default function ActionMappingForm(props: {
             isDigital = false;
         }
         return (
-            // <form onSubmit={(e) => { isNew ? onSubmitHandler(e) : e.preventDefault(); }}>
             <NewOptionForm isNew={isNew}>
                 <div className="flex gap-1 w-full">
                     <select
@@ -227,7 +226,6 @@ export default function ActionMappingForm(props: {
                         className="rounded-r-md bg-bg-quaternary text-text-primary px-4 py-2 cursor-pointer"
                     />
                 </div>
-                {/* // </form> */}
             </NewOptionForm>
         )
     };
@@ -271,8 +269,6 @@ export default function ActionMappingForm(props: {
 
     return (
         <div className="w-full">
-
-            {/* <form onSubmit={(e) => { onSubmitHandler(e) }}> */}
             <div className="flex flex-col gap-2 w-full">
                 <div className="flex flex-col gap-1 w-full">
                     {Array.from(item).map((e, i) => {
@@ -305,7 +301,6 @@ export default function ActionMappingForm(props: {
                     </div>
                 </form>
             </div>
-            {/* </form> */}
         </div>
     );
 

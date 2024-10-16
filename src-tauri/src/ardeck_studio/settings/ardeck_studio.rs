@@ -15,3 +15,10 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
+
+use serde::{Deserialize, Serialize};
+use struct_field_names_as_array::FieldNamesAsArray;
+
+#[derive(Debug, Serialize, Deserialize, Clone, FieldNamesAsArray)]
+#[serde(rename_all = "camelCase")]
+pub struct ArdeckStudioConfigItem {}
