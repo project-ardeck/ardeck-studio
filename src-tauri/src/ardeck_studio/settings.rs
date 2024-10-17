@@ -16,10 +16,9 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-pub mod ardeck_studio;
-pub mod ardeck;
-pub mod mapping_presets;
-pub mod plugin;
+pub mod definitions;
+pub mod service;
+pub mod tauri;
 
 use serde::de::DeserializeOwned;
 use serde::{Deserialize, Serialize};
@@ -29,7 +28,6 @@ use std::io::{BufReader, Write};
 use std::path::{Path, PathBuf};
 use std::sync::{atomic::AtomicBool, Mutex, OnceLock};
 use std::{fs, io};
-use tauri::utils::config;
 
 use crate::service::dir::{self, Directories};
 
@@ -43,12 +41,12 @@ pub enum GetDeviceSettingError {
 pub trait Settings: DeserializeOwned + Serialize {
     fn config_file() -> &'static str;
 
-    fn config_path() -> PathBuf {
+    fn get_config_file_path() -> PathBuf {
         Directories::get_config_dir().join(Self::config_file())
     }
 
     fn get_config() -> Option<Result<Self, serde_json::Error>> {
-        let file = match File::open(Self::config_path()) {
+        let file = match File::open(Self::get_config_file_path()) {
             Ok(f) => f,
             Err(e) => {
                 match e.kind() {
@@ -70,11 +68,11 @@ pub trait Settings: DeserializeOwned + Serialize {
     }
 
     fn save_config(&self) {
-        let mut file = match File::open(Self::config_path()) {
+        let mut file = match File::open(Self::get_config_file_path()) {
             Ok(f) => f,
             Err(e) => {
                 match e.kind() {
-                    io::ErrorKind::NotFound => match File::create(Self::config_path()) {
+                    io::ErrorKind::NotFound => match File::create(Self::get_config_file_path()) {
                         Ok(f) => f,
                         Err(e) => {
                             eprintln!("Failed to create file: {}", e);
@@ -92,7 +90,9 @@ pub trait Settings: DeserializeOwned + Serialize {
                 return;
             }
         };
-        file.write_all(string.as_bytes()).unwrap();
+        if let Err(e) = file.write_all(string.as_bytes()) {
+            eprintln!("Failed to write to config file: {}", e);
+        }
         // TODO: save function
     }
 }
