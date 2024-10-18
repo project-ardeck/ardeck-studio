@@ -4,19 +4,45 @@ Copyright (C) 2024 project-ardeck
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or 
+the Free Software Foundation; either version 3 of the License, or
 (at your option) any later version.
 
-This program is distributed in the hope that it will be useful, 
+This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-pub mod ardeck_studio;
 pub mod ardeck;
+pub mod ardeck_studio;
 pub mod mapping_presets;
 pub mod plugin;
+
+use std::{
+    fs::File,
+    io::{self, BufReader, Write},
+    path::PathBuf,
+};
+
+use serde::{de::DeserializeOwned, Serialize};
+use serde_json::from_reader;
+
+use crate::service::dir::{self, Directories};
+
+#[derive(Debug)]
+pub enum GetDeviceSettingError {
+    IoError(io::Error),
+    SerdeError(serde_json::Error),
+}
+
+// TODO: generics
+pub trait Settings: DeserializeOwned + Serialize {
+    fn config_file() -> &'static str;
+
+    fn get_config_file_path() -> PathBuf {
+        Directories::get_config_dir().join(Self::config_file())
+    }
+}

@@ -16,9 +16,32 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use tauri::{plugin::{Builder, TauriPlugin}, Runtime};
+use std::vec;
+
+use once_cell::sync::Lazy;
+use tauri::{plugin::{Builder, TauriPlugin}, Manager, Runtime, State};
+
+use super::definitions::{ardeck::ArdeckProfileConfigJSON, mapping_presets::MappingPresetsJSON, Settings};
+
+const SETTINGS: Lazy<Vec<Settings>> = Lazy::new(|| vec![
+    ArdeckProfileConfigJSON
+]);
+
+#[tauri::command]
+fn get_setting_list(list: State<Vec<&str>>) -> Vec<&'static str> {
+}
 
 pub async fn init<R: Runtime>() -> TauriPlugin<R> {
+    let file_name = vec![
+        MappingPresetsJSON::config_file(),
+        ArdeckProfileConfigJSON::config_file(),
+    ];
+
     Builder::new("settings")
+        .setup(|app| {
+            app.manage(file_name);
+
+            Ok(())
+        })
         .build()
 }

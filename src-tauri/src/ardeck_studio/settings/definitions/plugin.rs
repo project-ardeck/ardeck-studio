@@ -22,3 +22,5 @@ use struct_field_names_as_array::FieldNamesAsArray;
 #[derive(Debug, Serialize, Deserialize, Clone, FieldNamesAsArray)]
 #[serde(rename_all = "camelCase")]
 pub struct PluginConfigItem {}
+
+pub type PluginConfigJSON = PluginConfigItem;

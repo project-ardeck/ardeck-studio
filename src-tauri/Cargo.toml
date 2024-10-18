@@ -13,7 +13,7 @@ tauri-build = { version = "1", features = [] }
 [dependencies]
 tokio = { version = "1.39.1", features = ["full"] }
 tauri = { version = "1", features = [ "window-hide", "window-start-dragging", "window-close", "window-minimize", "window-unminimize", "window-unmaximize", "window-show", "window-maximize", "system-tray", "shell-open"] }
-tauri-plugin-store = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
+# tauri-plugin-store = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 tauri-plugin-window-state = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 tauri-plugin-log = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 # tauri-plugin-autostart = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
