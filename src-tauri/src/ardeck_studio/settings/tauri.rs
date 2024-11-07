@@ -19,29 +19,48 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 use std::vec;
 
 use once_cell::sync::Lazy;
-use tauri::{plugin::{Builder, TauriPlugin}, Manager, Runtime, State};
+use tauri::{generate_handler, plugin::{Builder, TauriPlugin}, Manager, Runtime, State};
 
-use super::definitions::{ardeck::ArdeckProfileConfigJSON, mapping_presets::MappingPresetsJSON, Settings};
+use super::definitions::{ardeck::ArdeckProfileConfigJSON, mapping_presets::MappingPresetsJSON, Setting, SettingEnum};
 
-const SETTINGS: Lazy<Vec<Settings>> = Lazy::new(|| vec![
-    ArdeckProfileConfigJSON
+const SETTINGS: Lazy<Vec<SettingEnum>> = Lazy::new(|| vec![
+    SettingEnum::ArdeckProfileConfig(ArdeckProfileConfigJSON::new()),
+    SettingEnum::MappingPresets(MappingPresetsJSON::new()),
 ]);
 
+// const SETTINGS: Lazy<Vec<Box<dyn Setting>>> = Lazy::new(|| vec![
+//     Box::new(MappingPresetsJSON::new()),
+//     Box::new(ArdeckProfileConfigJSON::new()),
+// ]);
+
 #[tauri::command]
-fn get_setting_list(list: State<Vec<&str>>) -> Vec<&'static str> {
+fn get_setting_list<R: Runtime>(app: tauri::AppHandle<R>) -> Vec<&'static str> {
+    SETTINGS.iter().map(|s| s.config_file()).collect()
 }
 
-pub async fn init<R: Runtime>() -> TauriPlugin<R> {
-    let file_name = vec![
-        MappingPresetsJSON::config_file(),
-        ArdeckProfileConfigJSON::config_file(),
-    ];
+#[tauri::command]
+fn get_setting<R: Runtime>(app: tauri::AppHandle<R>, setting_path: &str) -> Option<SettingEnum> {
+    SETTINGS
+        .iter()
+        .find(|setting| setting.config_file() == setting_path)
+        .cloned()
+}
 
+#[tauri::command]
+async fn save_setting<R: Runtime>(app: tauri::AppHandle<R>, setting:SettingEnum) -> Result<(), String> {
+    match setting.save() {
+        Ok(_) => Ok(()),
+        Err(_) => Err("Error".to_string()), // TODO: Error handling
+    }
+}
+
+pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("settings")
         .setup(|app| {
-            app.manage(file_name);
+            // app.manage(file_name);
 
             Ok(())
         })
+        .invoke_handler(generate_handler![get_setting, get_setting_list, save_setting])
         .build()
 }

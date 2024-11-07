@@ -19,11 +19,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 use serde::{Deserialize, Serialize};
 use struct_field_names_as_array::FieldNamesAsArray;
 
-use super::Settings;
+use super::Setting;
 
 #[derive(Debug, Serialize, Deserialize, Clone, FieldNamesAsArray)]
 #[serde(rename_all = "camelCase")]
-pub struct ArdeckProfileConfigItem {
+pub struct ArdeckProfileConfigItem { // TODO: ConfigField
     pub serial_number: String,
 
     pub device_name: Option<String>,
@@ -35,8 +35,8 @@ pub struct ArdeckProfileConfigItem {
 
 pub type ArdeckProfileConfigJSON = Vec<ArdeckProfileConfigItem>;
 
-impl Settings for ArdeckProfileConfigJSON {
-    fn config_file() -> &'static str {
+impl Setting for ArdeckProfileConfigJSON {
+    fn config_file(&self) -> &'static str {
         "ardeck_profile.json"
     }
 }

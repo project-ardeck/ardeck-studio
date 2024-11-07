@@ -19,7 +19,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 use serde::{Deserialize, Serialize};
 use struct_field_names_as_array::FieldNamesAsArray;
 
-use super::Settings;
+use super::Setting;
 use crate::ardeck_studio::action::map::ActionMap;
 
 #[derive(Debug, Serialize, Deserialize, Clone, FieldNamesAsArray)]
@@ -33,8 +33,8 @@ pub struct MappingPreset {
 
 pub type MappingPresetsJSON = Vec<MappingPreset>;
 
-impl Settings for MappingPresetsJSON {
-    fn config_file() -> &'static str {
+impl Setting for MappingPresetsJSON {
+    fn config_file(&self) -> &'static str {
         "mapping_presets.json"
     }
 }

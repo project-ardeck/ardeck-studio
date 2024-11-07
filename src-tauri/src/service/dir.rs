@@ -16,10 +16,11 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+use std::fs::DirBuilder;
 use std::path::PathBuf;
 
 use std::{
-    f32::consts::E, fs::{self, DirBuilder, ReadDir}, io::{
+    f32::consts::E, fs::{self, ReadDir}, io::{
         Error, ErrorKind
     }, path::Path
 };

@@ -18,7 +18,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-
 // mod ardeck_serial;
 // mod ardeck_data;
 
@@ -42,9 +41,7 @@ use std::{
 use once_cell::sync::{Lazy, OnceCell};
 
 use ardeck_studio::{
-    ardeck::{
-        self, Ardeck 
-    },
+    ardeck::{self, Ardeck},
     plugin::{self, manager::PluginManager, PluginManifestJSON, PLUGIN_DIR},
 };
 
@@ -112,6 +109,7 @@ async fn main() {
         // .plugin(tauri_plugin_store::Builder::default().build())
         .plugin(ardeck_studio::ardeck::tauri::init())
         .plugin(ardeck_studio::plugin::tauri::init().await)
+        .plugin(ardeck_studio::settings::tauri::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

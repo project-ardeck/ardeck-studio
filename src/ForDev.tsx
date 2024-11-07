@@ -24,6 +24,7 @@ import { emit, listen } from "@tauri-apps/api/event";
 import { Store } from "tauri-plugin-store-api";
 import ActionMappingForm from "./component/ActionMappingForm";
 import { SerialPortInfo, Action, SwitchType } from "./types/ardeck";
+import Settings from "./component/Settings";
 
 type switchStatesObject = {
     state: number,
@@ -434,6 +435,7 @@ export default function ForDev() {
                 </Infomations>
 
                 <Infomations title="Settings">
+                    <Settings />
                 </Infomations>
 
                 <Infomations title="Mappings">
