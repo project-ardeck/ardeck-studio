@@ -16,15 +16,10 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+pub mod config_singleton;
 pub mod core;
 pub mod manager;
 pub mod tauri;
-pub mod config_singleton;
-// pub mod execute;
-// pub mod server;
-
-use core::PluginCore;
-use manager::PluginManager;
 
 use axum::extract::ws::WebSocket;
 use serde::{Deserialize, Serialize};
@@ -33,7 +28,7 @@ use std::sync::{Arc, Mutex};
 
 use tokio::sync::Mutex as TokioMutex;
 
-use super::action::{Action, SwitchId, SwitchType};
+use super::action::Action;
 
 pub static PLUGIN_DIR: &'static str = "./plugins";
 

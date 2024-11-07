@@ -29,6 +29,4 @@ pub struct ActionMap {
     action_id: String,
 }
 
-struct Mapping {
-    
-}
+struct Mapping {}

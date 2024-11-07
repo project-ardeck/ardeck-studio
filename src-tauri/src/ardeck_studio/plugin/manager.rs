@@ -17,13 +17,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 
-use std::{
-    collections::HashMap,
-    hash::Hash,
-    process::Child,
-    sync::{Arc, Mutex},
-};
+use std::collections::HashMap;
 
-use super::{Plugin, PluginManifestJSON};
+use super::Plugin;
 
 pub type PluginManager = HashMap<String, Plugin>;

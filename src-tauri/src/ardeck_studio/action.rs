@@ -178,8 +178,8 @@ impl ActionDataParser {
         let switch_type = self.switch_data_buf.get_switch_type();
         let raw_data = self.switch_data_buf.get_raw_value();
         // println!("{:08b}", raw_data[0]);
-        let mut id: u8;
-        let mut state: u16;
+        let id: u8;
+        let state: u16;
         match switch_type {
             SwitchType::Digital => {
                 id = (raw_data[0] & 0b01111110) >> 1;
@@ -206,7 +206,6 @@ impl ActionDataParser {
         print!("count: {}", self.read_count);
         print!("\t{:08b}", &_data);
 
-        let buf_len = self.header_buf.len();
         let if_str = String::from_utf8(vec![_data]).unwrap_or("".to_string());
         let msg = if_str.clone();
         print!("\t{}", msg);
@@ -341,7 +340,7 @@ impl ActionDataParser {
     pub fn on_data(&mut self, data: Vec<u8>) {
         // println!("aaaaa");
 
-        let pc = self.put_challenge(data.clone()[0]);
+        self.put_challenge(data.clone()[0]);
 
         // if pc {
         //     // (self.on_correct_handler)();

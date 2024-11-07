@@ -20,13 +20,12 @@ use std::sync::Mutex;
 
 use once_cell::sync::Lazy;
 use tauri::{
-    plugin::{Builder, TauriPlugin},
-    Manager, RunEvent, Runtime,
+    plugin::{Builder, TauriPlugin}, RunEvent, Runtime,
 };
 
 use crate::ardeck_studio::action::Action;
 
-use super::{core::PluginCore, manager::PluginManager};
+use super::core::PluginCore;
 
 static PLGUIN_CORE: Lazy<Mutex<PluginCore>> = Lazy::new(|| Mutex::new(PluginCore::new()));
 

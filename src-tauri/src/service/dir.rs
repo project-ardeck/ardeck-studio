@@ -4,12 +4,12 @@ Copyright (C) 2024 project-ardeck
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
-the Free Software Foundation; either version 3 of the License, or 
+the Free Software Foundation; either version 3 of the License, or
 (at your option) any later version.
 
-This program is distributed in the hope that it will be useful, 
+This program is distributed in the hope that it will be useful,
 but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 GNU General Public License for more details.
 
 You should have received a copy of the GNU General Public License
@@ -20,20 +20,20 @@ use std::fs::DirBuilder;
 use std::path::PathBuf;
 
 use std::{
-    f32::consts::E, fs::{self, ReadDir}, io::{
-        Error, ErrorKind
-    }, path::Path
+    fs::{self, ReadDir},
+    io::Error,
+    path::Path,
 };
 
 pub struct Directories {}
 
 impl Directories {
-    #[cfg(feature="portable")]
+    #[cfg(feature = "portable")]
     pub fn get_config_dir() -> PathBuf {
         PathBuf::from("./")
     }
 
-    #[cfg(not(feature="portable"))]
+    #[cfg(not(feature = "portable"))]
     pub fn get_config_dir() -> PathBuf {
         dirs::config_dir().unwrap()
     }

@@ -24,34 +24,12 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 mod ardeck_studio;
 mod service;
 
-use core::panic;
-use std::{
-    collections::HashMap,
-    fs::{self, File},
-    hash::Hash,
-    io,
-    sync::{
-        mpsc::{channel, Receiver, Sender},
-        Arc, Mutex, OnceLock,
-    },
-    thread::{self, park_timeout},
-    time::Duration,
-};
+use std::{collections::HashMap, sync::Mutex};
 
-use once_cell::sync::{Lazy, OnceCell};
+use ardeck_studio::ardeck::Ardeck;
 
-use ardeck_studio::{
-    ardeck::{self, Ardeck},
-    plugin::{self, manager::PluginManager, PluginManifestJSON, PLUGIN_DIR},
-};
-
-use chrono::{format, Utc};
-
-use serde::{Deserialize, Serialize};
-use serialport::SerialPort;
 use tauri::{
-    AppHandle, CustomMenuItem, Manager, State as TauriState, SystemTray, SystemTrayEvent,
-    SystemTrayMenu, SystemTrayMenuItem,
+    CustomMenuItem, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem,
 };
 use window_shadows::set_shadow;
 

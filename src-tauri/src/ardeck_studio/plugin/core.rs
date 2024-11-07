@@ -16,8 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::borrow::Borrow;
-use std::fs::{self, File};
+use std::fs::File;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
@@ -28,10 +27,7 @@ use axum::extract::Path as TauriPath;
 use axum::extract::{ConnectInfo, State, WebSocketUpgrade};
 use axum::response::IntoResponse;
 use axum::routing::get;
-use axum::serve::Serve;
 use axum::{serve, Router};
-use once_cell::sync::Lazy;
-use tauri::plugin;
 use tokio::net::TcpListener;
 use tokio::sync::Mutex as TokioMutex;
 
