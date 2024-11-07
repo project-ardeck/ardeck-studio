@@ -34,7 +34,7 @@ pub struct MappingPreset {
 pub type MappingPresetsJSON = Vec<MappingPreset>;
 
 impl Setting for MappingPresetsJSON {
-    fn config_file(&self) -> &'static str {
-        "mapping_presets.json"
+    fn config_id(&self) -> &'static str {
+        "mapping_presets"
     }
 }

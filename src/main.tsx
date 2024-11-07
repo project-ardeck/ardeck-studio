@@ -22,7 +22,6 @@ import ReactDOM from "react-dom/client";
 import App from "./App";
 import TitleBar from "./component/TitleBar";
 import WindowTheme from "./component/WindowTheme";
-import { ErrorBoundary } from "react-error-boundary";
 
 import "./main.css";
 

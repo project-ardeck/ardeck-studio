@@ -36,7 +36,7 @@ pub struct ArdeckProfileConfigItem { // TODO: ConfigField
 pub type ArdeckProfileConfigJSON = Vec<ArdeckProfileConfigItem>;
 
 impl Setting for ArdeckProfileConfigJSON {
-    fn config_file(&self) -> &'static str {
-        "ardeck_profile.json"
+    fn config_id(&self) -> &'static str {
+        "ardeck_profile"
     }
 }

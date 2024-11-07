@@ -28,6 +28,7 @@ use std::{
 };
 
 use ardeck::ArdeckProfileConfigJSON;
+use chrono::format;
 use derive_builder::Builder;
 use mapping_presets::MappingPresetsJSON;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
@@ -47,6 +48,17 @@ macro_rules! ext_config_file {
     };
 }
 
+pub trait Setting: DeserializeOwned + Serialize + Send + Sync {
+    // config_id: config file name
+    fn config_id(&self) -> &'static str;
+
+    // config file path
+    // * [dir]/[config_id].json
+    fn get_config_file_path(&self) -> PathBuf {
+        Directories::get_config_dir().join(format!("{}.json", self.config_id()))
+    }
+}
+
 #[derive(Serialize, Deserialize, Clone, Debug)]
 pub enum SettingEnum {
     MappingPresets(MappingPresetsJSON),
@@ -54,10 +66,10 @@ pub enum SettingEnum {
 }
 
 impl SettingEnum {
-    pub fn config_file(&self) -> &'static str {
+    pub fn config_id(&self) -> &'static str {
         match self { // TODO: macro
-            Self::MappingPresets(s) => s.config_file(),
-            Self::ArdeckProfileConfig(s) => s.config_file()
+            Self::MappingPresets(s) => s.config_id(),
+            Self::ArdeckProfileConfig(s) => s.config_id()
         }
     }
 
@@ -95,73 +107,4 @@ impl SettingEnum {
     }
 }
 
-pub trait Setting: DeserializeOwned + Serialize + Send + Sync {
-    fn config_file(&self) -> &'static str;
 
-    fn get_config_file_path(&self) -> PathBuf {
-        Directories::get_config_dir().join(self.config_file())
-    }
-
-    // fn load(&self) -> Result<Self, SettingStoreError>
-    // // where
-    // //     Self: DeserializeOwned,
-    // {
-    //     let file = match File::open(self.get_config_file_path()) {
-    //         Ok(f) => f,
-    //         Err(e) => {
-    //             return Err(SettingStoreError::IoError(e));
-    //         }
-    //     };
-    //     let reader = BufReader::new(file);
-
-    //     let json: Self = match from_reader(reader) {
-    //         Ok(j) => j,
-    //         Err(e) => {
-    //             return Err(SettingStoreError::SerdeError(e));
-    //         }
-    //     };
-
-    //     Ok(json)
-    // }
-
-    // fn save(&self) -> Result<(), SettingStoreError> {
-    //     let file = match File::open(self.get_config_file_path()) {
-    //         Ok(f) => f,
-    //         Err(e) => {
-    //             return Err(SettingStoreError::IoError(e));
-    //         }
-    //     };
-
-    //     Ok(())
-    // }
-}
-
-// #[derive(Builder)]
-// pub struct Setting<T> {
-
-//     pub item: T,
-// }
-// impl<T> Setting<T> {
-//     pub fn new(i: T) -> Self {
-//         Self {
-//             item: i,
-//         }
-//     }
-// }
-
-// struct SettingBuilder<T> {
-// }
-// impl<T> SettingBuilder<T> {
-//     pub fn new() -> Self {
-//         Self
-//     }
-
-//     pub fn build(&self, s: Self) -> Setting<T> {
-//         Setting::new(self.)
-//     }
-
-//     pub fn item(i: T) -> Self {
-
-//     }
-
-// }

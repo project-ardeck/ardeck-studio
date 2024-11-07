@@ -35,14 +35,14 @@ const SETTINGS: Lazy<Vec<SettingEnum>> = Lazy::new(|| vec![
 
 #[tauri::command]
 fn get_setting_list<R: Runtime>(app: tauri::AppHandle<R>) -> Vec<&'static str> {
-    SETTINGS.iter().map(|s| s.config_file()).collect()
+    SETTINGS.iter().map(|s| s.config_id()).collect()
 }
 
 #[tauri::command]
-fn get_setting<R: Runtime>(app: tauri::AppHandle<R>, setting_path: &str) -> Option<SettingEnum> {
+fn get_setting<R: Runtime>(app: tauri::AppHandle<R>, config_id: &str) -> Option<SettingEnum> {
     SETTINGS
         .iter()
-        .find(|setting| setting.config_file() == setting_path)
+        .find(|setting| setting.config_id() == config_id)
         .cloned()
 }
 
