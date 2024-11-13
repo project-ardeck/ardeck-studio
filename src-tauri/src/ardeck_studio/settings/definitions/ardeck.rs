@@ -16,14 +16,17 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+use std::path::PathBuf;
+
 use serde::{Deserialize, Serialize};
 use struct_field_names_as_array::FieldNamesAsArray;
 
-use super::Setting;
+use crate::{ardeck_studio::settings::Settings, service::dir::Directories, setting};
 
 #[derive(Debug, Serialize, Deserialize, Clone, FieldNamesAsArray)]
 #[serde(rename_all = "camelCase")]
-pub struct ArdeckProfileConfigItem { // TODO: ConfigField
+pub struct ArdeckProfileConfigItem {
+    // TODO: ConfigField
     pub serial_number: String,
 
     pub device_name: Option<String>,
@@ -33,10 +36,16 @@ pub struct ArdeckProfileConfigItem { // TODO: ConfigField
     pub mapping_preset: Option<String>, // mapping preset id
 }
 
-pub type ArdeckProfileConfigJSON = Vec<ArdeckProfileConfigItem>;
+setting! {
+    pub type ArdeckProfileConfigJSON = Vec<ArdeckProfileConfigItem>;
+}
 
-impl Setting for ArdeckProfileConfigJSON {
-    fn config_id(&self) -> &'static str {
+impl Settings for ArdeckProfileConfigJSON {
+    fn name(&self) -> &'static str {
         "ardeck_profile"
+    }
+
+    fn dir(&self) -> PathBuf {
+        Directories::get_config_dir()
     }
 }

@@ -27,32 +27,34 @@ use std::{
 
 pub struct Directories {}
 
+const IDENTIFIER: &str = "com.ardeck.studio";
+
 impl Directories {
     #[cfg(feature = "portable")]
     pub fn get_config_dir() -> PathBuf {
-        PathBuf::from("./")
+        PathBuf::from("./").join("config")
     }
 
     #[cfg(not(feature = "portable"))]
     pub fn get_config_dir() -> PathBuf {
-        dirs::config_dir().unwrap()
+        dirs::config_dir().unwrap().join(IDENTIFIER).join("config")
     }
 
-    pub fn init(path: &Path) -> Result<(), Error> {
-        DirBuilder::new().recursive(false).create(path)
+    pub fn init<P: AsRef<Path>>(path: P) -> Result<(), Error> {
+        fs::create_dir_all(path)
     }
 
-    pub fn get(path: &Path) -> Result<ReadDir, Error> {
+    pub fn get<P: AsRef<Path>>(path: P) -> Result<ReadDir, Error> {
         fs::read_dir(path)
     }
 
-    pub fn get_or_init(path: &Path) -> Result<ReadDir, Error> {
-        let dir = Self::get(path);
+    pub fn get_or_init<P: AsRef<Path>>(path: P) -> Result<ReadDir, Error> {
+        let dir = Self::get(&path);
 
         match dir {
             Ok(dir) => Ok(dir),
             Err(_) => {
-                let new_dir = Self::init(path);
+                let new_dir = Self::init(&path);
 
                 match new_dir {
                     Ok(_) => Self::get(path),

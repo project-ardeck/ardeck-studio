@@ -16,30 +16,27 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use serde::{Deserialize, Serialize};
-use struct_field_names_as_array::FieldNamesAsArray;
+use std::{fs::File, path::Path};
 
-use crate::{ardeck_studio::{action::map::ActionMap, settings::Settings}, service::dir::Directories, setting};
-
-#[derive(Debug, Serialize, Deserialize, Clone, FieldNamesAsArray)]
-#[serde(rename_all = "camelCase")]
-pub struct MappingPreset {
-    pub preset_id: String,
-    pub preset_name: Option<String>,
-
-    pub mapping: Vec<ActionMap>,
-}
-
-setting! {
-    pub type MappingPresetsJSON = Vec<MappingPreset>;
-}
-
-impl Settings for MappingPresetsJSON {
-    fn name(&self) -> &'static str {
-        "mapping_presets"
+pub struct Files;
+impl Files {
+    pub fn open<P: AsRef<Path>>(path: P) -> std::io::Result<File> {
+        File::open(path)
     }
 
-    fn dir(&self) -> std::path::PathBuf {
-        Directories::get_config_dir()
+    pub fn create<P: AsRef<Path>>(path: P) -> std::io::Result<File> {
+        File::create(path)
+    }
+
+    pub fn remove<P: AsRef<Path>>(path: P) -> std::io::Result<()> {
+        std::fs::remove_file(path)
+    }
+
+    pub fn open_or_create<P: AsRef<Path>>(path: P) -> std::io::Result<File> {
+        let is_exist = path.as_ref().try_exists().unwrap_or(false);
+        if !is_exist {
+            Self::create(&path)?;
+        }
+        Self::open(path)
     }
 }
