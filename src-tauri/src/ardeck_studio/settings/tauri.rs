@@ -28,7 +28,7 @@ use tauri::{
     generate_handler, plugin::{Builder, TauriPlugin}, Manager, Runtime
 };
 
-use crate::service::{dir::Directories, file::Files};
+use crate::{ardeck_studio::{action::{map::ActionMap, SwitchType}, settings::definitions::mapping_presets::MappingPreset}, service::{dir::Directories, file::Files}};
 
 use super::{
     definitions::{ardeck::ArdeckProfileConfigJSON, mapping_presets::MappingPresetsJSON},
@@ -41,16 +41,12 @@ pub enum SettingEnum {
     ArdeckProfileConfig(ArdeckProfileConfigJSON),
 }
 
-
-
 const SETTINGS: Lazy<Vec<SettingEnum>> = Lazy::new(|| {
     vec![
         SettingEnum::ArdeckProfileConfig(ArdeckProfileConfigJSON::new()),
         SettingEnum::MappingPresets(MappingPresetsJSON::new()),
     ]
 });
-
-
 
 macro_rules! ext_config_file {
     () => {
@@ -107,25 +103,27 @@ fn get_setting_list<R: Runtime>(_app: tauri::AppHandle<R>) -> Vec<&'static str> 
 }
 
 #[tauri::command]
-fn get_setting<R: Runtime>(_app: tauri::AppHandle<R>, config_id: &str) -> Option<SettingEnum> {
-    SETTINGS
+fn get_setting<R: Runtime>(_app: tauri::AppHandle<R>, config_id: &str) -> SettingEnum {
+    let setting = SETTINGS
         .iter()
         .find(|setting| setting.get_name() == config_id)
-        .cloned()
+        .cloned();
+
+    setting.unwrap().load()
 }
 
-#[tauri::command]
-async fn get_setting_or_init<R: Runtime>(
-    _app: tauri::AppHandle<R>,
-    config_id: &str,
-) -> Result<SettingEnum, String> {
-    let get = get_setting(_app, config_id);
-    if get.is_none() {
-        Ok(SettingEnum::MappingPresets(MappingPresetsJSON::new())) // TODO: Error handling
-    } else {
-        Ok(get.unwrap())
-    }
-}
+// #[tauri::command]
+// async fn get_setting_or_init<R: Runtime>(
+//     _app: tauri::AppHandle<R>,
+//     config_id: &str,
+// ) -> Result<SettingEnum, String> {
+//     let get = get_setting(_app, config_id);
+//     if get.is_none() {
+//         Ok(SettingEnum::MappingPresets(MappingPresetsJSON::new())) // TODO: Error handling
+//     } else {
+//         Ok(get.unwrap())
+//     }
+// }
 
 #[tauri::command]
 async fn save_setting<R: Runtime>(
@@ -154,7 +152,35 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                     SettingEnum::ArdeckProfileConfig(setting) => {
                         setting.save();
                     },
-                    SettingEnum::MappingPresets(setting) => {
+                    SettingEnum::MappingPresets(mut setting) => {
+                        // let sample_data = MappingPreset {
+                        //     preset_id: "sample".to_string(),
+                        //     preset_name: Some("sample".to_string()),
+
+                        //     mapping: vec![
+                        //         ActionMap {
+                        //             switch_type: SwitchType::Digital,
+                        //             switch_id: 1,
+                        //             plugin_id: "sample_plugin".to_string(),
+                        //             action_id: "sample_action_1".to_string()
+                        //         },
+                        //         ActionMap {
+                        //             switch_type: SwitchType::Digital,
+                        //             switch_id: 2,
+                        //             plugin_id: "sample_plugin".to_string(),
+                        //             action_id: "sample_action_2".to_string()
+                        //         },
+                        //         ActionMap {
+                        //             switch_type: SwitchType::Analog,
+                        //             switch_id: 3,
+                        //             plugin_id: "sample_plugin".to_string(),
+                        //             action_id: "sample_action_3".to_string()
+                        //         },
+                        //     ],
+                        // };
+
+                        // setting.push(sample_data);
+
                         setting.save();
                     }
                 }

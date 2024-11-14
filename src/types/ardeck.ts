@@ -23,9 +23,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 // }
 
 export const SwitchType = {
-    Unknown: -1,
-    Digital: 0,
-    Analog: 1,
+    Unknown: "unknown",
+    Digital: "digital",
+    Analog: "analog",
 } as const;
 
 export type SwitchType = typeof SwitchType[keyof typeof SwitchType];
@@ -37,14 +37,14 @@ export type ActionMap = {
     actionId: string;
 }
 
-export type ActionMapPreset = {
+export type ActionMapPreset = { // ! delete
     presetId: string;
     presetName?: string;
 
     mapping: ActionMap[];
 }
 
-export type ActionMapConfig = {
+export type ActionMapConfig = { // ! delete
     [key: string]: ActionMap[];
 }
 

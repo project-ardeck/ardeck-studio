@@ -18,6 +18,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use std::{io, path::PathBuf};
 
+use axum::Error;
 use chrono::format::format;
 use serde::{de::DeserializeOwned, Serialize};
 
@@ -46,13 +47,20 @@ pub trait SettingsStore: Serialize + DeserializeOwned + Default + Clone + Send +
     fn load(&self) -> Self {
         let file = match Files::open(self.file_path()) {
             Ok(file) => file,
-            Err(_) => return Self::default(),
+            Err(e) => {
+                match e.kind() {
+                    std::io::ErrorKind::NotFound => {
+                        return Self::default();
+                    },
+                    _ => panic!("SettingsStore panic!: load.open"),
+                }
+            },
         };
 
         let reader = std::io::BufReader::new(file);
         match serde_json::from_reader(reader) {
             Ok(setting) => setting,
-            Err(_) => Self::default(),
+            Err(_) => panic!("SettingStore panic!: load.serialize"),
         }
     }
 

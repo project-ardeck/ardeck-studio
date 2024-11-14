@@ -18,13 +18,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 
 import { ReactNode, useEffect, useRef, useState } from "react";
-import { invoke } from "@tauri-apps/api/tauri";
+import { invoke } from "./tauri/invoke";
 import { emit, listen } from "@tauri-apps/api/event";
 
 import { Store } from "tauri-plugin-store-api";
 import ActionMappingForm from "./component/ActionMappingForm";
-import { SerialPortInfo, Action, SwitchType } from "./types/ardeck";
 import Settings from "./component/Settings";
+import { Action, SerialPortInfo, SwitchType } from "./types/ardeck";
 
 type switchStatesObject = {
     state: number,
@@ -108,36 +108,41 @@ export default function ForDev() {
     }
 
     const getPorts = async () => {
-        let ports = await invoke("plugin:ardeck|get_ports") as SerialPortInfo[];
+        // let ports = await invoke("plugin:ardeck|get_ports") as SerialPortInfo[];
+        let ports = await invoke.ardeck.getPorts();
         setDeviceList(ports);
     }
 
     const getConnectingPorts = async () => {
-        let ports = await invoke("plugin:ardeck|get_connecting_serials") as string[];
+        let ports = await invoke.ardeck.getConnectingSerials();
 
         setConnectedSerialList(ports);
     }
 
     const serialOpenRequest = async (portName: string) => {
-        invoke("plugin:ardeck|open_port", { portName: portName, baudRate: baudRateOption })
-            .then(() => {
-                // addCS(portName);
-                // pushLog(`OPEN: ${portName}`);
-            })
-            .catch((e) => {
-                pushLog(e);
-            });
+        // invoke("plugin:ardeck|open_port", { portName: portName, baudRate: baudRateOption })
+        //     .then(() => {
+        //         // addCS(portName);
+        //         // pushLog(`OPEN: ${portName}`);
+        //     })
+        //     .catch((e) => {
+        //         pushLog(e);
+        //     });
+
+        await invoke.ardeck.openPort(portName, baudRateOption);
     }
 
     const closeHandler = async (portName: string) => {
-        invoke("plugin:ardeck|close_port", { portName: portName })
-            .then(() => {
-                // rmvCS(portName);
-                // pushLog(`CLOSE: ${portName}`);
-            })
-            .catch((e) => {
-                pushLog(e);
-            });
+        // invoke("plugin:ardeck|close_port", { portName: portName })
+        //     .then(() => {
+        //         // rmvCS(portName);
+        //         // pushLog(`CLOSE: ${portName}`);
+        //     })
+        //     .catch((e) => {
+        //         pushLog(e);
+        //     });
+
+        await invoke.ardeck.closePort(portName);
     }
 
     const getThemeInfos = async () => {
@@ -440,13 +445,6 @@ export default function ForDev() {
 
                 <Infomations title="Mappings">
                     <div className=" flex flex-col gap-2">
-                        <select
-                            name=""
-                            id=""
-                            className="rounded-md bg-bg-quaternary text-text-primary px-4 py-2 w-full"
-                        >
-                            <option selected value="new">[new preset]</option>
-                        </select>
                         <ActionMappingForm onSubmit={e => { return; }} />
                     </div>
                 </Infomations>

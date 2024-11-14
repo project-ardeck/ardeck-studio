@@ -24,9 +24,8 @@ use ::serde::{Deserialize, Serialize};
 use chrono::Utc;
 use serde_repr::{Deserialize_repr, Serialize_repr};
 
-#[derive(Clone, Copy, Deserialize_repr, Serialize_repr, Debug)]
+#[derive(Clone, Copy, Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
-#[repr(i8)]
 pub enum SwitchType {
     Unknown = -1,
     Digital = 0,

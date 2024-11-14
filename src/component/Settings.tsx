@@ -11,11 +11,11 @@ export default function Settings() {
         console.log("setting list: ", list);
     }
 
-    const getSetting = async (e: string) => {
+    type SettingName = string;
+    const getSetting = async (e: SettingName) => {
         const setting = await invoke("plugin:settings|get_setting", { configId: e });
         console.log("setting: ", setting);
     }
-    
 
     useEffect(() => {
         getSettingIdList();
