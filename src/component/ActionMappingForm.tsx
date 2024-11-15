@@ -48,13 +48,21 @@ export default function ActionMappingForm(props: {
     onSubmit: (e: ActionMapPreset) => void;
 }) {
     const isInit = useRef(false);
+    const reRender = useRef(0);
+
     const [item, setItem] = useState<ActionMapWithUIDList>([]);
 
     const [mappingPresets, setMappingPresets] = useState<MappingPresetsJSON>(
         [],
     );
     const [presetTmp, setPresetTmp] = useState<MappingPreset>();
-    const targetPresetId = presetTmp?.presetId;
+
+    reRender.current += 1;
+    console.log(
+        `%c[${reRender.current}] presetTmp`,
+        "color: red; font-weight: bold; font-size: 20px",
+        presetTmp,
+    );
 
     useEffect(() => {
         if (!isInit.current) {
@@ -63,6 +71,7 @@ export default function ActionMappingForm(props: {
             const aaa = async () => {
                 const setting: any = await settings.getMappingPresets();
                 setMappingPresets(setting);
+                console.log("aaa", setting);
             };
 
             aaa();
@@ -184,17 +193,12 @@ export default function ActionMappingForm(props: {
                                     if (presetTmp) {
                                         setPresetTmp((prev) => {
                                             if (!prev) return prev;
-                                            const mapping = prev.mapping ?? [];
-                                            mapping.splice(i, 1);
-
-                                            console.log(
-                                                "mapping: ",
-                                                "\tprev: ",
-                                                prev,
-                                                "\tmapping: ",
-                                                mapping,
-                                            );
-                                            return { ...prev, mapping };
+                                            return {
+                                                ...prev,
+                                                mapping: prev.mapping.filter(
+                                                    (a, b) => b != i,
+                                                ),
+                                            };
                                         });
                                     }
                                 }}
@@ -210,15 +214,20 @@ export default function ActionMappingForm(props: {
                         onClick={() => {
                             if (presetTmp) {
                                 setPresetTmp((prev) => {
-                                    if (!prev) return prev;
-                                    const mapping = prev.mapping ?? [];
-                                    mapping.push({
-                                        switchType: SwitchType.Digital,
-                                        switchId: 0,
-                                        pluginId: "",
-                                        actionId: "",
-                                    });
-                                    return { ...prev, mapping };
+                                    if (!prev) {
+                                        return prev;
+                                    };
+                                    return {
+                                        ...prev!,
+                                        mapping: prev.mapping.concat([
+                                            {
+                                                switchType: SwitchType.Digital,
+                                                switchId: 0,
+                                                pluginId: "",
+                                                actionId: "",
+                                            },
+                                        ]),
+                                    };
                                 });
                             }
                         }}
