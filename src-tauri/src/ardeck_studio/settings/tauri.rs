@@ -153,33 +153,42 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                         setting.save();
                     },
                     SettingEnum::MappingPresets(mut setting) => {
-                        // let sample_data = MappingPreset {
-                        //     preset_id: "sample".to_string(),
-                        //     preset_name: Some("sample".to_string()),
+                        let mut is_first = true;
+                        let sample_data = MappingPreset {
+                            preset_id: "sample".to_string(),
+                            preset_name: Some("sample".to_string()),
 
-                        //     mapping: vec![
-                        //         ActionMap {
-                        //             switch_type: SwitchType::Digital,
-                        //             switch_id: 1,
-                        //             plugin_id: "sample_plugin".to_string(),
-                        //             action_id: "sample_action_1".to_string()
-                        //         },
-                        //         ActionMap {
-                        //             switch_type: SwitchType::Digital,
-                        //             switch_id: 2,
-                        //             plugin_id: "sample_plugin".to_string(),
-                        //             action_id: "sample_action_2".to_string()
-                        //         },
-                        //         ActionMap {
-                        //             switch_type: SwitchType::Analog,
-                        //             switch_id: 3,
-                        //             plugin_id: "sample_plugin".to_string(),
-                        //             action_id: "sample_action_3".to_string()
-                        //         },
-                        //     ],
-                        // };
+                            mapping: vec![
+                                ActionMap {
+                                    switch_type: SwitchType::Digital,
+                                    switch_id: 1,
+                                    plugin_id: "sample_plugin".to_string(),
+                                    action_id: "sample_action_1".to_string()
+                                },
+                                ActionMap {
+                                    switch_type: SwitchType::Digital,
+                                    switch_id: 2,
+                                    plugin_id: "sample_plugin".to_string(),
+                                    action_id: "sample_action_2".to_string()
+                                },
+                                ActionMap {
+                                    switch_type: SwitchType::Analog,
+                                    switch_id: 3,
+                                    plugin_id: "sample_plugin".to_string(),
+                                    action_id: "sample_action_3".to_string()
+                                },
+                            ],
+                        };
 
-                        // setting.push(sample_data);
+                        setting.iter().for_each(|s| {
+                            if s.preset_id == "sample" {
+                                is_first = false;
+                            }
+                        });
+
+                        if is_first {
+                            setting.push(sample_data);
+                        }
 
                         setting.save();
                     }

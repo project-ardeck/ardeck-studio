@@ -33,7 +33,7 @@ import {
     ActionMapPreset,
     SwitchType,
 } from "../types/ardeck";
-import { MappingPresetsJSON } from "../types/settings";
+import { MappingPreset, MappingPresetsJSON } from "../types/settings";
 import { settings } from "../tauri/settings";
 
 type UID = string;
@@ -50,7 +50,11 @@ export default function ActionMappingForm(props: {
     const isInit = useRef(false);
     const [item, setItem] = useState<ActionMapWithUIDList>([]);
 
-    const [mappingPresets, setMappingPresets] = useState<MappingPresetsJSON>([]);
+    const [mappingPresets, setMappingPresets] = useState<MappingPresetsJSON>(
+        [],
+    );
+    const [presetTmp, setPresetTmp] = useState<MappingPreset>();
+    const targetPresetId = presetTmp?.presetId;
 
     useEffect(() => {
         if (!isInit.current) {
@@ -65,21 +69,202 @@ export default function ActionMappingForm(props: {
         }
     }, []);
 
+    const onSubmit = () => {
+        props.onSubmit(presetTmp!);
+    };
+
     return (
-        <div>
+        <div className="flex w-full flex-col gap-4">
             <select
-                className="rounded-md bg-bg-quaternary text-text-primary px-4 py-2 w-full"
-                
-            >
-                <option value="">[new preset]</option>
-                {mappingPresets.map((a) => {
-                    return (
-                        <option value={a.presetId}>
-                            {a.presetName}
-                        </option>
+                className="w-full rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
+                onChange={(e) => {
+                    setPresetTmp(
+                        mappingPresets.find(
+                            (a) => a.presetId == e.target.value,
+                        ),
                     );
+                    console.log("setPresetTmp", presetTmp);
+                }}
+            >
+                <option selected value="">
+                    [new preset]
+                </option>
+                {mappingPresets.map((a) => {
+                    return <option value={a.presetId}>{a.presetName}</option>;
                 })}
             </select>
+            <div className="flex w-full flex-col gap-2">
+                {presetTmp?.mapping.map((a, i) => {
+                    console.log(`${i}: presetTmp`, presetTmp);
+                    return (
+                        <div className="flex w-full gap-1">
+                            <select
+                                className="rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
+                                value={a.switchType}
+                                onChange={(e) => {
+                                    const newValue = e.target
+                                        .value as SwitchType;
+
+                                    setPresetTmp((prev) => {
+                                        if (!prev) return prev;
+                                        const mapping = prev.mapping ?? [];
+                                        mapping[i] = {
+                                            ...mapping[i],
+                                            switchType: newValue,
+                                        };
+                                        return { ...prev, mapping };
+                                    });
+                                }}
+                            >
+                                <option value={SwitchType.Digital}>
+                                    {SwitchType.Digital}
+                                </option>
+                                <option value={SwitchType.Analog}>
+                                    {SwitchType.Analog}
+                                </option>
+                            </select>
+                            <input
+                                type="number"
+                                min={0}
+                                placeholder="switch id"
+                                className="w-24 rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
+                                value={a.switchId}
+                                onChange={(e) => {
+                                    const newValue = parseInt(e.target.value);
+                                    setPresetTmp((prev) => {
+                                        if (!prev) return prev;
+                                        const mapping = prev.mapping ?? [];
+                                        mapping[i] = {
+                                            ...mapping[i],
+                                            switchId: newValue,
+                                        };
+                                        return { ...prev, mapping };
+                                    });
+                                }}
+                            />
+                            <input
+                                type="text"
+                                placeholder="plugin id"
+                                className="w-full rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
+                                value={a.pluginId}
+                                onChange={(e) => {
+                                    const newValue = e.target.value;
+                                    setPresetTmp((prev) => {
+                                        if (!prev) return prev;
+                                        const mapping = prev.mapping ?? [];
+                                        mapping[i] = {
+                                            ...mapping[i],
+                                            pluginId: newValue,
+                                        };
+                                        return { ...prev, mapping };
+                                    });
+                                }}
+                            />
+                            <input
+                                type="text"
+                                placeholder="action id"
+                                className="w-full rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
+                                value={a.actionId}
+                                onChange={(e) => {
+                                    const newValue = e.target.value;
+                                    setPresetTmp((prev) => {
+                                        if (!prev) return prev;
+                                        const mapping = prev.mapping ?? [];
+                                        mapping[i] = {
+                                            ...mapping[i],
+                                            actionId: newValue,
+                                        };
+                                        return { ...prev, mapping };
+                                    });
+                                }}
+                            />
+                            <input
+                                type="button"
+                                onClick={() => {
+                                    if (presetTmp) {
+                                        setPresetTmp((prev) => {
+                                            if (!prev) return prev;
+                                            const mapping = prev.mapping ?? [];
+                                            mapping.splice(i, 1);
+
+                                            console.log(
+                                                "mapping: ",
+                                                "\tprev: ",
+                                                prev,
+                                                "\tmapping: ",
+                                                mapping,
+                                            );
+                                            return { ...prev, mapping };
+                                        });
+                                    }
+                                }}
+                                value="remove"
+                                className="rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
+                            />
+                        </div>
+                    );
+                })}
+                <div>
+                    <input
+                        type="button"
+                        onClick={() => {
+                            if (presetTmp) {
+                                setPresetTmp((prev) => {
+                                    if (!prev) return prev;
+                                    const mapping = prev.mapping ?? [];
+                                    mapping.push({
+                                        switchType: SwitchType.Digital,
+                                        switchId: 0,
+                                        pluginId: "",
+                                        actionId: "",
+                                    });
+                                    return { ...prev, mapping };
+                                });
+                            }
+                        }}
+                        value="add mapping"
+                        className="w-full rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
+                    />
+                </div>
+            </div>
+            <div className="flex w-full gap-1">
+                <input
+                    type="text"
+                    placeholder="preset id"
+                    className="w-full rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
+                    value={presetTmp ? presetTmp.presetId : ""}
+                    onChange={(e) => {
+                        const newValue = e.target.value;
+                        setPresetTmp((prev) => {
+                            if (!prev) return prev;
+                            return { ...prev, presetId: newValue };
+                        });
+                    }}
+                />
+                <input
+                    type="text"
+                    className="w-full rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
+                    placeholder="preset name"
+                    value={presetTmp ? presetTmp.presetName : ""}
+                    onChange={(e) => {
+                        const newValue = e.target.value;
+                        setPresetTmp((prev) => {
+                            if (!prev) return prev;
+                            return { ...prev, presetName: newValue };
+                        });
+                    }}
+                />
+            </div>
+            <div>
+                <input
+                    type="submit"
+                    className="w-full rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
+                    value="submit"
+                    onClick={() => {
+                        // onSubmit(presetTmp!);
+                    }}
+                />
+            </div>
         </div>
     );
 }
