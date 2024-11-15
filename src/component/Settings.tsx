@@ -9,13 +9,15 @@ export default function Settings() {
 
         setSettingList(list);
         console.log("setting list: ", list);
-    }
+    };
 
     type SettingName = string;
     const getSetting = async (e: SettingName) => {
-        const setting = await invoke("plugin:settings|get_setting", { configId: e });
+        const setting = await invoke("plugin:settings|get_setting", {
+            configId: e,
+        });
         console.log("setting: ", setting);
-    }
+    };
 
     useEffect(() => {
         getSettingIdList();
@@ -23,7 +25,16 @@ export default function Settings() {
 
     return (
         <div>
-            {settingList.map((s, i) => <div><input onClick={() => getSetting(s)} type="button" key={i} value={s} /></div>)}
+            {settingList.map((s, i) => (
+                <div>
+                    <input
+                        onClick={() => getSetting(s)}
+                        type="button"
+                        key={i}
+                        value={s}
+                    />
+                </div>
+            ))}
         </div>
-    )
+    );
 }

@@ -16,7 +16,6 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-
 import { ReactNode, useEffect, useRef, useState } from "react";
 import { invoke } from "./tauri/invoke";
 import { emit, listen } from "@tauri-apps/api/event";
@@ -27,13 +26,13 @@ import Settings from "./component/Settings";
 import { Action, SerialPortInfo, SwitchType } from "./types/ardeck";
 
 type switchStatesObject = {
-    state: number,
-    timestamp: Date,
-    raw: number[]
-}
+    state: number;
+    timestamp: Date;
+    raw: number[];
+};
 
 const SerialProtocolVersionList = ["2014-06-03", "2024-06-17"] as const;
-type SerialProtocolVersion = typeof SerialProtocolVersionList[number];
+type SerialProtocolVersion = (typeof SerialProtocolVersionList)[number];
 
 const BaudRateList = [
     150,
@@ -54,70 +53,75 @@ const BaudRateList = [
     192000, // ?!
     230400,
     576000,
-    921600
+    921600,
 ] as const;
-type BaudRate = typeof BaudRateList[number];
-
-
-
+type BaudRate = (typeof BaudRateList)[number];
 
 const devLogLimit = 100;
 
 export default function ForDev() {
     const isInit = useRef(false); // for Develop
 
-    const [isShowotherArduinoDevice, setIsShowotherArduinoDevice] = useState(false);
+    const [isShowotherArduinoDevice, setIsShowotherArduinoDevice] =
+        useState(false);
 
     const [themeInfos, setThemeInfos] = useState<ThemeInfo[]>([]);
 
     const [deviceList, setDeviceList] = useState<SerialPortInfo[]>([]);
     const [devLogs, setDevLogs] = useState<string[]>([]);
-    const [connectedSerialList, setConnectedSerialList] = useState<string[]>([]);
+    const [connectedSerialList, setConnectedSerialList] = useState<string[]>(
+        [],
+    );
 
     const [baudRateOption, setBaudRateOption] = useState<BaudRate>(9600);
 
     const [switchStates, setSwitchStates] = useState({
         Analog: new Map<number, switchStatesObject>(),
-        Digital: new Map<number, switchStatesObject>()
+        Digital: new Map<number, switchStatesObject>(),
     });
 
     const pushLog = (log: string) => {
         const _DATE = new Date();
-        const M = _DATE.getMonth().toString().padStart(2, '0');
-        const d = _DATE.getDate().toString().padStart(2, '0');
-        const h = _DATE.getHours().toString().padStart(2, '0');
-        const m = _DATE.getMinutes().toString().padStart(2, '0');
-        const s = _DATE.getSeconds().toString().padStart(2, '0');
-        const mm = _DATE.getMilliseconds().toString().padStart(4, '0');
+        const M = _DATE.getMonth().toString().padStart(2, "0");
+        const d = _DATE.getDate().toString().padStart(2, "0");
+        const h = _DATE.getHours().toString().padStart(2, "0");
+        const m = _DATE.getMinutes().toString().padStart(2, "0");
+        const s = _DATE.getSeconds().toString().padStart(2, "0");
+        const mm = _DATE.getMilliseconds().toString().padStart(4, "0");
         const date = `${M}-${d} ${h}:${m}:${s}.${mm}`;
-        const formattedLog = `[${date}] ${log}`
+        const formattedLog = `[${date}] ${log}`;
 
         if (devLogs.length >= devLogLimit) {
-            setDevLogs(prevLogs => prevLogs.slice(0, devLogLimit - 1));
+            setDevLogs((prevLogs) => prevLogs.slice(0, devLogLimit - 1));
         }
 
-        setDevLogs(prevLogs => [formattedLog, ...prevLogs]);
-    }
+        setDevLogs((prevLogs) => [formattedLog, ...prevLogs]);
+    };
 
-    const addCS = (addSerial: string) => { // CS: Connected Serial
-        setConnectedSerialList(prevList => Array.from(new Set([...prevList, addSerial])));
-    }
+    const addCS = (addSerial: string) => {
+        // CS: Connected Serial
+        setConnectedSerialList((prevList) =>
+            Array.from(new Set([...prevList, addSerial])),
+        );
+    };
 
     const rmvCS = (rmvSerial: string) => {
-        setConnectedSerialList(prevList => prevList.filter(n => n !== rmvSerial));
-    }
+        setConnectedSerialList((prevList) =>
+            prevList.filter((n) => n !== rmvSerial),
+        );
+    };
 
     const getPorts = async () => {
         // let ports = await invoke("plugin:ardeck|get_ports") as SerialPortInfo[];
         let ports = await invoke.ardeck.getPorts();
         setDeviceList(ports);
-    }
+    };
 
     const getConnectingPorts = async () => {
         let ports = await invoke.ardeck.getConnectingSerials();
 
         setConnectedSerialList(ports);
-    }
+    };
 
     const serialOpenRequest = async (portName: string) => {
         // invoke("plugin:ardeck|open_port", { portName: portName, baudRate: baudRateOption })
@@ -130,7 +134,7 @@ export default function ForDev() {
         //     });
 
         await invoke.ardeck.openPort(portName, baudRateOption);
-    }
+    };
 
     const closeHandler = async (portName: string) => {
         // invoke("plugin:ardeck|close_port", { portName: portName })
@@ -143,12 +147,12 @@ export default function ForDev() {
         //     });
 
         await invoke.ardeck.closePort(portName);
-    }
+    };
 
     const getThemeInfos = async () => {
         const list = await window.windowTheme.themeList();
         setThemeInfos(list);
-    }
+    };
 
     useEffect(() => {
         if (!isInit.current) {
@@ -156,26 +160,31 @@ export default function ForDev() {
             // https://react.dev/learn/synchronizing-with-effects#how-to-handle-the-effect-firing-twice-in-development
             isInit.current = true;
 
-            listen("on-ports", (e) => { // ポートリストの更新
+            listen("on-ports", (e) => {
+                // ポートリストの更新
                 setDeviceList(e.payload as SerialPortInfo[]);
                 pushLog("aaa");
             });
 
-            listen("on-open-serial", (e) => { // シリアル通信の開始
+            listen("on-open-serial", (e) => {
+                // シリアル通信の開始
                 addCS(e.payload as string);
                 pushLog(`OPEN: ${e.payload}`);
             });
 
-            listen("on-close-serial", (e) => { // シリアル通信の終了
+            listen("on-close-serial", (e) => {
+                // シリアル通信の終了
                 rmvCS(e.payload as string);
-                pushLog(`CLOSE: ${e.payload}`)
-            })
+                pushLog(`CLOSE: ${e.payload}`);
+            });
 
-            listen("on-error-serial", (e) => { // シリアル通信中にエラーが発生した
+            listen("on-error-serial", (e) => {
+                // シリアル通信中にエラーが発生した
                 pushLog(e.payload as string);
             });
 
-            listen("on-message-serial", (e) => { // シリアル通信のメッセージ
+            listen("on-message-serial", (e) => {
+                // シリアル通信のメッセージ
                 const payload = e.payload as Action;
                 // console.log(payload);
                 // document.getElementById("raw_data")!.innerHTML = JSON.stringify(payload, null, 2);
@@ -184,32 +193,30 @@ export default function ForDev() {
                 const data = {
                     state: payload.switchState,
                     timestamp: new Date(payload.timestamp),
-                    raw: payload.rawValue
+                    raw: payload.rawValue,
                 };
 
                 if (payload.switchType === SwitchType.Digital) {
                     // console.log("0");
-                    setSwitchStates(prevState => {
+                    setSwitchStates((prevState) => {
                         const newState = new Map(prevState.Digital);
                         newState.set(payload.switchId, data);
                         return {
                             ...prevState,
-                            Digital: newState
-                        }
+                            Digital: newState,
+                        };
                     });
                 } else if (payload.switchType === SwitchType.Analog) {
                     // console.log("1");
-                    setSwitchStates(prevState => {
+                    setSwitchStates((prevState) => {
                         const newState = new Map(prevState.Analog);
                         newState.set(payload.switchId, data);
                         return {
                             ...prevState,
-                            Analog: newState
-                        }
+                            Analog: newState,
+                        };
                     });
                 }
-
-
             });
 
             getPorts();
@@ -219,35 +226,36 @@ export default function ForDev() {
             getThemeInfos();
 
             window.windowTheme.setTheme(
-                window.localStorage.getItem("theme") as ThemeList ?? "default-dark"
+                (window.localStorage.getItem("theme") as ThemeList) ??
+                    "default-dark",
             );
         }
     }, []);
 
     return (
-        <div className="font-fordev w-full h-full bg-bg-primary text-text-primary flex flex-col">
-            <div data-tauri-drag-region className="p-4 h-full flex-1 overflow-auto flex flex-col gap-2">
+        <div className="flex h-full w-full flex-col bg-bg-primary font-fordev text-text-primary">
+            <div
+                data-tauri-drag-region
+                className="flex h-full flex-1 flex-col gap-2 overflow-auto p-4"
+            >
                 <Infomations title="Port">
                     <div className="flex flex-col gap-2">
                         <div>
                             <select
                                 value={baudRateOption}
-                                className="rounded-md bg-bg-quaternary text-text-primary px-4 py-2 w-full"
-                                onChange={e => {
-                                    setBaudRateOption(Number(e.target.value) as BaudRate);
+                                className="w-full rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
+                                onChange={(e) => {
+                                    setBaudRateOption(
+                                        Number(e.target.value) as BaudRate,
+                                    );
                                 }}
                             >
-                                {BaudRateList.map(e => {
-                                    return (
-                                        <option>
-                                            {e}
-                                        </option>
-                                    )
+                                {BaudRateList.map((e) => {
+                                    return <option>{e}</option>;
                                 })}
                             </select>
                         </div>
                         <div>
-
                             <input
                                 type="checkbox"
                                 className="rounded-lg"
@@ -255,49 +263,60 @@ export default function ForDev() {
                                 id="isArduinoOnly"
                                 checked={isShowotherArduinoDevice}
                                 onChange={(e) => {
-                                    setIsShowotherArduinoDevice(e.target.checked);
+                                    setIsShowotherArduinoDevice(
+                                        e.target.checked,
+                                    );
                                 }}
                             />
-                            <label htmlFor="isArduinoOnly" className="select-none">{" "}Show other than Arduino</label>
+                            <label
+                                htmlFor="isArduinoOnly"
+                                className="select-none"
+                            >
+                                {" "}
+                                Show other than Arduino
+                            </label>
                         </div>
-
                     </div>
-                    <div className="flex gap-2 mt-2">
-
+                    <div className="mt-2 flex gap-2">
                         {deviceList.map((port) => {
-                            if (port.port_type.UsbPort?.vid != 0x2341 && !isShowotherArduinoDevice) {
+                            if (
+                                port.port_type.UsbPort?.vid != 0x2341 &&
+                                !isShowotherArduinoDevice
+                            ) {
                                 return null;
                             }
 
-                            let product = port.port_type.UsbPort?.product ?
-                                port.port_type.UsbPort?.product :
-                                "Unknown";
+                            let product = port.port_type.UsbPort?.product
+                                ? port.port_type.UsbPort?.product
+                                : "Unknown";
 
-                            let serialNum = port.port_type.UsbPort?.serial_number ?
-                                port.port_type.UsbPort.serial_number :
-                                "Unknown";
+                            let serialNum = port.port_type.UsbPort
+                                ?.serial_number
+                                ? port.port_type.UsbPort.serial_number
+                                : "Unknown";
 
-                            let isConnect = connectedSerialList.some(val => {
+                            let isConnect = connectedSerialList.some((val) => {
                                 return port.port_name == val;
-                            })
+                            });
 
                             return (
-                                <div key={port.port_name} className="bg-bg-secondary p-2 rounded-lg border-bg-4 border-2 shadow-lg">
-                                    <div>
-                                        {port.port_name}
-                                    </div>
-                                    <div>
-                                        {product}
-                                    </div>
+                                <div
+                                    key={port.port_name}
+                                    className="border-bg-4 rounded-lg border-2 bg-bg-secondary p-2 shadow-lg"
+                                >
+                                    <div>{port.port_name}</div>
+                                    <div>{product}</div>
                                     <div className="text-sm text-text-primary text-opacity-50">
                                         {serialNum}
                                     </div>
-                                    <div className="flex flex-col gap-2 mt-2">
+                                    <div className="mt-2 flex flex-col gap-2">
                                         <button
                                             aria-disabled={isConnect}
-                                            className="bg-accent-positive rounded-lg text-bg-primary px-4 transition-colors aria-disabled:bg-bg-quaternary aria-disabled:text-text-primary aria-disabled:text-opacity-50 aria-disabled:cursor-default"
+                                            className="rounded-lg bg-accent-positive px-4 text-bg-primary transition-colors aria-disabled:cursor-default aria-disabled:bg-bg-quaternary aria-disabled:text-text-primary aria-disabled:text-opacity-50"
                                             onClick={() => {
-                                                serialOpenRequest(port.port_name);
+                                                serialOpenRequest(
+                                                    port.port_name,
+                                                );
                                                 // buttonLoadingAnimation;
                                             }}
                                         >
@@ -305,7 +324,7 @@ export default function ForDev() {
                                         </button>
                                         <button
                                             aria-disabled={!isConnect}
-                                            className="bg-accent-negative rounded-lg text-bg-primary px-2 transition-colors aria-disabled:bg-bg-quaternary aria-disabled:text-text-primary aria-disabled:text-opacity-50 aria-disabled:cursor-default"
+                                            className="rounded-lg bg-accent-negative px-2 text-bg-primary transition-colors aria-disabled:cursor-default aria-disabled:bg-bg-quaternary aria-disabled:text-text-primary aria-disabled:text-opacity-50"
                                             onClick={() => {
                                                 closeHandler(port.port_name);
                                                 // buttonLoadingAnimation;
@@ -320,32 +339,52 @@ export default function ForDev() {
                     </div>
                 </Infomations>
                 <Infomations title="Device Info">
-                    <h3 className="font-bold text-lg mt-4">
-                        Digital
-                    </h3>
+                    <h3 className="mt-4 text-lg font-bold">Digital</h3>
                     {Array.from(switchStates.Digital).map(([pin, state]) => {
-                        const className = state.state ? "border-accent-primary border-opacity-50" : "border-bg-quaternary";
-                        const date = state.timestamp.getDate().toString().padStart(2, '0');
-                        const hour = state.timestamp.getHours().toString().padStart(2, '0');
-                        const minute = state.timestamp.getMinutes().toString().padStart(2, '0');
-                        const second = state.timestamp.getSeconds().toString().padStart(2, '0');
-                        const millisecond = state.timestamp.getMilliseconds().toString().padStart(3, '0');
+                        const className = state.state
+                            ? "border-accent-primary border-opacity-50"
+                            : "border-bg-quaternary";
+                        const date = state.timestamp
+                            .getDate()
+                            .toString()
+                            .padStart(2, "0");
+                        const hour = state.timestamp
+                            .getHours()
+                            .toString()
+                            .padStart(2, "0");
+                        const minute = state.timestamp
+                            .getMinutes()
+                            .toString()
+                            .padStart(2, "0");
+                        const second = state.timestamp
+                            .getSeconds()
+                            .toString()
+                            .padStart(2, "0");
+                        const millisecond = state.timestamp
+                            .getMilliseconds()
+                            .toString()
+                            .padStart(3, "0");
                         const time = `${hour}:${minute}:${second}.${millisecond}`;
 
                         // console.log(state.timestamp);
 
                         return (
-
-                            <div className={`${className} px-4 mb-1 border-2 rounded-md flex items-center place-content-between transition-colors relative`}>
+                            <div
+                                className={`${className} relative mb-1 flex place-content-between items-center rounded-md border-2 px-4 transition-colors`}
+                            >
                                 <div>
-
-                                    {`${pin.toString().padStart(2, '0')} : ${state.state ? "HIGH" : "LOW"}`}
+                                    {`${pin.toString().padStart(2, "0")} : ${state.state ? "HIGH" : "LOW"}`}
                                 </div>
-                                <div className="absolute top-0 left-0 right-0 bottom-0 flex justify-center items-center pointer-events-none">
+                                <div className="pointer-events-none absolute bottom-0 left-0 right-0 top-0 flex items-center justify-center">
                                     {state.raw.map((val, index) => {
                                         return (
-                                            <span key={index} className="text-sm pointer-events-auto">
-                                                {val.toString(2).padStart(8, '0')}
+                                            <span
+                                                key={index}
+                                                className="pointer-events-auto text-sm"
+                                            >
+                                                {val
+                                                    .toString(2)
+                                                    .padStart(8, "0")}
                                             </span>
                                         );
                                     })}
@@ -354,37 +393,58 @@ export default function ForDev() {
                                     {time}
                                 </div>
                             </div>
-                        )
+                        );
                     })}
-                    <h3 className="font-bold text-lg mt-4">
-                        Analog
-                    </h3>
+                    <h3 className="mt-4 text-lg font-bold">Analog</h3>
                     {Array.from(switchStates.Analog).map(([pin, state]) => {
-                        const className = state.state ? "border-accent-primary border-opacity-50" : "border-bg-quaternary";
-                        const date = state.timestamp.getDate().toString().padStart(2, '0');
-                        const hour = state.timestamp.getHours().toString().padStart(2, '0');
-                        const minute = state.timestamp.getMinutes().toString().padStart(2, '0');
-                        const second = state.timestamp.getSeconds().toString().padStart(2, '0');
-                        const millisecond = state.timestamp.getMilliseconds().toString().padStart(3, '0');
+                        const className = state.state
+                            ? "border-accent-primary border-opacity-50"
+                            : "border-bg-quaternary";
+                        const date = state.timestamp
+                            .getDate()
+                            .toString()
+                            .padStart(2, "0");
+                        const hour = state.timestamp
+                            .getHours()
+                            .toString()
+                            .padStart(2, "0");
+                        const minute = state.timestamp
+                            .getMinutes()
+                            .toString()
+                            .padStart(2, "0");
+                        const second = state.timestamp
+                            .getSeconds()
+                            .toString()
+                            .padStart(2, "0");
+                        const millisecond = state.timestamp
+                            .getMilliseconds()
+                            .toString()
+                            .padStart(3, "0");
                         const time = `${hour}:${minute}:${second}.${millisecond}`;
 
                         // console.log(state.timestamp);
 
                         const style = {
-                            "width": `${state.state / 1023 * 100}%`
-                        }
+                            width: `${(state.state / 1023) * 100}%`,
+                        };
 
                         return (
-
-                            <div className={`${className} px-4 mb-1 border-2 rounded-md flex items-center place-content-between transition-colors relative`}>
+                            <div
+                                className={`${className} relative mb-1 flex place-content-between items-center rounded-md border-2 px-4 transition-colors`}
+                            >
                                 <div className="z-10">
-                                    {`${pin.toString().padStart(2, '0')} : ${state.state}`}
+                                    {`${pin.toString().padStart(2, "0")} : ${state.state}`}
                                 </div>
-                                <div className="z-10 absolute top-0 left-0 right-0 bottom-0 flex gap-2 justify-center items-center pointer-events-none">
+                                <div className="pointer-events-none absolute bottom-0 left-0 right-0 top-0 z-10 flex items-center justify-center gap-2">
                                     {state.raw.map((val, index) => {
                                         return (
-                                            <span key={index} className="text-sm pointer-events-auto">
-                                                {val.toString(2).padStart(8, '0')}
+                                            <span
+                                                key={index}
+                                                className="pointer-events-auto text-sm"
+                                            >
+                                                {val
+                                                    .toString(2)
+                                                    .padStart(8, "0")}
                                             </span>
                                         );
                                     })}
@@ -392,37 +452,39 @@ export default function ForDev() {
                                 <div className="z-10 text-sm text-text-primary text-opacity-50">
                                     {time}
                                 </div>
-                                <div className="z-0 absolute top-0 left-0 bottom-0 bg-accent-primary opacity-25 pointer-events-none" style={style}></div>
+                                <div
+                                    className="pointer-events-none absolute bottom-0 left-0 top-0 z-0 bg-accent-primary opacity-25"
+                                    style={style}
+                                ></div>
                             </div>
-                        )
+                        );
                     })}
                 </Infomations>
                 <Infomations title="Logs">
                     <div className="h-80 overflow-auto">
                         <pre>
                             {devLogs.map((msg) => {
-                                return (
-                                    <div key={msg}>
-                                        {msg}
-                                    </div>
-                                )
+                                return <div key={msg}>{msg}</div>;
                             })}
                         </pre>
                     </div>
                 </Infomations>
 
                 <Infomations title="port info">
-                    <pre>
-                        {JSON.stringify(deviceList, null, "\t")}
-                    </pre>
+                    <pre>{JSON.stringify(deviceList, null, "\t")}</pre>
                 </Infomations>
 
                 <Infomations title="Theme">
                     <select
-                        className="rounded-md bg-bg-quaternary text-text-primary px-4 py-2 w-full"
+                        className="w-full rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
                         onChange={(e) => {
-                            window.localStorage.setItem("theme", e.target.value);
-                            window.windowTheme.setTheme(e.target.value as ThemeList);
+                            window.localStorage.setItem(
+                                "theme",
+                                e.target.value,
+                            );
+                            window.windowTheme.setTheme(
+                                e.target.value as ThemeList,
+                            );
                         }}
                     >
                         {themeInfos.map((theme) => {
@@ -430,7 +492,11 @@ export default function ForDev() {
                                 <option
                                     key={theme.id}
                                     value={theme.id}
-                                    selected={theme.id == window.windowTheme.theme ? true : false}
+                                    selected={
+                                        theme.id == window.windowTheme.theme
+                                            ? true
+                                            : false
+                                    }
                                 >
                                     {theme.name}
                                 </option>
@@ -444,8 +510,12 @@ export default function ForDev() {
                 </Infomations>
 
                 <Infomations title="Mappings">
-                    <div className=" flex flex-col gap-2">
-                        <ActionMappingForm onSubmit={e => { return; }} />
+                    <div className="flex flex-col gap-2">
+                        <ActionMappingForm
+                            onSubmit={(e) => {
+                                return;
+                            }}
+                        />
                     </div>
                 </Infomations>
             </div>
@@ -455,22 +525,15 @@ export default function ForDev() {
 
 function Infomations({
     title,
-    children
+    children,
 }: {
-    title?: string,
-    children?: ReactNode
+    title?: string;
+    children?: ReactNode;
 }) {
     return (
-        <div className="p-4 bg-bg-secondary rounded-lg">
-            <h2 className="text-xl font-bold mb-2 pb-2 border-b-2">
-                {title}
-            </h2>
-            <div>
-
-                {children}
-            </div>
+        <div className="rounded-lg bg-bg-secondary p-4">
+            <h2 className="mb-2 border-b-2 pb-2 text-xl font-bold">{title}</h2>
+            <div>{children}</div>
         </div>
     );
 }
-
-

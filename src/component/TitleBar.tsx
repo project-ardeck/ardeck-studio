@@ -16,7 +16,6 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-
 import { appWindow } from "@tauri-apps/api/window";
 import { useState } from "react";
 
@@ -30,34 +29,49 @@ export default function TitleBar() {
         setTitle(e);
     });
 
-
-
     const minHandler = () => {
-        appWindow.minimize()
-    }
+        appWindow.minimize();
+    };
     const maxHandler = () => {
         appWindow.toggleMaximize();
-    }
+    };
     const closeHandler = () => {
         appWindow.hide();
-    }
+    };
 
     return (
-        <div data-tauri-drag-region className="w-full h-8 flex justify-between items-center pl-4 bg-bg-titlebar  text-text-primary">
+        <div
+            data-tauri-drag-region
+            className="flex h-8 w-full items-center justify-between bg-bg-titlebar pl-4 text-text-primary"
+        >
             <div className="pointer-events-none select-none">
                 <h1>{title}</h1>
             </div>
-            <div className="flex select-none h-full justify-center items-center">
-                <div onClick={minHandler} className="hover:bg-bg-secondary h-full flex items-center px-2 transition-colors">
-                    <img src={minimizeButton} className="pointer-events-none" alt="minimize" />
+            <div className="flex h-full select-none items-center justify-center">
+                <div
+                    onClick={minHandler}
+                    className="flex h-full items-center px-2 transition-colors hover:bg-bg-secondary"
+                >
+                    <img
+                        src={minimizeButton}
+                        className="pointer-events-none"
+                        alt="minimize"
+                    />
                 </div>
                 {/* <div onClick={maxHandler}>
                     max
                 </div> */}
-                <div onClick={closeHandler} className="hover:bg-accent-negative h-full flex items-center px-2 transition-colors">
-                    <img src={closeButton} className="pointer-events-none text-text-primary" alt="close" />
+                <div
+                    onClick={closeHandler}
+                    className="flex h-full items-center px-2 transition-colors hover:bg-accent-negative"
+                >
+                    <img
+                        src={closeButton}
+                        className="pointer-events-none text-text-primary"
+                        alt="close"
+                    />
                 </div>
             </div>
         </div>
-    )
+    );
 }

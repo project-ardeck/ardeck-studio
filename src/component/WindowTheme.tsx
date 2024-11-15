@@ -16,7 +16,6 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-
 import React, { Children } from "react";
 
 const themeList = [
@@ -24,17 +23,17 @@ const themeList = [
     "default-light",
     "fk-neon",
     // "kawaii-blue",
-    "d1sc0rd-dark"
+    "d1sc0rd-dark",
 ] as const;
 
 declare global {
-    type ThemeList = typeof themeList[number];
+    type ThemeList = (typeof themeList)[number];
 
     type ThemeInfo = {
         id: string;
         name?: string;
         author?: string;
-    }
+    };
 
     type Theme = ThemeInfo & {
         base: "dark" | "light";
@@ -57,7 +56,7 @@ declare global {
             "accent-caution": number[];
             "accent-negative": number[];
             "accent-link"?: number[];
-        }
+        };
     };
 }
 
@@ -73,11 +72,11 @@ class themeConfigs {
                     return value;
                 }
             });
-        }
+        };
 
         if (!theme.colors["bg-secondary"]) {
             theme.colors["bg-secondary"] = overFormat(
-                theme.colors["bg-primary"].map((color) => color + 10)
+                theme.colors["bg-primary"].map((color) => color + 10),
             );
         }
 
@@ -126,15 +125,13 @@ export default class WindowTheme extends React.Component<WindowThemeProps> {
                 id: themeConfig.id,
                 name: themeConfig.name,
                 author: themeConfig.author,
-            }
+            };
 
             list.push(tmp);
         }
 
         return list;
     }
-
-
 
     constructor(props: WindowThemeProps) {
         super(props);

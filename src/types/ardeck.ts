@@ -28,28 +28,29 @@ export const SwitchType = {
     Analog: "analog",
 } as const;
 
-export type SwitchType = typeof SwitchType[keyof typeof SwitchType];
+export type SwitchType = (typeof SwitchType)[keyof typeof SwitchType];
 
 export type ActionMap = {
     switchType: SwitchType;
     switchId: number;
     pluginId: string;
     actionId: string;
-}
+};
 
-export type ActionMapPreset = { // ! delete
+export type ActionMapPreset = {
+    // ! delete
     presetId: string;
     presetName?: string;
 
     mapping: ActionMap[];
-}
+};
 
-export type ActionMapConfig = { // ! delete
+export type ActionMapConfig = {
+    // ! delete
     [key: string]: ActionMap[];
-}
+};
 
 export type SerialPortInfo = {
-
     port_name: string;
     port_type: {
         UsbPort?: {
@@ -58,16 +59,16 @@ export type SerialPortInfo = {
             serial_number: string;
             manufacturer: string;
             product: string;
-        },
+        };
         PciPort?: {};
         BluetoothPort?: {};
-    }
-}
+    };
+};
 
 export type OnMessageSerial = {
     data: number;
     timestamp: number;
-}
+};
 
 export type Action = {
     switchType: SwitchType;
@@ -75,7 +76,7 @@ export type Action = {
     switchState: number;
     rawValue: number[];
     timestamp: number;
-}
+};
 
 export type serialPortState = {
     port_name: string;
@@ -88,4 +89,4 @@ export type serialPortState = {
     //     parity: string,
     //     flow_control: string
     // }
-}
+};

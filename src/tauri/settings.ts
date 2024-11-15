@@ -19,15 +19,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 import { invoke } from "./invoke";
 import { MappingPresetsJSON } from "../types/settings";
 
-
 function extractFromEnum(e: any): any {
     return Object.values(e)[0];
 }
 
 export const settings = {
     async getMappingPresets() {
-        const mp: { [key: string]: any } = await invoke.settings.getSetting("mapping_presets");
+        const mp: { [key: string]: any } =
+            await invoke.settings.getSetting("mapping_presets");
 
         return extractFromEnum(mp) as MappingPresetsJSON;
-    }
-}
+    },
+};

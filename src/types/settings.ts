@@ -24,7 +24,7 @@ export type MappingPreset = {
     presetName?: string;
 
     mapping: ActionMap[];
-}
+};
 
 export type MappingPresetsJSON = MappingPreset[];
 

@@ -23,15 +23,20 @@ import { SerialPortInfo } from "../types/ardeck";
 export const invoke = {
     settings: {
         async getSetting(settingId: string): Promise<any> {
-            return await tauriInvoke("plugin:settings|get_setting", { configId: settingId });
+            return await tauriInvoke("plugin:settings|get_setting", {
+                configId: settingId,
+            });
         },
         async getSettingList(): Promise<Array<string>> {
             return await tauriInvoke("plugin:settings|get_setting_list");
-        }
+        },
     },
     ardeck: {
         async openPort(portName: string, baudRate: number) {
-            return await tauriInvoke("plugin:ardeck|open_port", { portName, baudRate });
+            return await tauriInvoke("plugin:ardeck|open_port", {
+                portName,
+                baudRate,
+            });
         },
         async closePort(portName: string) {
             return await tauriInvoke("plugin:ardeck|close_port", { portName });
@@ -41,6 +46,6 @@ export const invoke = {
         },
         async getPorts(): Promise<Array<SerialPortInfo>> {
             return await tauriInvoke("plugin:ardeck|get_ports");
-        }
-    }
+        },
+    },
 };
