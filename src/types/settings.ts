@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { ActionMap } from "./ardeck";
+import { ActionMap, defaultActionMap } from "./ardeck";
 
 // mapping_presets
 export type MappingPreset = {
@@ -25,6 +25,12 @@ export type MappingPreset = {
 
     mapping: ActionMap[];
 };
+
+export const defaultMappingPreset: MappingPreset = {
+    presetId: "",
+    presetName: "",
+    mapping: [],
+}
 
 export type MappingPresetsJSON = MappingPreset[];
 

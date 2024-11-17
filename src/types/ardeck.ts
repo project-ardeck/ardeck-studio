@@ -37,6 +37,13 @@ export type ActionMap = {
     actionId: string;
 };
 
+export const defaultActionMap: ActionMap = {
+    switchType: SwitchType.Digital,
+    switchId: 0,
+    pluginId: "",
+    actionId: "",
+};
+
 export type ActionMapPreset = {
     // ! delete
     presetId: string;

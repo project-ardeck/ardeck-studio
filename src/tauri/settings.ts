@@ -24,7 +24,7 @@ function extractFromEnum(e: any): any {
 }
 
 export const settings = {
-    async getMappingPresets() {
+    async getMappingPresets(): Promise<MappingPresetsJSON> {
         const mp: { [key: string]: any } =
             await invoke.settings.getSetting("mapping_presets");
 

@@ -89,7 +89,7 @@ class themeConfigs {
         const res = await fetch(`/theme/${theme}.json`);
         const json: Theme = await res.json();
 
-        console.log(json);
+        // console.log(json);
 
         return json;
     }

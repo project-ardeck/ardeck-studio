@@ -31,9 +31,14 @@ import {
     ActionMap,
     ActionMapConfig,
     ActionMapPreset,
+    defaultActionMap,
     SwitchType,
 } from "../types/ardeck";
-import { MappingPreset, MappingPresetsJSON } from "../types/settings";
+import {
+    defaultMappingPreset,
+    MappingPreset,
+    MappingPresetsJSON,
+} from "../types/settings";
 import { settings } from "../tauri/settings";
 
 type UID = string;
@@ -55,13 +60,41 @@ export default function ActionMappingForm(props: {
     const [mappingPresets, setMappingPresets] = useState<MappingPresetsJSON>(
         [],
     );
-    const [presetTmp, setPresetTmp] = useState<MappingPreset>();
+    const [presetTmp, setPresetTmp] =
+        useState<MappingPreset>(defaultMappingPreset);
+    const [newMappingTmp, setNewMappingTmp] =
+        useState<ActionMap>(defaultActionMap);
+
+    const checkPresetComplete = (map: ActionMap): boolean => {
+        return (
+            // map.switchType !== SwitchType.Digital ||
+            // map.switchId !== 0 ||
+            map.pluginId !== "" || map.actionId !== ""
+        );
+    };
+
+    const commitToPresetTmp = (map: ActionMap) => {
+        if (presetTmp) {
+            if (!checkPresetComplete(map)) return;
+
+            setPresetTmp((prev) => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    mapping: [...prev.mapping, map],
+                };
+            });
+
+            setNewMappingTmp(defaultActionMap);
+        }
+    };
 
     reRender.current += 1;
     console.log(
-        `%c[${reRender.current}] presetTmp`,
+        `%c[${reRender.current}] render`,
         "color: red; font-weight: bold; font-size: 20px",
         presetTmp,
+        newMappingTmp,
     );
 
     useEffect(() => {
@@ -69,9 +102,10 @@ export default function ActionMappingForm(props: {
             isInit.current = true;
 
             const aaa = async () => {
-                const setting: any = await settings.getMappingPresets();
+                const setting: MappingPresetsJSON =
+                    await settings.getMappingPresets();
+
                 setMappingPresets(setting);
-                console.log("aaa", setting);
             };
 
             aaa();
@@ -87,10 +121,12 @@ export default function ActionMappingForm(props: {
             <select
                 className="w-full rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
                 onChange={(e) => {
+                    const mapping = mappingPresets.find(
+                        (a) => a.presetId == e.target.value,
+                    );
                     setPresetTmp(
-                        mappingPresets.find(
-                            (a) => a.presetId == e.target.value,
-                        ),
+                        // セレクトされたIDのmappingを探し、一時保存する
+                        mapping ?? defaultMappingPreset,
                     );
                     console.log("setPresetTmp", presetTmp);
                 }}
@@ -103,25 +139,48 @@ export default function ActionMappingForm(props: {
                 })}
             </select>
             <div className="flex w-full flex-col gap-2">
-                {presetTmp?.mapping.map((a, i) => {
-                    console.log(`${i}: presetTmp`, presetTmp);
+                {/*
+                    設定済みのデータと新しく追加するデータの一時保存を結合する
+                    配列の一番最後は必ず未追加の仮データ
+                */}
+                {presetTmp?.mapping.concat(newMappingTmp).map((a, i) => {
+                    const isNew = presetTmp.mapping.length <= i;
+                    console.log(`${i}${isNew ? "[new]" : ""}: presetTmp`, a);
+
+                    
+
                     return (
                         <div className="flex w-full gap-1">
                             <select
                                 className="rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
-                                value={a.switchType}
+                                value={
+                                    isNew
+                                        ? newMappingTmp.switchType
+                                        : a.switchType
+                                }
                                 onChange={(e) => {
                                     const newValue = e.target
                                         .value as SwitchType;
 
                                     setPresetTmp((prev) => {
                                         if (!prev) return prev;
-                                        const mapping = prev.mapping ?? [];
-                                        mapping[i] = {
-                                            ...mapping[i],
-                                            switchType: newValue,
-                                        };
-                                        return { ...prev, mapping };
+                                        if (isNew) {
+                                            setNewMappingTmp((prev) => {
+                                                return {
+                                                    ...prev,
+                                                    switchType: newValue,
+                                                };
+                                            });
+
+                                            return prev;
+                                        } else {
+                                            const mapping = prev.mapping ?? [];
+                                            mapping[i] = {
+                                                ...mapping[i],
+                                                switchType: newValue,
+                                            };
+                                            return { ...prev, mapping };
+                                        }
                                     });
                                 }}
                             >
@@ -137,17 +196,30 @@ export default function ActionMappingForm(props: {
                                 min={0}
                                 placeholder="switch id"
                                 className="w-24 rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
-                                value={a.switchId}
+                                value={
+                                    isNew ? newMappingTmp.switchId : a.switchId
+                                }
                                 onChange={(e) => {
                                     const newValue = parseInt(e.target.value);
                                     setPresetTmp((prev) => {
                                         if (!prev) return prev;
-                                        const mapping = prev.mapping ?? [];
-                                        mapping[i] = {
-                                            ...mapping[i],
-                                            switchId: newValue,
-                                        };
-                                        return { ...prev, mapping };
+                                        if (isNew) {
+                                            setNewMappingTmp((prev) => {
+                                                return {
+                                                    ...prev,
+                                                    switchId: newValue,
+                                                };
+                                            });
+
+                                            return prev;
+                                        } else {
+                                            const mapping = prev.mapping ?? [];
+                                            mapping[i] = {
+                                                ...mapping[i],
+                                                switchId: newValue,
+                                            };
+                                            return { ...prev, mapping };
+                                        }
                                     });
                                 }}
                             />
@@ -160,12 +232,23 @@ export default function ActionMappingForm(props: {
                                     const newValue = e.target.value;
                                     setPresetTmp((prev) => {
                                         if (!prev) return prev;
-                                        const mapping = prev.mapping ?? [];
-                                        mapping[i] = {
-                                            ...mapping[i],
-                                            pluginId: newValue,
-                                        };
-                                        return { ...prev, mapping };
+                                        if (isNew) {
+                                            setNewMappingTmp((prev) => {
+                                                return {
+                                                    ...prev,
+                                                    pluginId: newValue,
+                                                };
+                                            });
+
+                                            return prev;
+                                        } else {
+                                            const mapping = prev.mapping ?? [];
+                                            mapping[i] = {
+                                                ...mapping[i],
+                                                pluginId: newValue,
+                                            };
+                                            return { ...prev, mapping };
+                                        }
                                     });
                                 }}
                             />
@@ -178,63 +261,59 @@ export default function ActionMappingForm(props: {
                                     const newValue = e.target.value;
                                     setPresetTmp((prev) => {
                                         if (!prev) return prev;
-                                        const mapping = prev.mapping ?? [];
-                                        mapping[i] = {
-                                            ...mapping[i],
-                                            actionId: newValue,
-                                        };
-                                        return { ...prev, mapping };
+                                        if (isNew) {
+                                            setNewMappingTmp((prev) => {
+                                                return {
+                                                    ...prev,
+                                                    actionId: newValue,
+                                                };
+                                            });
+
+                                            return prev;
+                                        } else {
+                                            const mapping = prev.mapping ?? [];
+                                            mapping[i] = {
+                                                ...mapping[i],
+                                                actionId: newValue,
+                                            };
+                                            return { ...prev, mapping };
+                                        }
                                     });
                                 }}
                             />
                             <input
                                 type="button"
+                                // disabled={checkPresetComplete(a)}
                                 onClick={() => {
                                     if (presetTmp) {
-                                        setPresetTmp((prev) => {
-                                            if (!prev) return prev;
-                                            return {
-                                                ...prev,
-                                                mapping: prev.mapping.filter(
-                                                    (a, b) => b != i,
-                                                ),
-                                            };
-                                        });
+                                        if (isNew) {
+                                            setPresetTmp((prev) => {
+                                                commitToPresetTmp(
+                                                    newMappingTmp,
+                                                );
+
+                                                return prev;
+                                            });
+                                        } else {
+                                            setPresetTmp((prev) => {
+                                                if (!prev) return prev;
+                                                return {
+                                                    ...prev,
+                                                    mapping:
+                                                        prev.mapping.filter(
+                                                            (a, b) => b != i,
+                                                        ),
+                                                };
+                                            });
+                                        }
                                     }
                                 }}
-                                value="remove"
-                                className="rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
+                                value={isNew ? "+" : "-"}
+                                className="cursor-pointer rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
                             />
                         </div>
                     );
                 })}
-                <div>
-                    <input
-                        type="button"
-                        onClick={() => {
-                            if (presetTmp) {
-                                setPresetTmp((prev) => {
-                                    if (!prev) {
-                                        return prev;
-                                    };
-                                    return {
-                                        ...prev!,
-                                        mapping: prev.mapping.concat([
-                                            {
-                                                switchType: SwitchType.Digital,
-                                                switchId: 0,
-                                                pluginId: "",
-                                                actionId: "",
-                                            },
-                                        ]),
-                                    };
-                                });
-                            }
-                        }}
-                        value="add mapping"
-                        className="w-full rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
-                    />
-                </div>
             </div>
             <div className="flex w-full gap-1">
                 <input
