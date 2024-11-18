@@ -58,9 +58,7 @@ export default function TitleBar() {
                         alt="minimize"
                     />
                 </div>
-                {/* <div onClick={maxHandler}>
-                    max
-                </div> */}
+                {import.meta.env.DEV && <div onClick={maxHandler}>max</div>}
                 <div
                     onClick={closeHandler}
                     className="flex h-full items-center px-2 transition-colors hover:bg-accent-negative"

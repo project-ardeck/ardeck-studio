@@ -24,7 +24,7 @@ use crate::{ardeck_studio::{action::map::ActionMap, settings::Settings}, service
 #[derive(Debug, Serialize, Deserialize, Clone, FieldNamesAsArray)]
 #[serde(rename_all = "camelCase")]
 pub struct MappingPreset {
-    pub preset_id: String,
+    pub uuid: String,
     pub preset_name: Option<String>,
 
     pub mapping: Vec<ActionMap>,

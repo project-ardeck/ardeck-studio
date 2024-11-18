@@ -40,6 +40,7 @@ import {
     MappingPresetsJSON,
 } from "../types/settings";
 import { settings } from "../tauri/settings";
+import { cloneDeep } from "lodash";
 
 type UID = string;
 type ActionMapWithUID = {
@@ -55,27 +56,39 @@ export default function ActionMappingForm(props: {
     const isInit = useRef(false);
     const reRender = useRef(0);
 
-    const [item, setItem] = useState<ActionMapWithUIDList>([]);
-
     const [mappingPresets, setMappingPresets] = useState<MappingPresetsJSON>(
         [],
     );
+
     const [presetTmp, setPresetTmp] =
         useState<MappingPreset>(defaultMappingPreset);
     const [newMappingTmp, setNewMappingTmp] =
         useState<ActionMap>(defaultActionMap);
 
-    const checkPresetComplete = (map: ActionMap): boolean => {
+    const findPresetIndex = (presetId: string) => {
+        return mappingPresets.findIndex((a) => a.uuid == presetId);
+    };
+
+    const changeEditTarget = (preset_id: string) => {
+        const presetIndex = findPresetIndex(preset_id);
+        setPresetTmp(mappingPresets[presetIndex] || defaultMappingPreset);
+    };
+
+    const checkMappingComplete = (map: ActionMap): boolean => {
         return (
             // map.switchType !== SwitchType.Digital ||
             // map.switchId !== 0 ||
-            map.pluginId !== "" || map.actionId !== ""
+            map.pluginId !== "" && map.actionId !== ""
         );
     };
 
-    const commitToPresetTmp = (map: ActionMap) => {
+    const checkPresetComplete = (preset: MappingPreset): boolean => {
+        return preset.uuid !== "";
+    };
+
+    const commitToPresetTmp = (map: ActionMap /* newMappingTmp */) => {
         if (presetTmp) {
-            if (!checkPresetComplete(map)) return;
+            if (!checkMappingComplete(map)) return;
 
             setPresetTmp((prev) => {
                 if (!prev) return prev;
@@ -86,6 +99,20 @@ export default function ActionMappingForm(props: {
             });
 
             setNewMappingTmp(defaultActionMap);
+        }
+    };
+
+    const applyPreset = (preset: MappingPreset /* presetTmp */) => {
+        if (presetTmp) {
+            if (!checkPresetComplete(preset)) return;
+
+            setMappingPresets((prev) => {
+                if (!prev) return prev;
+                return prev.map((a) => {
+                    if (a.uuid == preset.uuid) return cloneDeep(preset);
+                    return a;
+                });
+            });
         }
     };
 
@@ -101,19 +128,19 @@ export default function ActionMappingForm(props: {
         if (!isInit.current) {
             isInit.current = true;
 
-            const aaa = async () => {
+            const init = async () => {
                 const setting: MappingPresetsJSON =
                     await settings.getMappingPresets();
 
                 setMappingPresets(setting);
             };
 
-            aaa();
+            init();
         }
     }, []);
 
     const onSubmit = () => {
-        props.onSubmit(presetTmp!);
+        // props.onSubmit(presetTmp!);
     };
 
     return (
@@ -121,13 +148,7 @@ export default function ActionMappingForm(props: {
             <select
                 className="w-full rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
                 onChange={(e) => {
-                    const mapping = mappingPresets.find(
-                        (a) => a.presetId == e.target.value,
-                    );
-                    setPresetTmp(
-                        // セレクトされたIDのmappingを探し、一時保存する
-                        mapping ?? defaultMappingPreset,
-                    );
+                    changeEditTarget(e.target.value);
                     console.log("setPresetTmp", presetTmp);
                 }}
             >
@@ -135,7 +156,7 @@ export default function ActionMappingForm(props: {
                     [new preset]
                 </option>
                 {mappingPresets.map((a) => {
-                    return <option value={a.presetId}>{a.presetName}</option>;
+                    return <option value={a.uuid}>{a.presetName}</option>;
                 })}
             </select>
             <div className="flex w-full flex-col gap-2">
@@ -145,9 +166,11 @@ export default function ActionMappingForm(props: {
                 */}
                 {presetTmp?.mapping.concat(newMappingTmp).map((a, i) => {
                     const isNew = presetTmp.mapping.length <= i;
-                    console.log(`${i}${isNew ? "[new]" : ""}: presetTmp`, a);
-
-                    
+                    console.log(
+                        `${i}${isNew ? "[new]" : ""}: presetTmp`,
+                        a,
+                        checkMappingComplete(a),
+                    );
 
                     return (
                         <div className="flex w-full gap-1">
@@ -283,7 +306,7 @@ export default function ActionMappingForm(props: {
                             />
                             <input
                                 type="button"
-                                // disabled={checkPresetComplete(a)}
+                                disabled={!checkMappingComplete(a)}
                                 onClick={() => {
                                     if (presetTmp) {
                                         if (isNew) {
@@ -309,26 +332,13 @@ export default function ActionMappingForm(props: {
                                     }
                                 }}
                                 value={isNew ? "+" : "-"}
-                                className="cursor-pointer rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
+                                className="cursor-pointer rounded-md bg-bg-quaternary px-4 py-2 text-text-primary disabled:opacity-50"
                             />
                         </div>
                     );
                 })}
             </div>
             <div className="flex w-full gap-1">
-                <input
-                    type="text"
-                    placeholder="preset id"
-                    className="w-full rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
-                    value={presetTmp ? presetTmp.presetId : ""}
-                    onChange={(e) => {
-                        const newValue = e.target.value;
-                        setPresetTmp((prev) => {
-                            if (!prev) return prev;
-                            return { ...prev, presetId: newValue };
-                        });
-                    }}
-                />
                 <input
                     type="text"
                     className="w-full rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
@@ -345,13 +355,20 @@ export default function ActionMappingForm(props: {
             </div>
             <div>
                 <input
-                    type="submit"
+                    type="button"
                     className="w-full rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
-                    value="submit"
+                    value="button"
                     onClick={() => {
                         // onSubmit(presetTmp!);
+                        if (presetTmp) {
+                            applyPreset(presetTmp);
+                        }
                     }}
                 />
+            </div>
+
+            <div>
+                <pre>{JSON.stringify(mappingPresets, null, 2)}</pre>
             </div>
         </div>
     );

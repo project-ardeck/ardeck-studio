@@ -62,3 +62,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         --accent-link: 88 166 255; /* #58a6ff */
     }
 }
+
+/*
+    TODO: Adding custom styles
+    https://tailwindcss.com/docs/adding-custom-styles
+*/
+@layer components {
+}

@@ -20,14 +20,14 @@ import { ActionMap, defaultActionMap } from "./ardeck";
 
 // mapping_presets
 export type MappingPreset = {
-    presetId: string;
+    uuid: string;
     presetName?: string;
 
     mapping: ActionMap[];
 };
 
 export const defaultMappingPreset: MappingPreset = {
-    presetId: "",
+    uuid: "",
     presetName: "",
     mapping: [],
 }

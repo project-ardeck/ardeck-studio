@@ -27,6 +27,7 @@ use serde::{Deserialize, Serialize};
 use tauri::{
     generate_handler, plugin::{Builder, TauriPlugin}, Manager, Runtime
 };
+use uuid::Uuid;
 
 use crate::{ardeck_studio::{action::{map::ActionMap, SwitchType}, settings::definitions::mapping_presets::MappingPreset}, service::{dir::Directories, file::Files}};
 
@@ -112,17 +113,10 @@ fn get_setting<R: Runtime>(_app: tauri::AppHandle<R>, config_id: &str) -> Settin
     setting.unwrap().load()
 }
 
+// Mapping presets
 // #[tauri::command]
-// async fn get_setting_or_init<R: Runtime>(
-//     _app: tauri::AppHandle<R>,
-//     config_id: &str,
-// ) -> Result<SettingEnum, String> {
-//     let get = get_setting(_app, config_id);
-//     if get.is_none() {
-//         Ok(SettingEnum::MappingPresets(MappingPresetsJSON::new())) // TODO: Error handling
-//     } else {
-//         Ok(get.unwrap())
-//     }
+// async fn get_mapping_uuid_list<R: Runtime>(app: tauri::AppHandle<R>) -> Result<Vec<String>, String> {
+//     Ok(())
 // }
 
 #[tauri::command]
@@ -153,9 +147,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                         setting.save();
                     },
                     SettingEnum::MappingPresets(mut setting) => {
-                        let mut is_first = true;
                         let sample_data = MappingPreset {
-                            preset_id: "sample".to_string(),
+                            uuid: Uuid::new_v4().to_string(),
                             preset_name: Some("sample".to_string()),
 
                             mapping: vec![
@@ -180,14 +173,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
                             ],
                         };
 
-                        setting.iter().for_each(|s| {
-                            if s.preset_id == "sample" {
-                                is_first = false;
-                            }
-                        });
-
-                        if is_first {
-                            setting.push(sample_data);
+                        while setting.len() < 1 {
+                            setting.push(sample_data.clone());
                         }
 
                         setting.save();
