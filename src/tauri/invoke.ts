@@ -18,6 +18,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import { invoke as tauriInvoke } from "@tauri-apps/api";
 import { SerialPortInfo } from "../types/ardeck";
+import { MappingPreset } from "../types/settings";
 
 // TODO: error handling
 export const invoke = {
@@ -29,6 +30,27 @@ export const invoke = {
         },
         async getSettingList(): Promise<Array<string>> {
             return await tauriInvoke("plugin:settings|get_setting_list");
+        },
+
+        mappingPresets: {
+            async getMappingList(): Promise<Array<[string, string]>> {
+                return await tauriInvoke("plugin:settings|get_mapping_list");
+            },
+
+            async getMappingPreset(uuid: string): Promise<MappingPreset> {
+                return await tauriInvoke("plugin:settings|get_mapping_preset", {
+                    uuid,
+                });
+            },
+
+            async saveMappingPreset(mappingPreset: MappingPreset) {
+                return await tauriInvoke(
+                    "plugin:settings|save_mapping_preset",
+                    {
+                        mappingPreset,
+                    },
+                );
+            },
         },
     },
     ardeck: {

@@ -30,4 +30,10 @@ export const settings = {
 
         return extractFromEnum(mp) as MappingPresetsJSON;
     },
+
+    // mappingPresets: {
+    //     async getUuidList(): Promise<string[]> {
+    //         return await invoke.settings.getMappingUuidList();
+    //     }
+    // }
 };

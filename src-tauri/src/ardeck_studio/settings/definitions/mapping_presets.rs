@@ -19,13 +19,17 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 use serde::{Deserialize, Serialize};
 use struct_field_names_as_array::FieldNamesAsArray;
 
-use crate::{ardeck_studio::{action::map::ActionMap, settings::Settings}, service::dir::Directories, setting};
+use crate::{
+    ardeck_studio::{action::map::ActionMap, settings::Settings},
+    service::dir::Directories,
+    setting,
+};
 
 #[derive(Debug, Serialize, Deserialize, Clone, FieldNamesAsArray)]
 #[serde(rename_all = "camelCase")]
 pub struct MappingPreset {
     pub uuid: String,
-    pub preset_name: Option<String>,
+    pub preset_name: String,
 
     pub mapping: Vec<ActionMap>,
 }

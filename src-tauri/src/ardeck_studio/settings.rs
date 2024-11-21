@@ -44,7 +44,7 @@ pub trait SettingsStore: Serialize + DeserializeOwned + Default + Clone + Send +
         self.dir().join(format!("{}.json", self.name()))
     }
 
-    fn load(&self) -> Self {
+    fn load(&mut self) -> Self {
         let file = match Files::open(self.file_path()) {
             Ok(file) => file,
             Err(e) => {
@@ -59,7 +59,10 @@ pub trait SettingsStore: Serialize + DeserializeOwned + Default + Clone + Send +
 
         let reader = std::io::BufReader::new(file);
         match serde_json::from_reader(reader) {
-            Ok(setting) => setting,
+            Ok(setting) => {
+                self.clone_from(&setting);
+                self.clone()
+            },
             Err(_) => panic!("SettingStore panic!: load.serialize"),
         }
     }

@@ -21,7 +21,7 @@ import { ActionMap, defaultActionMap } from "./ardeck";
 // mapping_presets
 export type MappingPreset = {
     uuid: string;
-    presetName?: string;
+    presetName: string;
 
     mapping: ActionMap[];
 };

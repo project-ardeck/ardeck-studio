@@ -39,15 +39,10 @@ import {
     MappingPreset,
     MappingPresetsJSON,
 } from "../types/settings";
-import { settings } from "../tauri/settings";
 import { cloneDeep } from "lodash";
 
-type UID = string;
-type ActionMapWithUID = {
-    uid: UID;
-} & ActionMap;
-type ActionMapWithUIDList = ActionMapWithUID[];
 type ActionMapKey = "switchType" | "switchId" | "pluginId" | "actionId";
+type MappingList = Array<[string, string]>; // [uuid, presetName]
 
 export default function ActionMappingForm(props: {
     actionMapPresets?: ActionMapPreset[];
@@ -56,22 +51,19 @@ export default function ActionMappingForm(props: {
     const isInit = useRef(false);
     const reRender = useRef(0);
 
-    const [mappingPresets, setMappingPresets] = useState<MappingPresetsJSON>(
-        [],
-    );
+    const mappingList = useRef<MappingList>([]);
 
     const [presetTmp, setPresetTmp] =
         useState<MappingPreset>(defaultMappingPreset);
     const [newMappingTmp, setNewMappingTmp] =
         useState<ActionMap>(defaultActionMap);
 
-    const findPresetIndex = (presetId: string) => {
-        return mappingPresets.findIndex((a) => a.uuid == presetId);
-    };
-
-    const changeEditTarget = (preset_id: string) => {
-        const presetIndex = findPresetIndex(preset_id);
-        setPresetTmp(mappingPresets[presetIndex] || defaultMappingPreset);
+    const changeEditTarget = async (uuid: string) => {
+        const mappingPreset =
+            await invoke.settings.mappingPresets.getMappingPreset(uuid);
+        setPresetTmp(mappingPreset);
+        // const presetIndex = findPresetIndex(preset_id);
+        // setPresetTmp(mappingPresets[presetIndex] || defaultMappingPreset);
     };
 
     const checkMappingComplete = (map: ActionMap): boolean => {
@@ -83,7 +75,7 @@ export default function ActionMappingForm(props: {
     };
 
     const checkPresetComplete = (preset: MappingPreset): boolean => {
-        return preset.uuid !== "";
+        return preset.uuid !== "" && preset.presetName !== "";
     };
 
     const commitToPresetTmp = (map: ActionMap /* newMappingTmp */) => {
@@ -104,15 +96,20 @@ export default function ActionMappingForm(props: {
 
     const applyPreset = (preset: MappingPreset /* presetTmp */) => {
         if (presetTmp) {
-            if (!checkPresetComplete(preset)) return;
+            console.log("applyPreset", preset, checkPresetComplete(preset));
+            // if (!checkPresetComplete(preset)) return;
 
-            setMappingPresets((prev) => {
-                if (!prev) return prev;
-                return prev.map((a) => {
-                    if (a.uuid == preset.uuid) return cloneDeep(preset);
-                    return a;
-                });
-            });
+            // setMappingPresets((prev) => {
+            //     if (!prev) return prev;
+            //     return prev.map((a) => {
+            //         if (a.uuid == preset.uuid) return cloneDeep(preset);
+            //         return a;
+            //     });
+            // });
+
+            invoke.settings.mappingPresets.saveMappingPreset(preset);
+
+            setPresetTmp(defaultMappingPreset);
         }
     };
 
@@ -129,10 +126,14 @@ export default function ActionMappingForm(props: {
             isInit.current = true;
 
             const init = async () => {
-                const setting: MappingPresetsJSON =
-                    await settings.getMappingPresets();
+                // const setting: MappingPresetsJSON =
+                //     await settings.getMappingPresets();
 
-                setMappingPresets(setting);
+                // setMappingPresets(setting);
+
+                mappingList.current =
+                    await invoke.settings.mappingPresets.getMappingList();
+                console.log("mappingList: ", mappingList.current);
             };
 
             init();
@@ -155,8 +156,12 @@ export default function ActionMappingForm(props: {
                 <option selected value="">
                     [new preset]
                 </option>
-                {mappingPresets.map((a) => {
-                    return <option value={a.uuid}>{a.presetName}</option>;
+                {mappingList.current.map((a) => {
+                    return (
+                        <option value={a[0]}>
+                            <span>{a[1]}</span>
+                        </option>
+                    );
                 })}
             </select>
             <div className="flex w-full flex-col gap-2">
@@ -356,7 +361,7 @@ export default function ActionMappingForm(props: {
             <div>
                 <input
                     type="button"
-                    className="w-full rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
+                    className="w-full cursor-pointer rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
                     value="button"
                     onClick={() => {
                         // onSubmit(presetTmp!);
@@ -368,7 +373,7 @@ export default function ActionMappingForm(props: {
             </div>
 
             <div>
-                <pre>{JSON.stringify(mappingPresets, null, 2)}</pre>
+                <pre>{JSON.stringify(presetTmp, null, 2)}</pre>
             </div>
         </div>
     );

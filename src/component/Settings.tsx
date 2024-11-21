@@ -4,31 +4,31 @@ import { useEffect, useState } from "react";
 export default function Settings() {
     const [settingList, setSettingList] = useState<string[]>([]);
 
-    const getSettingIdList = async () => {
-        const list: string[] = await invoke("plugin:settings|get_setting_list");
+    // const getSettingIdList = async () => {
+    //     const list: string[] = await invoke("plugin:settings|get_setting_list");
 
-        setSettingList(list);
-        console.log("setting list: ", list);
-    };
+    //     setSettingList(list);
+    //     console.log("setting list: ", list);
+    // };
 
-    type SettingName = string;
-    const getSetting = async (e: SettingName) => {
-        const setting = await invoke("plugin:settings|get_setting", {
-            configId: e,
-        });
-        console.log("setting: ", setting);
-    };
+    // type SettingName = string;
+    // const getSetting = async (e: SettingName) => {
+    //     const setting = await invoke("plugin:settings|get_setting", {
+    //         configId: e,
+    //     });
+    //     console.log("setting: ", setting);
+    // };
 
-    useEffect(() => {
-        getSettingIdList();
-    }, []);
+    // useEffect(() => {
+    //     getSettingIdList();
+    // }, []);
 
     return (
         <div>
             {settingList.map((s, i) => (
                 <div>
                     <input
-                        onClick={() => getSetting(s)}
+                        // onClick={() => getSetting(s)}
                         type="button"
                         key={i}
                         value={s}
