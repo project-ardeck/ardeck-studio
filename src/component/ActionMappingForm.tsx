@@ -53,6 +53,7 @@ export default function ActionMappingForm(props: {
 
     const mappingList = useRef<MappingList>([]);
 
+    const [editTarget, setEditTarget] = useState<string>("");
     const [presetTmp, setPresetTmp] =
         useState<MappingPreset>(defaultMappingPreset);
     const [newMappingTmp, setNewMappingTmp] =
@@ -61,9 +62,11 @@ export default function ActionMappingForm(props: {
     const changeEditTarget = async (uuid: string) => {
         const mappingPreset =
             await invoke.settings.mappingPresets.getMappingPreset(uuid);
-        setPresetTmp(mappingPreset);
-        // const presetIndex = findPresetIndex(preset_id);
-        // setPresetTmp(mappingPresets[presetIndex] || defaultMappingPreset);
+        console.log("mappingPreset: ", mappingPreset);
+
+        setEditTarget(uuid);
+        setPresetTmp(mappingPreset ?? defaultMappingPreset);
+        setNewMappingTmp(defaultActionMap); // reset
     };
 
     const checkMappingComplete = (map: ActionMap): boolean => {
@@ -75,7 +78,7 @@ export default function ActionMappingForm(props: {
     };
 
     const checkPresetComplete = (preset: MappingPreset): boolean => {
-        return preset.uuid !== "" && preset.presetName !== "";
+        return /*preset.uuid !== "" && */ preset.presetName !== "";
     };
 
     const commitToPresetTmp = (map: ActionMap /* newMappingTmp */) => {
@@ -94,24 +97,24 @@ export default function ActionMappingForm(props: {
         }
     };
 
-    const applyPreset = (preset: MappingPreset /* presetTmp */) => {
+    const savePreset = async (preset: MappingPreset /* presetTmp */) => {
         if (presetTmp) {
+            if (!checkPresetComplete(preset)) {
+                return;
+            }
+
             console.log("applyPreset", preset, checkPresetComplete(preset));
-            // if (!checkPresetComplete(preset)) return;
+            const savedPreset =
+                await invoke.settings.mappingPresets.saveMappingPreset(preset);
+            // await
 
-            // setMappingPresets((prev) => {
-            //     if (!prev) return prev;
-            //     return prev.map((a) => {
-            //         if (a.uuid == preset.uuid) return cloneDeep(preset);
-            //         return a;
-            //     });
-            // });
-
-            invoke.settings.mappingPresets.saveMappingPreset(preset);
-
-            setPresetTmp(defaultMappingPreset);
+            setEditTarget(savedPreset.uuid);
+            setPresetTmp(savedPreset);
+            setNewMappingTmp(defaultActionMap); // reset
         }
     };
+
+    // const saveNewPreset = (preset: MappingPreset /*newMappingTmp*/) => {}
 
     reRender.current += 1;
     console.log(
@@ -126,11 +129,6 @@ export default function ActionMappingForm(props: {
             isInit.current = true;
 
             const init = async () => {
-                // const setting: MappingPresetsJSON =
-                //     await settings.getMappingPresets();
-
-                // setMappingPresets(setting);
-
                 mappingList.current =
                     await invoke.settings.mappingPresets.getMappingList();
                 console.log("mappingList: ", mappingList.current);
@@ -152,6 +150,7 @@ export default function ActionMappingForm(props: {
                     changeEditTarget(e.target.value);
                     console.log("setPresetTmp", presetTmp);
                 }}
+                value={editTarget}
             >
                 <option selected value="">
                     [new preset]
@@ -366,7 +365,7 @@ export default function ActionMappingForm(props: {
                     onClick={() => {
                         // onSubmit(presetTmp!);
                         if (presetTmp) {
-                            applyPreset(presetTmp);
+                            savePreset(presetTmp);
                         }
                     }}
                 />

@@ -43,7 +43,7 @@ export const invoke = {
                 });
             },
 
-            async saveMappingPreset(mappingPreset: MappingPreset) {
+            async saveMappingPreset(mappingPreset: MappingPreset): Promise<MappingPreset> {
                 return await tauriInvoke(
                     "plugin:settings|save_mapping_preset",
                     {

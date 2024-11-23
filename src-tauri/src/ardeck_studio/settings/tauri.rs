@@ -67,7 +67,7 @@ async fn get_mapping_preset<R: Runtime>(
     app: tauri::AppHandle<R>,
     mapping_presets_json: State<'_, Mutex<MappingPresetsJSON>>,
     uuid: &str,
-) -> Result<MappingPreset, String> {
+) -> Result<Option<MappingPreset>, String> {
     println!("get_mapping_preset: {}", uuid);
 
     println!("get_mapping_preset\n\tmapping_presets_json: {:#?}", mapping_presets_json.lock().unwrap());
@@ -76,10 +76,11 @@ async fn get_mapping_preset<R: Runtime>(
         println!("\tuuid: {}", a.uuid);
         if a.uuid == uuid.to_string() {
             println!("\tfound.");
-            return Ok(a.clone());
+            return Ok(Some(a.clone()));
         }
     }
-    Err("Mapping preset not found".to_string())
+    println!("\tnot found.");
+    Ok(None)
 }
 
 #[tauri::command]
@@ -87,7 +88,7 @@ async fn save_mapping_preset<R: Runtime>(
     app: tauri::AppHandle<R>,
     mapping_presets_json: State<'_, Mutex<MappingPresetsJSON>>,
     mut mapping_preset: MappingPreset,
-) -> Result<(), String> {
+) -> Result<MappingPreset, String> {
     println!("save_mapping_preset\n\tmapping_presets_json: {:#?}\n\tmapping_preset: {:#?}", mapping_presets_json.lock().unwrap(), mapping_preset);
     let index =  mapping_presets_json 
         .lock()
@@ -96,7 +97,7 @@ async fn save_mapping_preset<R: Runtime>(
         .position(|p| p.uuid == mapping_preset.uuid);
     match index {
         Some(i) => {
-            mapping_presets_json.lock().unwrap()[i] = mapping_preset;
+            mapping_presets_json.lock().unwrap()[i] = mapping_preset.clone();
 
             println!("save_mapping_preset.data_change\n\tmapping_presets_json: {:#?}", mapping_presets_json.lock().unwrap());
         }
@@ -107,7 +108,7 @@ async fn save_mapping_preset<R: Runtime>(
             mapping_presets_json
             .lock()
             .unwrap()
-            .push(mapping_preset);
+            .push(mapping_preset.clone());
 
             println!("save_mapping_preset.new_data\n\tmapping_presets_json: {:#?}", mapping_presets_json.lock().unwrap());
         }
@@ -115,7 +116,7 @@ async fn save_mapping_preset<R: Runtime>(
 
     mapping_presets_json.lock().unwrap().save()/*.unwrap()*/;
 
-    Ok(())
+    Ok(mapping_preset)
 }
 
 macro_rules! ext_config_file {
