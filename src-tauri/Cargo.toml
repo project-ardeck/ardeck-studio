@@ -1,6 +1,6 @@
 [package]
 name = "ardeck"
-version = "0.0.8"
+version = "0.1.4"
 description = "ARDeck Control Center"
 authors = ["akurakuu", "sekurosu-daimajin"]
 edition = "2021"

@@ -182,7 +182,7 @@ async fn handle_socket(
     let hello_message = PluginMessage {
         op: PluginOpCode::Hello,
         data: PluginMessageData {
-            ardeck_studio_version: Some("0.0.8".to_string()),
+            ardeck_studio_version: Some("0.1.4".to_string()),
             ardeck_plugin_web_socket_version: Some("0.0.1".to_string()),
             ..Default::default()
         },
