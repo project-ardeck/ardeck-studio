@@ -18,7 +18,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import { ActionMap, defaultActionMap } from "./ardeck";
 
-// mapping_presets
+// * mapping_presets
 export type MappingPreset = {
     uuid: string;
     presetName: string;
@@ -27,6 +27,7 @@ export type MappingPreset = {
 };
 
 export const defaultMappingPreset: MappingPreset = {
+    // uuidを空にした状態で渡すと自動で新規作成扱いになる
     uuid: "",
     presetName: "",
     mapping: [],
@@ -34,8 +35,8 @@ export const defaultMappingPreset: MappingPreset = {
 
 export type MappingPresetsJSON = MappingPreset[];
 
-// TODO: plugin
+// * plugin
 
-// TODO: ardeck
+// * ardeck
 
-// TODO: ardeck_studio
+// * ardeck_studio
