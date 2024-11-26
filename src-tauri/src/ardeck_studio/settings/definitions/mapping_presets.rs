@@ -28,9 +28,12 @@ use crate::{
 #[derive(Debug, Serialize, Deserialize, Clone, FieldNamesAsArray)]
 #[serde(rename_all = "camelCase")]
 pub struct MappingPreset {
+    // uuid
     pub uuid: String,
+    // 表示名
     pub preset_name: String,
 
+    // マッピングリスト
     pub mapping: Vec<ActionMap>,
 }
 
