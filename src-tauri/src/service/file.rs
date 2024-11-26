@@ -16,27 +16,32 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::{fs::File, path::Path};
+use std::{fs::File, path::{Path, PathBuf}};
+
+use super::dir::Directories;
 
 pub struct Files;
 impl Files {
+    fn validate_path<P: AsRef<Path>>(path: P) -> std::io::Result<PathBuf> {
+        let path = path.as_ref();
+        let canonical = path.canonicalize()?;
+
+        if canonical.starts_with(Directories::get_config_dir()) {
+            Ok(canonical)
+        } else {
+            Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "Permission denied"))
+        }
+    }
+
     pub fn open<P: AsRef<Path>>(path: P) -> std::io::Result<File> {
-        File::open(path)
+        File::open(Self::validate_path(path)?)
     }
 
     pub fn create<P: AsRef<Path>>(path: P) -> std::io::Result<File> {
-        File::create(path)
+        File::create(Self::validate_path(path)?)
     }
 
     pub fn remove<P: AsRef<Path>>(path: P) -> std::io::Result<()> {
-        std::fs::remove_file(path)
-    }
-
-    pub fn open_or_create<P: AsRef<Path>>(path: P) -> std::io::Result<File> {
-        let is_exist = path.as_ref().try_exists().unwrap_or(false);
-        if !is_exist {
-            Self::create(&path)?;
-        }
-        Self::open(path)
+        std::fs::remove_file(Self::validate_path(path)?)
     }
 }
