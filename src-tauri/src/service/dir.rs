@@ -36,8 +36,13 @@ impl Directories {
     }
 
     #[cfg(not(feature = "portable"))]
-    pub fn get_config_dir() -> PathBuf {
-        dirs::config_dir().unwrap().join(IDENTIFIER).join("config")
+    pub fn get_config_dir() -> std::io::Result<PathBuf> {
+        let path = match dirs::config_dir() {
+            Some(p) => p,
+            None => return Err(Error::new(std::io::ErrorKind::NotFound, "Config directory not found")),
+        };
+
+        Ok(path.join(IDENTIFIER).join("config"))
     }
 
     pub fn init<P: AsRef<Path>>(path: P) -> Result<(), Error> {

@@ -126,7 +126,8 @@ macro_rules! ext_config_file {
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("settings")
         .setup(|app| {
-            Directories::init(Directories::get_config_dir()).unwrap();
+            // TODO: get_config_dir() log
+            Directories::init(Directories::get_config_dir().unwrap()).unwrap();
             app.manage(Mutex::new(MappingPresetsJSON::new()));
 
             let sample_data = MappingPreset {
