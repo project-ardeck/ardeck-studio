@@ -26,7 +26,7 @@ export default function Settings() {
     return (
         <div>
             {settingList.map((s, i) => (
-                <div>
+                <div key={i}>
                     <input
                         // onClick={() => getSetting(s)}
                         type="button"
