@@ -23,9 +23,13 @@ use super::{SwitchId, SwitchType};
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ActionMap {
+    // スイッチの種類 (デジタルスイッチか、アナログスイッチか)
     pub switch_type: SwitchType,
+    // スイッチのピン番号
     pub switch_id: SwitchId,
+    // プラグインのID
     pub plugin_id: String,
+    // アクションのID
     pub action_id: String,
 }
 
