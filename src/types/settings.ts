@@ -30,12 +30,12 @@ export const defaultMappingPreset: MappingPreset = {
     uuid: "",
     presetName: "",
     mapping: [],
-}
+};
 
 export type MappingPresetsJSON = MappingPreset[];
 
-// plugin
+// TODO: plugin
 
-// ardeck
+// TODO: ardeck
 
-// ardecl_studio
+// TODO: ardeck_studio
