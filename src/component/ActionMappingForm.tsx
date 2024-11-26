@@ -29,8 +29,6 @@ import { makeUid, randomStr } from "../util/props";
 import { invoke } from "../tauri/invoke";
 import {
     ActionMap,
-    ActionMapConfig,
-    ActionMapPreset,
     defaultActionMap,
     SwitchType,
 } from "../types/ardeck";
@@ -45,8 +43,8 @@ type ActionMapKey = "switchType" | "switchId" | "pluginId" | "actionId";
 type MappingList = Array<[string, string]>; // [uuid, presetName]
 
 export default function ActionMappingForm(props: {
-    actionMapPresets?: ActionMapPreset[];
-    onSubmit: (e: ActionMapPreset) => void;
+    // actionMapPresets?: ActionMapPreset[];
+    // onSubmit: (e: ActionMapPreset) => void;
 }) {
     const isInit = useRef(false);
     const reRender = useRef(0);

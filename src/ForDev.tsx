@@ -512,9 +512,9 @@ export default function ForDev() {
                 <Infomations title="Mappings">
                     <div className="flex flex-col gap-2">
                         <ActionMappingForm
-                            onSubmit={(e) => {
-                                return;
-                            }}
+                            // onSubmit={(e) => {
+                            //     return;
+                            // }}
                         />
                     </div>
                 </Infomations>

@@ -50,6 +50,9 @@ export default function TitleBar() {
             <div className="flex h-full select-none items-center justify-center">
                 <div
                     onClick={minHandler}
+                    onKeyDown={(e) => e.key === "Enter" && minHandler()}
+                    tabIndex={0}
+                    role="button"
                     className="flex h-full items-center px-2 transition-colors hover:bg-bg-secondary"
                 >
                     <img
@@ -61,6 +64,9 @@ export default function TitleBar() {
                 {import.meta.env.DEV && <div onClick={maxHandler}>max</div>}
                 <div
                     onClick={closeHandler}
+                    onKeyDown={(e) => e.key === "Enter" && closeHandler()}
+                    tabIndex={0}
+                    role="button"
                     className="flex h-full items-center px-2 transition-colors hover:bg-accent-negative"
                 >
                     <img

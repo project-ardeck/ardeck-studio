@@ -16,7 +16,6 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::fs::DirBuilder;
 use std::path::PathBuf;
 
 use std::{
@@ -31,14 +30,14 @@ const IDENTIFIER: &str = "com.ardeck.studio";
 
 impl Directories {
     #[cfg(feature = "portable")]
-    pub fn get_config_dir() -> PathBuf {
-        PathBuf::from("./").join("config")
+    pub fn get_config_dir() -> std::io::Result<PathBuf> {
+        Ok(PathBuf::from("./").canonicalize()?.join("config"))
     }
 
     #[cfg(not(feature = "portable"))]
     pub fn get_config_dir() -> std::io::Result<PathBuf> {
         let path = match dirs::config_dir() {
-            Some(p) => p,
+            Some(p) => p.canonicalize()?,
             None => return Err(Error::new(std::io::ErrorKind::NotFound, "Config directory not found")),
         };
 

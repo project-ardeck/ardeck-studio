@@ -30,6 +30,13 @@ export const SwitchType = {
 
 export type SwitchType = (typeof SwitchType)[keyof typeof SwitchType];
 
+/**
+ * アクションマッピングの設定を表す型
+ * @property switchType - スイッチの種類（デジタルまたはアナログ）
+ * @property switchId - スイッチの識別子
+ * @property pluginId - プラグインの識別子
+ * @property actionId - アクションの識別子
+ */
 export type ActionMap = {
     switchType: SwitchType;
     switchId: number;
@@ -42,19 +49,6 @@ export const defaultActionMap: ActionMap = {
     switchId: 0,
     pluginId: "",
     actionId: "",
-};
-
-export type ActionMapPreset = {
-    // ! delete
-    presetId: string;
-    presetName?: string;
-
-    mapping: ActionMap[];
-};
-
-export type ActionMapConfig = {
-    // ! delete
-    [key: string]: ActionMap[];
 };
 
 export type SerialPortInfo = {

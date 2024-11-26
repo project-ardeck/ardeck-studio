@@ -25,14 +25,19 @@ use crate::{ardeck_studio::settings::Settings, service::dir::Directories, settin
 
 #[derive(Debug, Serialize, Deserialize, Clone, FieldNamesAsArray)]
 #[serde(rename_all = "camelCase")]
+// TODO: 名称の変更：ConfigField
 pub struct ArdeckProfileConfigItem {
-    // TODO: ConfigField
+    // シリアルポート名
     pub serial_number: String,
 
+    // シリアルデバイスの表示名
     pub device_name: Option<String>,
-    pub baud_rate: Option<u32>, // default: 19200
+    // このデバイスで今後デフォルトで利用するレート
+    pub baud_rate: Option<u32>,
+    // デバイスの説明
     pub description: Option<String>,
 
+    // このデバイスでデフォルトで割り当てるマッピングプリセットのID
     pub mapping_preset: Option<String>, // mapping preset id
 }
 
