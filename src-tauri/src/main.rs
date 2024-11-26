@@ -83,7 +83,7 @@ async fn main() {
             },
             _ => {}
         })
-        .plugin(tauri_plugin_log::Builder::default().build())
+        .plugin(tauri_plugin_log::Builder::default().build()) // TODO: default().taget(Folder(/* ディレクトリ */))
         .plugin(ardeck_studio::ardeck::tauri::init())
         .plugin(ardeck_studio::plugin::tauri::init().await)
         .plugin(ardeck_studio::settings::tauri::init())
