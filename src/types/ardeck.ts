@@ -23,25 +23,35 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 // }
 
 export const SwitchType = {
-    Unknown: -1,
-    Digital: 0,
-    Analog: 1,
+    Unknown: "unknown",
+    Digital: "digital",
+    Analog: "analog",
 } as const;
 
-export type SwitchType = typeof SwitchType[keyof typeof SwitchType];
+export type SwitchType = (typeof SwitchType)[keyof typeof SwitchType];
 
+/**
+ * アクションマッピングの設定を表す型
+ * @property switchType - スイッチの種類（デジタルまたはアナログ）
+ * @property switchId - スイッチの識別子
+ * @property pluginId - プラグインの識別子
+ * @property actionId - アクションの識別子
+ */
 export type ActionMap = {
     switchType: SwitchType;
     switchId: number;
     pluginId: string;
     actionId: string;
-}
-export type ActionMapConfig = {
-    [key: string]: ActionMap[];
-}
+};
+
+export const defaultActionMap: ActionMap = {
+    switchType: SwitchType.Digital,
+    switchId: 0,
+    pluginId: "",
+    actionId: "",
+};
 
 export type SerialPortInfo = {
-
     port_name: string;
     port_type: {
         UsbPort?: {
@@ -50,16 +60,16 @@ export type SerialPortInfo = {
             serial_number: string;
             manufacturer: string;
             product: string;
-        },
+        };
         PciPort?: {};
         BluetoothPort?: {};
-    }
-}
+    };
+};
 
 export type OnMessageSerial = {
     data: number;
     timestamp: number;
-}
+};
 
 export type Action = {
     switchType: SwitchType;
@@ -67,7 +77,7 @@ export type Action = {
     switchState: number;
     rawValue: number[];
     timestamp: number;
-}
+};
 
 export type serialPortState = {
     port_name: string;
@@ -80,4 +90,4 @@ export type serialPortState = {
     //     parity: string,
     //     flow_control: string
     // }
-}
+};

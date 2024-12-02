@@ -16,30 +16,25 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
 import TitleBar from "./component/TitleBar";
 import WindowTheme from "./component/WindowTheme";
-import { ErrorBoundary } from "react-error-boundary";
 
 import "./main.css";
 
-
-
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-
     <React.StrictMode>
         <WindowTheme>
-            <div className="w-full h-full flex flex-col overflow-hidden">
+            <div className="flex h-full w-full flex-col overflow-hidden">
                 <header>
                     <TitleBar />
                 </header>
-                <main className="flex-1 overflow-auto scrollbar-theme">
+                <main className="scrollbar-theme flex-1 overflow-auto">
                     <App />
                 </main>
             </div>
         </WindowTheme>
-    </React.StrictMode>
+    </React.StrictMode>,
 );

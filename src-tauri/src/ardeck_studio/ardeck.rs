@@ -22,17 +22,12 @@ pub mod tauri;
 
 use serialport::{self, SerialPort};
 
-use std::{
-    sync::{
-        atomic::{AtomicBool, Ordering},
-        Arc, Mutex,
-    },
-    thread,
-    time::Duration,
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, Mutex,
 };
 
 use crate::ardeck_studio::action::ActionDataParser;
-
 
 #[derive(Clone)]
 pub struct Ardeck {

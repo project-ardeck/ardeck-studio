@@ -1,225 +1,374 @@
-import { Component, RefCallback, useEffect, useRef, useState } from "react"
+/*
+Ardeck studio - The ardeck command mapping software.
+Copyright (C) 2024 project-ardeck
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or 
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful, 
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the 
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+*/
+
+import {
+    Component,
+    FunctionComponent,
+    ReactNode,
+    RefCallback,
+    useEffect,
+    useRef,
+    useState,
+} from "react";
 import { makeUid, randomStr } from "../util/props";
-import { ActionMap, ActionMapConfig, SwitchType } from "../types/ardeck";
+import { invoke } from "../tauri/invoke";
+import {
+    ActionMap,
+    defaultActionMap,
+    SwitchType,
+} from "../types/ardeck";
+import {
+    defaultMappingPreset,
+    MappingPreset,
+    MappingPresetsJSON,
+} from "../types/settings";
+import { cloneDeep } from "lodash";
 
-type UID = string;
-type ActionMapWithUID = {
-    uid: UID
-} & ActionMap
-type ActionMapWithUIDList = ActionMapWithUID[];
 type ActionMapKey = "switchType" | "switchId" | "pluginId" | "actionId";
+type MappingList = Array<[string, string]>; // [uuid, presetName]
 
-
-export default function ActionMappingForm(props: {
-    portName: string
-}) {
+export default function ActionMappingForm() {
     const isInit = useRef(false);
-    const [item, setItem] = useState<ActionMapWithUIDList>([]);
+    const reRender = useRef(0);
 
-    const addItem = (_item: ActionMap): UID => {
-        let uid: UID = makeUid();
+    const mappingList = useRef<MappingList>([]);
 
-        setItem(list => {
-            let find = list.findIndex(e => e.uid == uid);
-            if (find != -1) {
-                // list.rev
-            }
+    const [editTarget, setEditTarget] = useState<string>("");
+    const [presetTmp, setPresetTmp] =
+        useState<MappingPreset>(defaultMappingPreset);
+    const [newMappingTmp, setNewMappingTmp] =
+        useState<ActionMap>(defaultActionMap);
 
-            return [...list, { uid, ..._item }];
-        })
+    const changeEditTarget = async (uuid: string) => {
+        const mappingPreset =
+            await invoke.settings.mappingPresets.getMappingPreset(uuid);
+        console.log("mappingPreset: ", mappingPreset);
 
-        console.log("ActionMappingForm.item: ", item);
-
-        return uid;
+        setEditTarget(uuid);
+        setPresetTmp(mappingPreset ?? defaultMappingPreset);
+        setNewMappingTmp(defaultActionMap); // reset
     };
 
-    const removeItem = (_key: UID) => {
-        setItem(e => e.filter(f => f.uid != _key));
-    }
-
-    const editItem = (_key: UID, editcallback: (e: ActionMapWithUID) => ActionMapWithUID) => {
-        setItem(e => {
-            let index = e.findIndex(f => f.uid == _key);
-            if (index == -1) {
-                console.log(`Not found: uid-${_key}`);
-                return e;
-            }
-            let data = item[index];
-            if (data) {
-                let edit = editcallback(data);
-                return [...e.filter(n => n.uid != _key), edit];
-            } else {
-                return e;
-            }
-        })
-        console.log("ActionMappingForm.item: ", item);
-    }
-
-    // console.log("ActionMappingForm.item: ", item);
-
-    const form = (action?: ActionMapWithUID) => {
-
-        const isNew = action? false : true; // actionがなければnew
-        console.log("isNew", isNew, action?.actionId);
-
-        let buttonValue = isNew ? "+" : "-";
-
-        const temporaryUid = `new-${Date.now().toString(16)}`;
-
-        // TODO: 簡潔にする
-        let isDigital = false;
-        if (action?.switchType == 0) {
-            isDigital = true;
-        } else if (action?.switchType == 1) {
-            isDigital = false;
-        }
+    const checkMappingComplete = (map: ActionMap): boolean => {
         return (
-            <div className="flex gap-1 w-full">
-                <select
-                    id={`action-map-option-switch-type-${isNew ? temporaryUid : action?.uid}`}
-                    value={action?.switchType}
-                    className="rounded-sm bg-bg-quaternary text-text-primary px-4 py-2"
-                    onChange={(e) => {
-                        if (action) {
-                            editItem(action?.uid, action => {
-                                // action.switchType = ;
-                                switch (Number(e.target.value)) {
-                                    case SwitchType.Digital:
-                                        action.switchType = SwitchType.Digital;
-                                        break;
-                                    case SwitchType.Analog:
-                                        action.switchType = SwitchType.Analog;
-                                        break;
-                                    default:
-                                        break;
-                                }
+            // map.switchType !== SwitchType.Digital ||
+            // map.switchId !== 0 ||
+            map.pluginId !== "" && map.actionId !== ""
+        );
+    };
 
-                                // console.log("onChange.switchType", Number(e.target.value));
+    const checkPresetComplete = (preset: MappingPreset): boolean => {
+        return /*preset.uuid !== "" && */ preset.presetName !== "";
+    };
 
-                                return action;
-                            });
-                        }
-                    }}
-                >
-                    <option value={0}>Digital</option>
-                    <option value={1}>Analog</option>
-                </select>
-                <input
-                    id={`action-map-option-switch-id-${isNew ? temporaryUid : action?.uid}`}
-                    type="number"
-                    placeholder="switchId"
-                    value={action?.switchId}
-                    min={0}
-                    className="rounded-sm bg-bg-quaternary text-text-primary px-4 py-2 w-32"
-                    onChange={(e) => {
-                        if (action) {
-                            editItem(action?.uid, (oldItem) => {
-                                oldItem.switchId = Number(e.target.value)
+    const commitToPresetTmp = (map: ActionMap /* newMappingTmp */) => {
+        if (presetTmp) {
+            if (!checkMappingComplete(map)) return;
 
-                                return oldItem;
-                            });
-                        }
-                    }}
-                />
-                <input
-                    id={`action-map-option-plugin-id-${isNew ? temporaryUid : action?.uid}`}
-                    type="text"
-                    placeholder="pluginId"
-                    value={action?.pluginId}
-                    onChange={(e) => {
-                        if (action) {
-                            editItem(action?.uid, (oldItem) => {
-                                oldItem.pluginId = e.target.value;
+            setPresetTmp((prev) => {
+                if (!prev) return prev;
+                return {
+                    ...prev,
+                    mapping: [...prev.mapping, map],
+                };
+            });
 
-                                return oldItem;
-                            })
-                        }
-                    }}
-                    className="rounded-sm bg-bg-quaternary text-text-primary px-4 py-2 w-full flex-1"
-                />
-                <input
-                    id={`action-map-option-action-id-${isNew ? temporaryUid : action?.uid}`}
-                    type="text"
-                    placeholder="actionId"
-                    value={action?.actionId!}
-                    onChange={(e) => {
-                        if (action) {
-                            editItem(action?.uid, (oldItem) => {
-                                oldItem.actionId = e.target.value;
+            setNewMappingTmp(defaultActionMap);
+        }
+    };
 
-                                return oldItem;
-                            })
-                        }
-                    }}
-                    className="rounded-sm bg-bg-quaternary text-text-primary px-4 py-2 w-full flex-1"
-                />
-                <button
-                    id={`action-map-${isNew? "add" : "remove"}-action-map-${isNew ? temporaryUid : action?.uid}`}
-                    onClick={() => {
-                        if (isNew) {
-                            const switchTypeElm = document.getElementById(`action-map-option-switch-type-${temporaryUid}`) as HTMLSelectElement;
-                            const switchIdElm = document.getElementById(`action-map-option-switch-id-${temporaryUid}`) as HTMLInputElement;
-                            const pluginIdElm = document.getElementById(`action-map-option-plugin-id-${temporaryUid}`) as HTMLInputElement;
-                            const actionIdElm = document.getElementById(`action-map-option-action-id-${temporaryUid}`) as HTMLInputElement;
+    const savePreset = async (preset: MappingPreset /* presetTmp */) => {
+        if (presetTmp) {
+            if (!checkPresetComplete(preset)) {
+                return;
+            }
 
-                            if (!(switchTypeElm.value && switchIdElm.value && pluginIdElm.value && actionIdElm.value)) {
-                                return;
-                            }
+            console.log("applyPreset", preset, checkPresetComplete(preset));
+            const savedPreset =
+                await invoke.settings.mappingPresets.saveMappingPreset(preset);
+            // await
 
-                            let switchType;
-                            switch(Number(switchTypeElm.value)) {
-                                case SwitchType.Digital:
-                                    switchType = SwitchType.Digital;
-                                    break;
-                                case SwitchType.Analog:
-                                    switchType = SwitchType.Analog;
-                                    break;
-                                default:
-                                    return
-                            }
-                            const map: ActionMap = {
-                                switchType,
-                                switchId: Number(switchIdElm.value),
-                                pluginId: pluginIdElm.value,
-                                actionId: actionIdElm.value,
-                            }
+            setEditTarget(savedPreset.uuid);
+            setPresetTmp(savedPreset);
+            setNewMappingTmp(defaultActionMap); // reset
+        }
+    };
 
-                            addItem(map);
+    // const saveNewPreset = (preset: MappingPreset /*newMappingTmp*/) => {}
 
-                            switchTypeElm.value = "0";
-                            switchIdElm.value = "";
-                            pluginIdElm.value = "";
-                            actionIdElm.value = "";
-                        } else {
-                            removeItem(action!.uid);
-                        }
-                    }}
-                    className="rounded-sm bg-bg-quaternary text-text-primary px-4 py-2">
-                    {buttonValue}
-                </button>
-            </div>
-        )
-    }
+    reRender.current += 1;
+    console.log(
+        `%c[${reRender.current}] render`,
+        "color: red; font-weight: bold; font-size: 20px",
+        presetTmp,
+        newMappingTmp,
+    );
 
     useEffect(() => {
         if (!isInit.current) {
             isInit.current = true;
+
+            const init = async () => {
+                mappingList.current =
+                    await invoke.settings.mappingPresets.getMappingList();
+                console.log("mappingList: ", mappingList.current);
+            };
+
+            init();
         }
     }, []);
 
+    const onSubmit = () => {
+        // props.onSubmit(presetTmp!);
+    };
+
     return (
-        <div className="w-full">
-            <div className="flex flex-col gap-2 w-full">
-                <div className="flex flex-col gap-1 w-full">
-                    {Array.from(item).map((e, i) => {
-                        return (<div key={`${e.uid}-container`}>{form(e)}</div>)
-                    })}
-                </div>
-                <div className="w-full">
-                    {form()}
-                </div>
+        <div className="flex w-full flex-col gap-4">
+            <select
+                className="w-full rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
+                onChange={(e) => {
+                    changeEditTarget(e.target.value);
+                    console.log("setPresetTmp", presetTmp);
+                }}
+                value={editTarget}
+            >
+                <option value="">
+                    [new preset]
+                </option>
+                {mappingList.current.map((a) => {
+                    return (
+                        <option key={a[0]} value={a[0]}>
+                            <span>{a[1]}</span>
+                        </option>
+                    );
+                })}
+            </select>
+            <div className="flex w-full flex-col gap-2">
+                {/*
+                    設定済みのデータと新しく追加するデータの一時保存を結合する
+                    配列の一番最後は必ず未追加の仮データ
+                */}
+                {presetTmp?.mapping.concat(newMappingTmp).map((a, i) => {
+                    const isNew = presetTmp.mapping.length <= i;
+                    console.log(
+                        `${i}${isNew ? "[new]" : ""}: presetTmp`,
+                        a,
+                        checkMappingComplete(a),
+                    );
+
+                    return (
+                        <div key={i} className="flex w-full gap-1">
+                            <select
+                                className="rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
+                                value={
+                                    isNew
+                                        ? newMappingTmp.switchType
+                                        : a.switchType
+                                }
+                                onChange={(e) => {
+                                    const newValue = e.target
+                                        .value as SwitchType;
+
+                                    setPresetTmp((prev) => {
+                                        if (!prev) return prev;
+                                        if (isNew) {
+                                            setNewMappingTmp((prev) => {
+                                                return {
+                                                    ...prev,
+                                                    switchType: newValue,
+                                                };
+                                            });
+
+                                            return prev;
+                                        } else {
+                                            const mapping = prev.mapping ?? [];
+                                            mapping[i] = {
+                                                ...mapping[i],
+                                                switchType: newValue,
+                                            };
+                                            return { ...prev, mapping };
+                                        }
+                                    });
+                                }}
+                            >
+                                <option value={SwitchType.Digital}>
+                                    {SwitchType.Digital}
+                                </option>
+                                <option value={SwitchType.Analog}>
+                                    {SwitchType.Analog}
+                                </option>
+                            </select>
+                            <input
+                                type="number"
+                                min={0}
+                                placeholder="switch id"
+                                className="w-24 rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
+                                value={
+                                    isNew ? newMappingTmp.switchId : a.switchId
+                                }
+                                onChange={(e) => {
+                                    const newValue = parseInt(e.target.value);
+                                    setPresetTmp((prev) => {
+                                        if (!prev) return prev;
+                                        if (isNew) {
+                                            setNewMappingTmp((prev) => {
+                                                return {
+                                                    ...prev,
+                                                    switchId: newValue,
+                                                };
+                                            });
+
+                                            return prev;
+                                        } else {
+                                            const mapping = prev.mapping ?? [];
+                                            mapping[i] = {
+                                                ...mapping[i],
+                                                switchId: newValue,
+                                            };
+                                            return { ...prev, mapping };
+                                        }
+                                    });
+                                }}
+                            />
+                            <input
+                                type="text"
+                                placeholder="plugin id"
+                                className="w-full rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
+                                value={a.pluginId}
+                                onChange={(e) => {
+                                    const newValue = e.target.value;
+                                    setPresetTmp((prev) => {
+                                        if (!prev) return prev;
+                                        if (isNew) {
+                                            setNewMappingTmp((prev) => {
+                                                return {
+                                                    ...prev,
+                                                    pluginId: newValue,
+                                                };
+                                            });
+
+                                            return prev;
+                                        } else {
+                                            const mapping = prev.mapping ?? [];
+                                            mapping[i] = {
+                                                ...mapping[i],
+                                                pluginId: newValue,
+                                            };
+                                            return { ...prev, mapping };
+                                        }
+                                    });
+                                }}
+                            />
+                            <input
+                                type="text"
+                                placeholder="action id"
+                                className="w-full rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
+                                value={a.actionId}
+                                onChange={(e) => {
+                                    const newValue = e.target.value;
+                                    setPresetTmp((prev) => {
+                                        if (!prev) return prev;
+                                        if (isNew) {
+                                            setNewMappingTmp((prev) => {
+                                                return {
+                                                    ...prev,
+                                                    actionId: newValue,
+                                                };
+                                            });
+
+                                            return prev;
+                                        } else {
+                                            const mapping = prev.mapping ?? [];
+                                            mapping[i] = {
+                                                ...mapping[i],
+                                                actionId: newValue,
+                                            };
+                                            return { ...prev, mapping };
+                                        }
+                                    });
+                                }}
+                            />
+                            <input
+                                type="button"
+                                disabled={!checkMappingComplete(a)}
+                                onClick={() => {
+                                    if (presetTmp) {
+                                        if (isNew) {
+                                            setPresetTmp((prev) => {
+                                                commitToPresetTmp(
+                                                    newMappingTmp,
+                                                );
+
+                                                return prev;
+                                            });
+                                        } else {
+                                            setPresetTmp((prev) => {
+                                                if (!prev) return prev;
+                                                return {
+                                                    ...prev,
+                                                    mapping:
+                                                        prev.mapping.filter(
+                                                            (a, b) => b != i,
+                                                        ),
+                                                };
+                                            });
+                                        }
+                                    }
+                                }}
+                                value={isNew ? "+" : "-"}
+                                className="cursor-pointer rounded-md bg-bg-quaternary px-4 py-2 text-text-primary disabled:opacity-50"
+                            />
+                        </div>
+                    );
+                })}
+            </div>
+            <div className="flex w-full gap-1">
+                <input
+                    type="text"
+                    className="w-full rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
+                    placeholder="preset name"
+                    value={presetTmp ? presetTmp.presetName : ""}
+                    onChange={(e) => {
+                        const newValue = e.target.value;
+                        setPresetTmp((prev) => {
+                            if (!prev) return prev;
+                            return { ...prev, presetName: newValue };
+                        });
+                    }}
+                />
+            </div>
+            <div>
+                <input
+                    type="button"
+                    className="w-full cursor-pointer rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
+                    value="button"
+                    onClick={() => {
+                        // onSubmit(presetTmp!);
+                        if (presetTmp) {
+                            savePreset(presetTmp);
+                        }
+                    }}
+                />
+            </div>
+
+            <div>
+                <pre>{JSON.stringify(presetTmp, null, 2)}</pre>
             </div>
         </div>
     );
-
 }

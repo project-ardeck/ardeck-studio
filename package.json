@@ -1,29 +1,42 @@
 {
-  "name": "ardeck",
-  "private": true,
-  "version": "0.0.8",
-  "type": "module",
-  "scripts": {
-    "dev": "vite",
-    "build": "tsc && vite build",
-    "preview": "vite preview",
-    "tauri": "tauri"
-  },
-  "dependencies": {
-    "@tauri-apps/api": "^1",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "tauri-plugin-store-api": "https://github.com/tauri-apps/tauri-plugin-store#v1"
-  },
-  "devDependencies": {
-    "@tauri-apps/cli": "^1",
-    "@types/react": "^18.2.15",
-    "@types/react-dom": "^18.2.7",
-    "@vitejs/plugin-react": "^4.2.1",
-    "autoprefixer": "^10.4.19",
-    "postcss": "^8.4.38",
-    "tailwindcss": "^3.4.3",
-    "typescript": "^5.0.2",
-    "vite": "^5.0.0"
-  }
+    "name": "ardeck",
+    "private": true,
+    "version": "0.1.4",
+    "type": "module",
+    "scripts": {
+        "dev": "vite",
+        "build": "tsc && vite build",
+        "preview": "vite preview",
+        "tauri": "tauri"
+    },
+    "dependencies": {
+        "@tauri-apps/api": "^1",
+        "@types/lodash": "^4.17.13",
+        "lodash": "^4.17.21",
+        "react": "^18.2.0",
+        "react-dom": "^18.2.0",
+        "tauri-plugin-store-api": "https://github.com/tauri-apps/tauri-plugin-store#v1"
+    },
+    "devDependencies": {
+        "@tauri-apps/cli": "^1",
+        "@types/react": "^18.2.15",
+        "@types/react-dom": "^18.2.7",
+        "@vitejs/plugin-react": "^4.2.1",
+        "autoprefixer": "^10.4.19",
+        "postcss": "^8.4.38",
+        "prettier": "^3.3.3",
+        "prettier-plugin-tailwindcss": "^0.6.8",
+        "tailwindcss": "^3.4.3",
+        "typescript": "^5.0.2",
+        "vite": "^5.0.0"
+    },
+    "prettier": {
+        "singleQuote": false,
+        "trailingComma": "all",
+        "semi": true,
+        "tabWidth": 4,
+        "plugins": [
+            "prettier-plugin-tailwindcss"
+        ]
+    }
 }

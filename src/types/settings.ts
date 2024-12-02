@@ -16,6 +16,27 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { ActionMap, defaultActionMap } from "./ardeck";
 
-pub mod settings;
-pub mod dir;
+// * mapping_presets
+export type MappingPreset = {
+    uuid: string;
+    presetName: string;
+
+    mapping: ActionMap[];
+};
+
+export const defaultMappingPreset: MappingPreset = {
+    // uuidを空にした状態で渡すと自動で新規作成扱いになる
+    uuid: "",
+    presetName: "",
+    mapping: [],
+};
+
+export type MappingPresetsJSON = MappingPreset[];
+
+// * plugin
+
+// * ardeck
+
+// * ardeck_studio

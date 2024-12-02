@@ -16,12 +16,5 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import ForDev from "./ForDev";
-
-export default function App() {
-    return (
-        <div>
-            <ForDev />
-        </div>
-    );
-}
+pub mod dir;
+pub mod file;

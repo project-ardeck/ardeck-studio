@@ -16,7 +16,6 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -50,17 +49,23 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
         --bg-secondary: 22 27 34; /* #161b22 */
         --bg-tertiary: 28 33 40; /* #1c2128 */
         --bg-quaternary: 33 38 46; /* #21262e */
-    
+
         --text-primary: 201 209 217; /* #c9d1d9 */
         --text-reverse: 0 0 0; /* #000000 */
-    
+
         --accent-primary: 88 166 255; /* #58a6ff */
         --accent-secondary: 121 192 255; /* #79c0ff */
-    
+
         --accent-positive: 121 192 255; /* #79c0ff */
         --accent-caution: 255 171 92; /* #ffab5c */
         --accent-negative: 255 92 141; /* #ff5c8d */
         --accent-link: 88 166 255; /* #58a6ff */
-
     }
+}
+
+/*
+    TODO: Adding custom styles
+    https://tailwindcss.com/docs/adding-custom-styles
+*/
+@layer components {
 }

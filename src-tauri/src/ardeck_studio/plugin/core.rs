@@ -16,8 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::borrow::Borrow;
-use std::fs::{self, File};
+use std::fs::File;
 use std::net::SocketAddr;
 use std::path::Path;
 use std::sync::{Arc, Mutex};
@@ -28,19 +27,16 @@ use axum::extract::Path as TauriPath;
 use axum::extract::{ConnectInfo, State, WebSocketUpgrade};
 use axum::response::IntoResponse;
 use axum::routing::get;
-use axum::serve::Serve;
 use axum::{serve, Router};
-use once_cell::sync::Lazy;
-use tauri::plugin;
 use tokio::net::TcpListener;
 use tokio::sync::Mutex as TokioMutex;
 
-use crate::ardeck_studio::service::dir::Directories;
+use crate::service::dir::Directories;
 
 use super::manager::PluginManager;
 
 use super::{
-    Plugin, PluginAction, PluginManifest, PluginMessage, PluginMessageData, PluginOpCode,
+    Plugin, PluginAction, PluginManifestJSON, PluginMessage, PluginMessageData, PluginOpCode,
     PLUGIN_DIR,
 };
 
@@ -109,7 +105,7 @@ impl PluginCore {
                 continue;
             }
 
-            let manifest: PluginManifest = serde_json::from_reader(manifest_file.unwrap()).unwrap();
+            let manifest: PluginManifestJSON = serde_json::from_reader(manifest_file.unwrap()).unwrap();
             let actions: Vec<PluginAction> =
                 serde_json::from_reader(actions_file.unwrap()).unwrap();
 
@@ -186,7 +182,7 @@ async fn handle_socket(
     let hello_message = PluginMessage {
         op: PluginOpCode::Hello,
         data: PluginMessageData {
-            ardeck_studio_version: Some("0.0.8".to_string()),
+            ardeck_studio_version: Some("0.1.4".to_string()),
             ardeck_plugin_web_socket_version: Some("0.0.1".to_string()),
             ..Default::default()
         },

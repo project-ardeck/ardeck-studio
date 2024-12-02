@@ -16,8 +16,21 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::collections::HashMap;
+use serde::{Deserialize, Serialize};
 
-use super::Ardeck;
+use super::{SwitchId, SwitchType};
 
-pub type ArdeckManager = HashMap<String, Ardeck>;
+#[derive(Serialize, Deserialize, Debug, Clone)]
+#[serde(rename_all = "camelCase")]
+pub struct ActionMap {
+    // スイッチの種類 (デジタルスイッチか、アナログスイッチか)
+    pub switch_type: SwitchType,
+    // スイッチのピン番号
+    pub switch_id: SwitchId,
+    // プラグインのID
+    pub plugin_id: String,
+    // アクションのID
+    pub action_id: String,
+}
+
+struct Mapping {}

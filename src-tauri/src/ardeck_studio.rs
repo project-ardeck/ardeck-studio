@@ -17,8 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 
-pub mod service;
 pub mod ardeck;
 pub mod plugin;
 pub mod action;
-
+pub mod settings;

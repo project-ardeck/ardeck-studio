@@ -18,50 +18,20 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-
 // mod ardeck_serial;
 // mod ardeck_data;
 
 mod ardeck_studio;
+mod service;
 
-use core::panic;
-use std::{
-    collections::HashMap,
-    fs::{self, File},
-    hash::Hash,
-    io,
-    sync::{
-        mpsc::{channel, Receiver, Sender},
-        Arc, Mutex, OnceLock,
-    },
-    thread::{self, park_timeout},
-    time::Duration,
-};
+use std::{collections::HashMap, sync::Mutex};
 
-use once_cell::sync::{Lazy, OnceCell};
+use ardeck_studio::ardeck::Ardeck;
 
-use ardeck_studio::{
-    ardeck::{
-        self, Ardeck 
-    },
-    plugin::{self, manager::PluginManager, PluginManifest, PLUGIN_DIR},
-    service::settings::{DeviceSettingOptions, DeviceSettings},
-};
-
-use chrono::{format, Utc};
-
-use serde::{Deserialize, Serialize};
-use serialport::SerialPort;
 use tauri::{
-    AppHandle, CustomMenuItem, Manager, State as TauriState, SystemTray, SystemTrayEvent,
-    SystemTrayMenu, SystemTrayMenuItem,
+    CustomMenuItem, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem,
 };
 use window_shadows::set_shadow;
-
-#[tauri::command]
-fn get_device_settings() -> Vec<DeviceSettingOptions> {
-    DeviceSettings::get_settings().unwrap()
-}
 
 #[tokio::main]
 async fn main() {
@@ -113,10 +83,10 @@ async fn main() {
             },
             _ => {}
         })
-        .plugin(tauri_plugin_log::Builder::default().build())
-        .plugin(tauri_plugin_store::Builder::default().build())
+        .plugin(tauri_plugin_log::Builder::default().build()) // TODO: default().taget(Folder(/* ディレクトリ */))
         .plugin(ardeck_studio::ardeck::tauri::init())
         .plugin(ardeck_studio::plugin::tauri::init().await)
+        .plugin(ardeck_studio::settings::tauri::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

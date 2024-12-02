@@ -1,13 +1,33 @@
+/*
+Ardeck studio - The ardeck command mapping software.
+Copyright (C) 2024 project-ardeck
+
+This program is free software; you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation; either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+*/
+
 use std::{
-    collections::HashMap, io, sync::{Arc, Mutex}, thread::park_timeout, time::Duration
+    io,
+    sync::{Arc, Mutex},
+    thread::park_timeout,
+    time::Duration,
 };
 
 use once_cell::sync::Lazy;
 use serialport::{SerialPort, SerialPortInfo};
 use tauri::{
-    generate_handler,
-    plugin::{Builder, Plugin, TauriPlugin},
-    AppHandle, Invoke, Manager, Runtime, State as TauriState,
+    plugin::{Builder, TauriPlugin},
+    Manager, Runtime,
 };
 
 use crate::ardeck_studio::plugin;
@@ -48,8 +68,13 @@ async fn port_read<R: Runtime>(app: tauri::AppHandle<R>, port_name: &str) {
     let port_name = port_name.to_string();
     tokio::spawn(async move {
         loop {
-
-            if !ARDECK_MANAGER.lock().unwrap().get(&port_name).unwrap().is_continue() {
+            if !ARDECK_MANAGER
+                .lock()
+                .unwrap()
+                .get(&port_name)
+                .unwrap()
+                .is_continue()
+            {
                 // drop(am);
                 close(app.app_handle(), &port_name);
                 break;
@@ -63,7 +88,12 @@ async fn port_read<R: Runtime>(app: tauri::AppHandle<R>, port_name: &str) {
             match try_read {
                 Ok(_) => {
                     drop(port);
-                    let port_data = ARDECK_MANAGER.lock().unwrap().get(&port_name).unwrap().port_data();
+                    let port_data = ARDECK_MANAGER
+                        .lock()
+                        .unwrap()
+                        .get(&port_name)
+                        .unwrap()
+                        .port_data();
                     port_data.lock().unwrap().on_data(serial_buf);
                 }
                 Err(kind) => {
@@ -83,8 +113,7 @@ async fn port_read<R: Runtime>(app: tauri::AppHandle<R>, port_name: &str) {
 
 // invoke("plugin:ardeck|close_port");
 #[tauri::command]
-async fn close_port<R: Runtime>(app: tauri::AppHandle<R>, port_name: &str) -> Result<u32, u32> {
-    // TODO: もっとスムーズに停止するように調整する
+fn close_port<R: Runtime>(_app: tauri::AppHandle<R>, port_name: &str) -> Result<u32, u32> {
     match ARDECK_MANAGER.lock().unwrap().get_mut(port_name) {
         Some(a) => {
             a.close_requset();
@@ -114,7 +143,7 @@ async fn open_port<R: Runtime>(
 
     let ardeck = match Ardeck::open(port_name, baud_rate) {
         Ok(f) => f,
-        Err(e) => {
+        Err(_e) => {
             println!("Open Error !!!!!! {}", port_name);
 
             return Err(500);
@@ -132,31 +161,23 @@ async fn open_port<R: Runtime>(
     // データを受信し、1回分のデータが完成した時の処理
     let app_for_data = app.app_handle();
 
-    // ardeck.port_data().lock().unwrap().on_complete(move |data| {
-    //     println!("\n\n[] ardeck.portdata.on_complete\n\n");
-
-    //     app_for_data
-    //         .emit_all("on-message-serial", data.clone())
-    //         .unwrap();
-
-    //     plugin::tauri::put_action(data);
-
-    //     // TODO: ActionManagerに投げる
-    //     // *MARK: ActionManager.put_action
-    // });
-
-    ardeck.port_data().lock().unwrap().on_change_action(move |data| {
+    ardeck.port_data().lock().unwrap().on_complete(move |data| {
         println!("\n\n[] ardeck.portdata.on_complete\n\n");
 
         app_for_data
             .emit_all("on-message-serial", data.clone())
             .unwrap();
-
-        plugin::tauri::put_action(data);
-
-        // TODO: ActionManagerに投げる
-        // *MARK: ActionManager.put_action
     });
+
+    ardeck
+        .port_data()
+        .lock()
+        .unwrap()
+        .on_change_action(move |data| {
+            println!("\n\n[] ardeck.portdata.on_complete\n\n");
+
+            plugin::tauri::put_action(data);
+        });
 
     ARDECK_MANAGER
         .lock()

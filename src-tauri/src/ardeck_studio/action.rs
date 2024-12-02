@@ -17,15 +17,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 pub mod compare;
+pub mod map;
 
 use compare::ActionCompare;
 use ::serde::{Deserialize, Serialize};
 use chrono::Utc;
 use serde_repr::{Deserialize_repr, Serialize_repr};
 
-#[derive(Clone, Copy, Deserialize_repr, Serialize_repr, Debug)]
+#[derive(Clone, Copy, Deserialize, Serialize, Debug)]
 #[serde(rename_all = "camelCase")]
-#[repr(i8)]
 pub enum SwitchType {
     Unknown = -1,
     Digital = 0,
@@ -47,7 +47,7 @@ pub struct Action {
     pub switch_type: SwitchType, // -1: Unknown, 0: Digital, 1: Analog
     pub switch_id: SwitchId,
     pub switch_state: u16,
-    pub raw_value: Vec<u8>, // TODO: raw_value
+    pub raw_value: Vec<u8>,
     pub timestamp: i64,
 }
 
@@ -177,8 +177,8 @@ impl ActionDataParser {
         let switch_type = self.switch_data_buf.get_switch_type();
         let raw_data = self.switch_data_buf.get_raw_value();
         // println!("{:08b}", raw_data[0]);
-        let mut id: u8;
-        let mut state: u16;
+        let id: u8;
+        let state: u16;
         match switch_type {
             SwitchType::Digital => {
                 id = (raw_data[0] & 0b01111110) >> 1;
@@ -205,7 +205,6 @@ impl ActionDataParser {
         print!("count: {}", self.read_count);
         print!("\t{:08b}", &_data);
 
-        let buf_len = self.header_buf.len();
         let if_str = String::from_utf8(vec![_data]).unwrap_or("".to_string());
         let msg = if_str.clone();
         print!("\t{}", msg);
@@ -340,7 +339,7 @@ impl ActionDataParser {
     pub fn on_data(&mut self, data: Vec<u8>) {
         // println!("aaaaa");
 
-        let pc = self.put_challenge(data.clone()[0]);
+        self.put_challenge(data.clone()[0]);
 
         // if pc {
         //     // (self.on_correct_handler)();
