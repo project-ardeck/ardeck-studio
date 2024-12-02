@@ -93,12 +93,14 @@ impl PluginServer {
 
             let path = entry.unwrap().path();
 
+            // マニフェストファイルを取得
             let manifest_file = File::open(format!("{}/manifest.json", path.display()));
             if manifest_file.is_err() {
                 println!("Failed to open manifest.json");
                 continue;
             }
 
+            // アクションファイルを取得
             let actions_file = File::open(format!("{}/actions.json", path.display()));
             if manifest_file.is_err() {
                 println!("Failed to open actions.json");
@@ -109,12 +111,15 @@ impl PluginServer {
             let actions: Vec<PluginAction> =
                 serde_json::from_reader(actions_file.unwrap()).unwrap();
 
+            // プラグインの実行ファイルのパスを取得
             let plugin_main_path = format!("{}/{}", path.display(), manifest.main);
 
+            // プラグインを実行
             let process = std::process::Command::new(plugin_main_path)
                 .spawn()
                 .expect("Failed to execute plugin");
 
+            // プラグイン情報とプロセスをマネージャーに登録
             self.plugin_manager
                 .lock()
                 .unwrap()
