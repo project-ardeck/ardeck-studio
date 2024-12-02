@@ -25,9 +25,9 @@ use tauri::{
 
 use crate::ardeck_studio::action::Action;
 
-use super::core::PluginCore;
+use super::server::PluginServer;
 
-static PLGUIN_CORE: Lazy<Mutex<PluginCore>> = Lazy::new(|| Mutex::new(PluginCore::new()));
+static PLGUIN_CORE: Lazy<Mutex<PluginServer>> = Lazy::new(|| Mutex::new(PluginServer::new()));
 
 pub async fn init<R: Runtime>() -> TauriPlugin<R> {
     println!("[init] plugin init");

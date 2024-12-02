@@ -40,12 +40,12 @@ use super::{
     PLUGIN_DIR,
 };
 
-pub struct PluginCore {
+pub struct PluginServer {
     plugin_manager: Arc<Mutex<PluginManager>>,
     serve: Option<tokio::task::JoinHandle<()>>,
 }
 
-impl PluginCore {
+impl PluginServer {
     pub fn new() -> Self {
         Self {
             plugin_manager: Arc::new(Mutex::new(PluginManager::new())),
