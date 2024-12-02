@@ -42,10 +42,7 @@ import { cloneDeep } from "lodash";
 type ActionMapKey = "switchType" | "switchId" | "pluginId" | "actionId";
 type MappingList = Array<[string, string]>; // [uuid, presetName]
 
-export default function ActionMappingForm(props: {
-    // actionMapPresets?: ActionMapPreset[];
-    // onSubmit: (e: ActionMapPreset) => void;
-}) {
+export default function ActionMappingForm() {
     const isInit = useRef(false);
     const reRender = useRef(0);
 
@@ -150,12 +147,12 @@ export default function ActionMappingForm(props: {
                 }}
                 value={editTarget}
             >
-                <option selected value="">
+                <option value="">
                     [new preset]
                 </option>
                 {mappingList.current.map((a) => {
                     return (
-                        <option value={a[0]}>
+                        <option key={a[0]} value={a[0]}>
                             <span>{a[1]}</span>
                         </option>
                     );
@@ -175,7 +172,7 @@ export default function ActionMappingForm(props: {
                     );
 
                     return (
-                        <div className="flex w-full gap-1">
+                        <div key={i} className="flex w-full gap-1">
                             <select
                                 className="rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
                                 value={
