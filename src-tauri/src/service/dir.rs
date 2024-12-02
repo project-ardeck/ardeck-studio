@@ -44,6 +44,21 @@ impl Directories {
         Ok(path.join(IDENTIFIER).join("config"))
     }
 
+    #[cfg(feature = "portable")]
+    pub fn get_plugin_dir() -> std::io::Result<PathBuf> {
+        Ok(PathBuf::from("./").canonicalize()?.join("plugins"))
+    }
+
+    #[cfg(not(feature = "portable"))]
+    pub fn get_plugin_dir() -> std::io::Result<PathBuf> {
+        let path = match dirs::config_dir() {
+            Some(p) => p.canonicalize()?,
+            None => return Err(Error::new(std::io::ErrorKind::NotFound, "Config directory not found")),
+        };
+
+        Ok(path.join(IDENTIFIER).join("plugins"))
+    }
+
     pub fn init<P: AsRef<Path>>(path: P) -> Result<(), Error> {
         fs::create_dir_all(path)
     }

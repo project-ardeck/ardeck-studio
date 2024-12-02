@@ -23,15 +23,15 @@ use tauri::{
     plugin::{Builder, TauriPlugin}, RunEvent, Runtime,
 };
 
-use crate::ardeck_studio::action::Action;
+use crate::{ardeck_studio::action::Action, service::dir::Directories};
 
 use super::server::PluginServer;
 
-static PLGUIN_CORE: Lazy<Mutex<PluginServer>> = Lazy::new(|| Mutex::new(PluginServer::new()));
+static PLUGIN_SERVER: Lazy<Mutex<PluginServer>> = Lazy::new(|| Mutex::new(PluginServer::new()));
 
 pub async fn init<R: Runtime>() -> TauriPlugin<R> {
     println!("[init] plugin init");
-    let mut core = PLGUIN_CORE.lock().unwrap();
+    let mut core = PLUGIN_SERVER.lock().unwrap();
     let serve = core.start().await;
 
     println!("[init] serve started.");
@@ -40,7 +40,8 @@ pub async fn init<R: Runtime>() -> TauriPlugin<R> {
         .setup(|app| Ok(()))
         .on_event(|app, event| match event {
             RunEvent::Ready => {
-                let mut core = PLGUIN_CORE.lock().unwrap();
+                let mut core = PLUGIN_SERVER.lock().unwrap();
+                Directories::init(Directories::get_plugin_dir().unwrap()).unwrap();
 
                 core.execute_plugin_all();
             }
