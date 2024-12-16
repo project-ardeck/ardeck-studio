@@ -31,6 +31,7 @@ use axum::{serve, Router};
 use tokio::net::TcpListener;
 use tokio::sync::Mutex as TokioMutex;
 
+use crate::ardeck_studio::action::Action;
 use crate::service::dir::Directories;
 
 use super::manager::PluginManager;
@@ -131,7 +132,7 @@ impl PluginServer {
         }
     }
 
-    pub fn put_action(&self) {
+    pub fn put_action(&self, action: Action) {
         // TODO: switch_typeとswitch_idからマッピングの設定を見つけ、そのプラグインに（あれば）put_actionする
     }
 }

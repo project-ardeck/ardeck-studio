@@ -336,24 +336,8 @@ impl ActionDataParser {
         }
     }
 
-    pub fn on_data(&mut self, data: Vec<u8>) {
-        // println!("aaaaa");
-
+    pub fn put_data(&mut self, data: Vec<u8>) {
         self.put_challenge(data.clone()[0]);
-
-        // if pc {
-        //     // (self.on_correct_handler)();
-        //     let time = Self::get_time_millis();
-        //     self.countup_complete();
-        //     self.on_correct_handler.as_mut()(self.switch_data_buf.clone());
-        // println!("On Correct! {}", Local.timestamp_millis_opt(time).unwrap());
-        // println!("------------------------------------------------");
-        // }
-
-        // if Self::HEADER == self.header_buf {
-        // println("Header Complete!");
-        //     // bufをクリア
-        // }
     }
 
     pub fn on_complete<F: Fn(Action) + Send + 'static>(&mut self, callback: F) {
