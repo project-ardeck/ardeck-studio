@@ -23,7 +23,10 @@ use tauri::{
 };
 use tokio::sync::Mutex;
 
-use crate::{ardeck_studio::{action::Action, plugin::PLUGIN_DIR}, service::dir::Directories};
+use crate::{
+    ardeck_studio::{action::Action, plugin::PLUGIN_DIR},
+    service::dir::Directories,
+};
 
 use super::server::PluginServer;
 
@@ -36,33 +39,35 @@ async fn server_init() {
     Directories::init(Directories::get_plugin_dir().unwrap()).unwrap();
 
     match core.start().await {
-        Ok(_) => {}
+        Ok(_) => {
+            println!("[init] server started.");
+        }
         Err(e) => println!("Failed to start plugin server: {}", e),
     };
 
-    core.execute_plugin_all();
+    core.execute_plugin_all().await;
 }
 
 pub async fn init<R: Runtime>() -> TauriPlugin<R> {
     println!("[init] plugin init");
     let mut core = PLUGIN_SERVER.lock().await;
-    let serve = core.start().await;
-
-    println!("[init] serve started.");
+    // let serve = core.start().await;
 
     Builder::new("ardeck-plugin")
         .setup(|app| Ok(()))
         .on_event(|app, event| match event {
             RunEvent::Ready => {
                 println!("[init] ready");
-                tokio::spawn(async move { server_init().await });
+                tokio::spawn(async {
+                    server_init().await;
+                });
             }
-            _ => {}
+            _ => {},
         })
         .build()
 }
 
 pub async fn send_action_to_plugins(data: Action) {
     println!("Got push_action in plugin.tauri: {:?}", data);
-    PLUGIN_SERVER.lock().await.put_action(data);
+    // PLUGIN_SERVER.lock().await.put_action(data);
 }

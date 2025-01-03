@@ -57,7 +57,7 @@ async fn get_mapping_list<R: Runtime>(
         .map(|a| (a.uuid.clone(), a.preset_name.clone()))
         .collect();
 
-    println!("get_mapping_list\n\tmapping_presets_json: {:#?}", mapping_presets_json.lock().unwrap());
+    // println!("get_mapping_list\n\tmapping_presets_json: {:#?}", mapping_presets_json.lock().unwrap());
 
     Ok(list)
 }
@@ -70,7 +70,7 @@ async fn get_mapping_preset<R: Runtime>(
 ) -> Result<Option<MappingPreset>, String> {
     println!("get_mapping_preset: {}", uuid);
 
-    println!("get_mapping_preset\n\tmapping_presets_json: {:#?}", mapping_presets_json.lock().unwrap());
+    // println!("get_mapping_preset\n\tmapping_presets_json: {:#?}", mapping_presets_json.lock().unwrap());
 
     for a in mapping_presets_json.lock().unwrap().iter() {
         println!("\tuuid: {}", a.uuid);
@@ -89,7 +89,7 @@ async fn save_mapping_preset<R: Runtime>(
     mapping_presets_json: State<'_, Mutex<MappingPresetsJSON>>,
     mut mapping_preset: MappingPreset,
 ) -> Result<MappingPreset, String> {
-    println!("save_mapping_preset\n\tmapping_presets_json: {:#?}\n\tmapping_preset: {:#?}", mapping_presets_json.lock().unwrap(), mapping_preset);
+    // println!("save_mapping_preset\n\tmapping_presets_json: {:#?}\n\tmapping_preset: {:#?}", mapping_presets_json.lock().unwrap(), mapping_preset);
     let index =  mapping_presets_json 
         .lock()
         .unwrap()
@@ -99,7 +99,7 @@ async fn save_mapping_preset<R: Runtime>(
         Some(i) => {
             mapping_presets_json.lock().unwrap()[i] = mapping_preset.clone();
 
-            println!("save_mapping_preset.data_change\n\tmapping_presets_json: {:#?}", mapping_presets_json.lock().unwrap());
+            // println!("save_mapping_preset.data_change\n\tmapping_presets_json: {:#?}", mapping_presets_json.lock().unwrap());
         }
         None => {
             //TODO: add new mapping

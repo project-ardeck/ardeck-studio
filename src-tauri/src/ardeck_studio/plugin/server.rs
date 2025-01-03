@@ -19,17 +19,17 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 use std::fs::File;
 use std::net::SocketAddr;
 use std::path::Path;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 
-use axum::extract::ws::Message::Text;
-use axum::extract::ws::WebSocket;
-use axum::extract::Path as TauriPath;
-use axum::extract::{ConnectInfo, State, WebSocketUpgrade};
-use axum::response::IntoResponse;
-use axum::routing::get;
-use axum::{serve, Router};
-use tokio::net::TcpListener;
-use tokio::sync::Mutex as TokioMutex;
+use futures_util::stream::SplitSink;
+use futures_util::{SinkExt, StreamExt};
+use once_cell::sync::Lazy;
+use tokio::sync::Mutex;
+
+use tokio::net::{TcpListener, TcpStream};
+use tokio_tungstenite::tungstenite::Utf8Bytes;
+use tokio_tungstenite::WebSocketStream;
+use tokio_tungstenite::{accept_async, tungstenite::protocol::Message};
 
 use crate::ardeck_studio::action::Action;
 use crate::service::dir::Directories;
@@ -41,42 +41,47 @@ use super::{
     PLUGIN_DIR,
 };
 
+static PLUGIN_MANAGER: Lazy<Mutex<PluginManager>> = Lazy::new(|| Mutex::new(PluginManager::new()));
+
+pub type PluginServerSink = SplitSink<WebSocketStream<TcpStream>, Message>;
+
 pub struct PluginServer {
     plugin_manager: Arc<Mutex<PluginManager>>,
-    serve: Option<tokio::task::JoinHandle<()>>,
+    listener: Option<tokio::task::JoinHandle<()>>,
 }
 
 impl PluginServer {
     pub fn new() -> Self {
         Self {
             plugin_manager: Arc::new(Mutex::new(PluginManager::new())),
-            serve: None,
+            listener: None,
         }
     }
 
     pub async fn start(&mut self) -> Result<(), std::io::Error> {
-        let listener = TcpListener::bind("localhost:3322").await?;
+        println!("plugin1");
+        let plugin_manager = Arc::clone(&self.plugin_manager);
+        // 接続待ち
+        self.listener = Some(tokio::spawn(async move {
+            let tcp = TcpListener::bind("127.0.0.1:6725").await.unwrap();
+            println!("plugin server started.");
 
-        let app = Router::new()
-            .route("/", get(RouteHandler::plugin_socket))
-            // .route("/state", get(Self::state))
-            .route("/plugin", get(RouteHandler::plugin_list))
-            .route("/plugin/:id", get(RouteHandler::plugin_id))
-            .fallback(get(RouteHandler::err_404))
-            .with_state(Arc::clone(&self.plugin_manager));
+            // 接続
+            while let Ok((stream, _)) = tcp.accept().await {
+                let peer = stream
+                    .peer_addr()
+                    .expect("connected streams should have a peer address");
 
-        // self.serve = Some(
-        tokio::spawn(async move {
-            serve(listener, app).await.unwrap();
-        });
-        // );
+                println!("Peer address: {}", peer);
 
-        println!("plugin server started.");
+                tokio::spawn(handle_connection(peer, stream, plugin_manager.clone()));
+            }
+        }));
 
         Ok(())
     }
 
-    pub fn execute_plugin_all(&self) {
+    pub async fn execute_plugin_all(&self) {
         // let dir = Directories::get_or_init(Path::new(PLUGIN_DIR)).unwrap();
         let dir = match Directories::get(Path::new(PLUGIN_DIR)) {
             Ok(read_dir) => read_dir,
@@ -108,7 +113,8 @@ impl PluginServer {
                 continue;
             }
 
-            let manifest: PluginManifestJSON = serde_json::from_reader(manifest_file.unwrap()).unwrap();
+            let manifest: PluginManifestJSON =
+                serde_json::from_reader(manifest_file.unwrap()).unwrap();
             let actions: Vec<PluginAction> =
                 serde_json::from_reader(actions_file.unwrap()).unwrap();
 
@@ -123,7 +129,7 @@ impl PluginServer {
             // プラグイン情報とプロセスをマネージャーに登録
             self.plugin_manager
                 .lock()
-                .unwrap()
+                .await
                 .insert(
                     manifest.clone().id,
                     Plugin::new(manifest, actions, Arc::new(Mutex::new(process))),
@@ -137,123 +143,51 @@ impl PluginServer {
     }
 }
 
-struct RouteHandler {}
-impl RouteHandler {
-    pub async fn plugin_socket(
-        ws: WebSocketUpgrade,
-        // user_agent/>
-        ConnectInfo(addr): ConnectInfo<SocketAddr>,
-        State(plugin_manager): State<Arc<Mutex<PluginManager>>>,
-    ) -> impl IntoResponse {
-        ws.on_upgrade(move |socket| handle_socket(socket, addr, plugin_manager))
-    }
-
-    pub async fn plugin_list(State(state): State<Arc<Mutex<PluginManager>>>) -> impl IntoResponse {
-        let lock = state.lock().unwrap();
-        let keys: Vec<String> = lock.keys().map(|s| s.to_string()).collect();
-        keys.join("\n");
-    }
-
-    pub async fn plugin_id(
-        TauriPath(id): TauriPath<String>,
-        State(state): State<Arc<Mutex<PluginManager>>>,
-    ) -> impl IntoResponse {
-        let lock = state.lock().unwrap();
-        let plugin = lock.get(&id);
-        if plugin.is_none() {
-            return "Not Found".to_string();
-        }
-
-        let manifest = plugin.unwrap().manifest.clone();
-
-        let res = format!(
-            "{}\nid: {}\nversion: {}\nauthor: {}\ndescription: {:?}\n",
-            manifest.name, manifest.id, manifest.version, manifest.author, manifest.description
-        );
-
-        res
-    }
-
-    pub async fn err_404() -> impl IntoResponse {
-        "Not Found"
-    }
-}
-
-async fn handle_socket(
-    socket: WebSocket,
-    who: SocketAddr,
+// セッション
+async fn handle_connection(
+    peer: SocketAddr,
+    stream: TcpStream,
     plugin_manager: Arc<Mutex<PluginManager>>,
 ) {
-    let socket = Arc::new(TokioMutex::new(socket));
-    let hello_message = PluginMessage {
-        op: PluginOpCode::Hello,
-        data: PluginMessageData {
-            ardeck_studio_version: Some("0.1.4".to_string()),
-            ardeck_plugin_web_socket_version: Some("0.0.1".to_string()),
-            ..Default::default()
-        },
-    };
+    let mut ws_stream = accept_async(stream).await.expect("Failed to accept");
 
-    let data_string = serde_json::to_string(&hello_message).unwrap();
-    socket.lock().await.send(Text(data_string)).await.unwrap();
+    let (mut sink, mut stream) = ws_stream.split();
 
-    loop {
-        let recv = socket.lock().await.recv().await;
+    while let Some(msg) = stream.next().await {
+        if let Ok(msg) = msg {
+            if msg.is_text() {
+                let msg_str = msg.to_text().unwrap();
 
-        if recv.is_none() {
-            println!("Plugin session recv is none");
-            return;
-        }
+                println!("Received: {}", msg_str);
 
-        match recv.unwrap() {
-            Ok(m) => {
-                let msg_str = match m.to_text() {
-                    Ok(msg) => msg,
-                    Err(msg) => continue,
-                };
+                let message: PluginMessage = serde_json::from_str(msg_str).unwrap();
 
-                let msg: PluginMessage = match serde_json::from_str(msg_str) {
-                    Ok(msg) => msg,
-                    Err(msg) => continue,
-                };
+                match message.data {
+                    PluginMessageData::Hello {
+                        plugin_version,
+                        ardeck_plugin_web_socket_version,
+                        plugin_id,
+                    } => {
+                        println!("Hello:\n\t{}", plugin_id);
 
-                let op = msg.op;
-                let data = msg.data;
-
-                match op {
-                    PluginOpCode::Challenge => {
-                        // TODO: データがなかったらError
-                        let plugin_version = data.plugin_version.unwrap();
-                        let plugin_id = data.plugin_id.unwrap();
-
-                        // wsセッションを保存
-                        plugin_manager
-                            .lock()
-                            .unwrap()
-                            .get_mut(&plugin_id)
-                            .unwrap()
-                            .set_session(Arc::clone(&socket));
-
-                        let success_data = PluginMessage {
-                            op: PluginOpCode::Success,
-                            data: PluginMessageData {
-                                ..Default::default()
-                            },
+                        let data = PluginMessageData::Success {
+                            ardeck_studio_version: "0.1.4".to_string(),
+                            ardeck_studio_web_socket_version: "0.0.1".to_string(),
                         };
 
-                        socket
-                            .lock()
-                            .await
-                            .send(Text(serde_json::to_string(&success_data).unwrap()))
+                        sink
+                            .send(Message::Text(Utf8Bytes::from(
+                                &serde_json::to_string(&data).unwrap(),
+                            )))
                             .await
                             .unwrap();
                     }
-                    PluginOpCode::Error => {}
-                    PluginOpCode::Message => {}
-                    _ => {}
+                    // PluginMessageData::Success { .. } => (),
+                    PluginMessageData::Message { .. } => (),
+                    // PluginMessageData::Action { .. } => (),
+                    _ => (),
                 }
             }
-            Err(e) => {}
         }
     }
 }

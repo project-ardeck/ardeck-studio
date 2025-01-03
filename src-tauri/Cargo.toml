@@ -18,10 +18,12 @@ tauri-plugin-window-state = { git = "https://github.com/tauri-apps/plugins-works
 tauri-plugin-log = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 # tauri-plugin-autostart = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 
-axum = { version = "0.7.5", features = ["ws"] }
+tokio-tungstenite = "*"
+tokio-stream = "0.1.17"
+futures-util = "0.3.31"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-serde_repr = "0.1"
+serde_repr = "0.1.19"
 window-shadows = "0.2.2"
 serialport = {version = "4.3.0", features = ["serde"] }
 chrono = "0.4.38"
