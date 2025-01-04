@@ -140,7 +140,8 @@ pub enum PluginMessageData {
     Action {
         // OP3: Action
         action_id: String,
-        action_data: ActionMap,
+        action_map: ActionMap,
+        action: Action,
     },
 }
 

@@ -177,7 +177,10 @@ async fn open_port<R: Runtime>(
         .on_change_action(move |data| {
             println!("\n\n[] ardeck.portdata.on_complete\n\n");
 
-            plugin::tauri::send_action_to_plugins(data);
+            tokio::spawn(async move { // TODO
+                // app.emit_all("on-change-serial", data.clone()).unwrap();
+                plugin::tauri::send_action_to_plugins(data).await;
+            });
         });
 
     // マネージャーにデバイスを追加

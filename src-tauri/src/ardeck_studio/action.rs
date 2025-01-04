@@ -47,7 +47,6 @@ pub struct Action {
     pub switch_type: SwitchType, // -1: Unknown, 0: Digital, 1: Analog
     pub switch_id: SwitchId,
     pub switch_state: u16,
-    pub raw_value: Vec<u8>,
     pub timestamp: i64,
 }
 
@@ -57,7 +56,6 @@ impl Action {
             switch_type: SwitchType::Unknown,
             switch_id: 0,
             switch_state: 0,
-            raw_value: Vec::new(),
             timestamp: 0,
         }
     }
@@ -86,14 +84,6 @@ impl Action {
         self.switch_state
     }
 
-    pub fn set_raw_value(&mut self, raw_data: Vec<u8>) {
-        self.raw_value = raw_data;
-    }
-
-    pub fn get_raw_value(&self) -> Vec<u8> {
-        self.raw_value.clone()
-    }
-
     pub fn set_timestamp(&mut self, timestamp: i64) {
         self.timestamp = timestamp;
     }
@@ -113,7 +103,8 @@ pub struct ActionDataParser {
     has_collect: bool,
     on_correct_handler: Vec<Box<dyn Fn(Action) + Send + 'static>>,
     complete_count: u128,
-    switch_data_buf: Action,
+    action_buf: Action,
+    action_raw_buf: Vec<u8>,
     compare: ActionCompare,
 }
 
@@ -134,7 +125,8 @@ impl ActionDataParser {
             has_collect: false,
             on_correct_handler: Vec::new(),
             complete_count: 0,
-            switch_data_buf: Action::new(),
+            action_buf: Action::new(),
+            action_raw_buf: Vec::new(),
             compare: ActionCompare::new(),
         }
     }
@@ -166,7 +158,8 @@ impl ActionDataParser {
 
     fn clear_buf(&mut self) {
         self.header_buf.clear();
-        self.switch_data_buf = Action::new();
+        self.action_buf = Action::new();
+
     }
 
     fn get_time_millis() -> i64 {
@@ -174,8 +167,8 @@ impl ActionDataParser {
     }
 
     fn format_switch_data(&mut self) {
-        let switch_type = self.switch_data_buf.get_switch_type();
-        let raw_data = self.switch_data_buf.get_raw_value();
+        let switch_type = self.action_buf.get_switch_type();
+        let raw_data = &self.action_raw_buf;
         // println!("{:08b}", raw_data[0]);
         let id: u8;
         let state: u16;
@@ -194,11 +187,11 @@ impl ActionDataParser {
             }
         }
 
-        self.switch_data_buf.set_switch_id(id);
-        self.switch_data_buf.set_switch_state(state);
+        self.action_buf.set_switch_id(id);
+        self.action_buf.set_switch_state(state);
 
         let time = Self::get_time_millis();
-        self.switch_data_buf.set_timestamp(time);
+        self.action_buf.set_timestamp(time);
     }
 
     fn put_challenge(&mut self, _data: u8) -> bool {
@@ -233,7 +226,7 @@ impl ActionDataParser {
         if self.is_reading && self.read_count == 2 || self.read_count == 3 {
             // self.data_buf[] = _data.clone();
 
-            let switch_type = self.switch_data_buf.get_switch_type();
+            let switch_type = self.action_buf.get_switch_type();
 
             print!("Switch-Type: {:?}", switch_type);
 
@@ -245,7 +238,7 @@ impl ActionDataParser {
                         1 => SwitchType::Analog,
                         _ => SwitchType::Unknown,
                     };
-                    self.switch_data_buf.set_switch_type(check);
+                    self.action_buf.set_switch_type(check);
 
                     // print!("\tCheck: {:?}", check);
 
@@ -253,18 +246,14 @@ impl ActionDataParser {
                         SwitchType::Digital => {
                             self.data_of_digital_switch();
 
-                            let mut raw_data = self.switch_data_buf.get_raw_value();
-                            raw_data.push(_data);
-                            self.switch_data_buf.set_raw_value(raw_data);
+                            self.action_raw_buf.push(_data);
 
                             // print!("\tCollect-Data-Digital");
                         }
                         SwitchType::Analog => {
                             self.data_of_analog_switch();
 
-                            let mut raw_data = self.switch_data_buf.get_raw_value();
-                            raw_data.push(_data);
-                            self.switch_data_buf.set_raw_value(raw_data);
+                            self.action_raw_buf.push(_data);
 
                             print!("\tCollect-Data-Analog-0");
                         }
@@ -274,10 +263,7 @@ impl ActionDataParser {
                     }
                 }
                 SwitchType::Analog => {
-                    // self.data_buf.push(_data);
-                    let mut raw_data = self.switch_data_buf.get_raw_value();
-                    raw_data.push(_data);
-                    self.switch_data_buf.set_raw_value(raw_data);
+                    self.action_raw_buf.push(_data);
 
                     print!("\tCollect-Data-Analog-1");
                 }
@@ -314,7 +300,7 @@ impl ActionDataParser {
 
                 self.format_switch_data();
 
-                self.on_complete_emit_all(self.switch_data_buf.clone());
+                self.on_complete_emit_all(self.action_buf.clone());
 
                 return true;
             } else {
