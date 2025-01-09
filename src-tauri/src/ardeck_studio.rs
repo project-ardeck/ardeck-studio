@@ -19,5 +19,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 pub mod ardeck;
 pub mod plugin;
-pub mod action;
+pub mod switch_info;
 pub mod settings;
+pub mod action;

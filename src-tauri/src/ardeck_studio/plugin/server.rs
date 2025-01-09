@@ -32,6 +32,7 @@ use tokio_tungstenite::WebSocketStream;
 use tokio_tungstenite::{accept_async, tungstenite::protocol::Message};
 
 use crate::ardeck_studio::action::Action;
+use crate::ardeck_studio::switch_info::SwitchInfo;
 use crate::service::dir::Directories;
 
 use super::manager::PluginManager;
@@ -83,13 +84,14 @@ impl PluginServer {
 
     pub async fn execute_plugin_all(&self) {
         // let dir = Directories::get_or_init(Path::new(PLUGIN_DIR)).unwrap();
-        let dir = match Directories::get(Path::new(PLUGIN_DIR)) {
+        let dir = match Directories::get(Directories::get_plugin_dir().unwrap()) {
             Ok(read_dir) => read_dir,
             Err(_) => {
                 println!("[plugin.core]: plugins dir is not found");
                 return;
             }
         };
+
 
         for entry in dir {
             if entry.is_err() {
@@ -98,31 +100,42 @@ impl PluginServer {
             }
 
             let path = entry.unwrap().path();
+        
+            if path.is_file() {
+                continue;
+            }
 
             // マニフェストファイルを取得
-            let manifest_file = File::open(format!("{}/manifest.json", path.display()));
-            if manifest_file.is_err() {
-                println!("Failed to open manifest.json");
-                continue;
-            }
+            let manifest_file = match File::open(path.clone().join("manifest.json")) {
+                Ok(file) => file,
+                Err(e) => {
+                    println!("Failed to open manifest.json: {}", path.join("manifest.json").display());
+                    println!("Failed to open manifest.json: {}", e);
+                    continue;
+                }
+            };
 
             // アクションファイルを取得
-            let actions_file = File::open(format!("{}/actions.json", path.display()));
-            if manifest_file.is_err() {
-                println!("Failed to open actions.json");
-                continue;
-            }
+            let actions_file = match File::open(path.clone().join("actions.json")) {
+                Ok(file) => file,
+                Err(e) => {
+                    println!("Failed to open actions.json: {}", e);
+                    continue;
+                }
+            };
 
             let manifest: PluginManifestJSON =
-                serde_json::from_reader(manifest_file.unwrap()).unwrap();
+                serde_json::from_reader(manifest_file).unwrap();
             let actions: Vec<PluginAction> =
-                serde_json::from_reader(actions_file.unwrap()).unwrap();
+                serde_json::from_reader(actions_file).unwrap();
 
             // プラグインの実行ファイルのパスを取得
-            let plugin_main_path = format!("{}/{}", path.display(), manifest.main);
+            let plugin_main_path = path.clone().join(manifest.clone().main);
+            
 
             // プラグインを実行
             let process = std::process::Command::new(plugin_main_path)
+                .arg("6725")
                 .spawn()
                 .expect("Failed to execute plugin");
 
@@ -138,8 +151,9 @@ impl PluginServer {
         }
     }
 
-    pub fn put_action(&self, action: Action) {
+    pub fn put_action(&self, switch_info: SwitchInfo) {
         // TODO: switch_typeとswitch_idからマッピングの設定を見つけ、そのプラグインに（あれば）put_actionする
+        let action = Action::from_switch_info(switch_info);
     }
 }
 
@@ -160,9 +174,9 @@ async fn handle_connection(
 
                 println!("Received: {}", msg_str);
 
-                let message: PluginMessage = serde_json::from_str(msg_str).unwrap();
+                let message: PluginMessageData = serde_json::from_str(msg_str).unwrap();
 
-                match message.data {
+                match message {
                     PluginMessageData::Hello {
                         plugin_version,
                         ardeck_plugin_web_socket_version,

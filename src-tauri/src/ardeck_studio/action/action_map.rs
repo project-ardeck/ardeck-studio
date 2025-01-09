@@ -16,31 +16,22 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use action_target::ActionTarget;
 use serde::{Deserialize, Serialize};
 
-use super::switch_info::SwitchInfo;
+use crate::ardeck_studio::switch_info::{SwitchId, SwitchType};
 
-pub mod action_target;
-pub mod action_map;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct Action {
-    switch: SwitchInfo,
-    target: ActionTarget,
+pub struct ActionMap {
+    // スイッチの種類 (デジタルスイッチか、アナログスイッチか)
+    pub switch_type: SwitchType,
+    // スイッチのピン番号
+    pub switch_id: SwitchId,
+    // プラグインのID
+    pub plugin_id: String,
+    // アクションのID
+    pub action_id: String,
 }
 
-impl Action {
-    pub fn from_switch_info(switch: SwitchInfo) -> Self {
-        Action {
-            switch,
-            target: ActionTarget {
-                action_id: String::from("foo"),
-                plugin_id: String::from("bar")
-            }
-        }
-    }
-
-    // fn 
-}
+struct Mapping {}

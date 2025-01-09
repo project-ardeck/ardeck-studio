@@ -27,7 +27,7 @@ use std::sync::{
     Arc, Mutex,
 };
 
-use crate::ardeck_studio::action::ActionDataParser;
+use crate::ardeck_studio::switch_info::ActionDataParser;
 
 #[derive(Clone)]
 pub struct Ardeck {

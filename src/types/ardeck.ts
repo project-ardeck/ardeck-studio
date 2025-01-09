@@ -71,12 +71,21 @@ export type OnMessageSerial = {
     timestamp: number;
 };
 
-export type Action = {
+export type SwitchInfo = {
     switchType: SwitchType;
     switchId: number;
     switchState: number;
-    rawValue: number[];
     timestamp: number;
+}
+
+export type ActionTarget = {
+    actionId: string;
+    pluginId: string;
+}
+
+export type Action = {
+    switch: SwitchInfo;
+    target: ActionTarget;
 };
 
 export type serialPortState = {

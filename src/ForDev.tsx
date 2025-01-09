@@ -23,7 +23,7 @@ import { emit, listen } from "@tauri-apps/api/event";
 import { Store } from "tauri-plugin-store-api";
 import ActionMappingForm from "./component/ActionMappingForm";
 import Settings from "./component/Settings";
-import { Action, SerialPortInfo, SwitchType } from "./types/ardeck";
+import { Action, SerialPortInfo, SwitchInfo, SwitchType } from "./types/ardeck";
 
 type switchStatesObject = {
     state: number;
@@ -76,8 +76,8 @@ export default function ForDev() {
     const [baudRateOption, setBaudRateOption] = useState<BaudRate>(9600);
 
     const [switchStates, setSwitchStates] = useState({
-        Analog: new Map<number, switchStatesObject>(),
-        Digital: new Map<number, switchStatesObject>(),
+        Analog: new Map<number, SwitchInfo>(),
+        Digital: new Map<number, SwitchInfo>(),
     });
 
     const pushLog = (log: string) => {
@@ -185,7 +185,7 @@ export default function ForDev() {
 
             listen("on-message-serial", (e) => {
                 // シリアル通信のメッセージ
-                const payload = e.payload as Action;
+                const payload = e.payload as SwitchInfo;
                 // console.log(payload);
                 // document.getElementById("raw_data")!.innerHTML = JSON.stringify(payload, null, 2);
                 // pushLog(`${payload.switchType}`)
@@ -193,14 +193,14 @@ export default function ForDev() {
                 const data = {
                     state: payload.switchState,
                     timestamp: new Date(payload.timestamp),
-                    raw: payload.rawValue,
+                    raw: [],
                 };
 
                 if (payload.switchType === SwitchType.Digital) {
                     // console.log("0");
                     setSwitchStates((prevState) => {
                         const newState = new Map(prevState.Digital);
-                        newState.set(payload.switchId, data);
+                        newState.set(payload.switchId, payload);
                         return {
                             ...prevState,
                             Digital: newState,
@@ -210,7 +210,7 @@ export default function ForDev() {
                     // console.log("1");
                     setSwitchStates((prevState) => {
                         const newState = new Map(prevState.Analog);
-                        newState.set(payload.switchId, data);
+                        newState.set(payload.switchId, payload);
                         return {
                             ...prevState,
                             Analog: newState,
@@ -341,26 +341,27 @@ export default function ForDev() {
                 <Infomations title="Device Info">
                     <h3 className="mt-4 text-lg font-bold">Digital</h3>
                     {Array.from(switchStates.Digital).map(([pin, state]) => {
-                        const className = state.state
+                        const timestamp = new Date(state.timestamp);
+                        const className = state.switchState
                             ? "border-accent-primary border-opacity-50"
                             : "border-bg-quaternary";
-                        const date = state.timestamp
+                        const date = timestamp
                             .getDate()
                             .toString()
                             .padStart(2, "0");
-                        const hour = state.timestamp
+                        const hour = timestamp
                             .getHours()
                             .toString()
                             .padStart(2, "0");
-                        const minute = state.timestamp
+                        const minute = timestamp
                             .getMinutes()
                             .toString()
                             .padStart(2, "0");
-                        const second = state.timestamp
+                        const second = timestamp
                             .getSeconds()
                             .toString()
                             .padStart(2, "0");
-                        const millisecond = state.timestamp
+                        const millisecond = timestamp
                             .getMilliseconds()
                             .toString()
                             .padStart(3, "0");
@@ -373,21 +374,23 @@ export default function ForDev() {
                                 className={`${className} relative mb-1 flex place-content-between items-center rounded-md border-2 px-4 transition-colors`}
                             >
                                 <div>
-                                    {`${pin.toString().padStart(2, "0")} : ${state.state ? "HIGH" : "LOW"}`}
+                                    {`${pin.toString().padStart(2, "0")} : ${state.switchState ? "HIGH" : "LOW"}`}
                                 </div>
                                 <div className="pointer-events-none absolute bottom-0 left-0 right-0 top-0 flex items-center justify-center">
-                                    {state.raw.map((val, index) => {
-                                        return (
-                                            <span
-                                                key={index}
-                                                className="pointer-events-auto text-sm"
-                                            >
-                                                {val
-                                                    .toString(2)
-                                                    .padStart(8, "0")}
-                                            </span>
-                                        );
-                                    })}
+                            
+                                    {//state.raw.map((val, index) => {
+                                     //   return (
+                                     //       <span
+                                     //           key={index}
+                                     //           className="pointer-events-auto text-sm"
+                                     //       >
+                                     //           {val
+                                     //               .toString(2)
+                                     //               .padStart(8, "0")}
+                                     //       </span>
+                                     //   );
+                                    //})
+                                    }
                                 </div>
                                 <div className="text-sm text-text-primary text-opacity-50">
                                     {time}
@@ -397,26 +400,27 @@ export default function ForDev() {
                     })}
                     <h3 className="mt-4 text-lg font-bold">Analog</h3>
                     {Array.from(switchStates.Analog).map(([pin, state]) => {
-                        const className = state.state
+                        const timestamp = new Date(state.timestamp);
+                        const className = state.switchState
                             ? "border-accent-primary border-opacity-50"
                             : "border-bg-quaternary";
-                        const date = state.timestamp
+                        const date = timestamp
                             .getDate()
                             .toString()
                             .padStart(2, "0");
-                        const hour = state.timestamp
+                        const hour = timestamp
                             .getHours()
                             .toString()
                             .padStart(2, "0");
-                        const minute = state.timestamp
+                        const minute = timestamp
                             .getMinutes()
                             .toString()
                             .padStart(2, "0");
-                        const second = state.timestamp
+                        const second = timestamp
                             .getSeconds()
                             .toString()
                             .padStart(2, "0");
-                        const millisecond = state.timestamp
+                        const millisecond = timestamp
                             .getMilliseconds()
                             .toString()
                             .padStart(3, "0");
@@ -425,7 +429,7 @@ export default function ForDev() {
                         // console.log(state.timestamp);
 
                         const style = {
-                            width: `${(state.state / 1023) * 100}%`,
+                            width: `${(state.switchState / 1023) * 100}%`,
                         };
 
                         return (
@@ -433,21 +437,22 @@ export default function ForDev() {
                                 className={`${className} relative mb-1 flex place-content-between items-center rounded-md border-2 px-4 transition-colors`}
                             >
                                 <div className="z-10">
-                                    {`${pin.toString().padStart(2, "0")} : ${state.state}`}
+                                    {`${pin.toString().padStart(2, "0")} : ${state.switchState}`}
                                 </div>
                                 <div className="pointer-events-none absolute bottom-0 left-0 right-0 top-0 z-10 flex items-center justify-center gap-2">
-                                    {state.raw.map((val, index) => {
-                                        return (
-                                            <span
-                                                key={index}
-                                                className="pointer-events-auto text-sm"
-                                            >
-                                                {val
-                                                    .toString(2)
-                                                    .padStart(8, "0")}
-                                            </span>
-                                        );
-                                    })}
+                                    {//state.raw.map((val, index) => {
+                                     //   return (
+                                     //       <span
+                                     //           key={index}
+                                     //           className="pointer-events-auto text-sm"
+                                     //       >
+                                     //           {val
+                                     //               .toString(2)
+                                     //               .padStart(8, "0")}
+                                     //       </span>
+                                     //   );
+                                     //   })
+                                    }
                                 </div>
                                 <div className="z-10 text-sm text-text-primary text-opacity-50">
                                     {time}

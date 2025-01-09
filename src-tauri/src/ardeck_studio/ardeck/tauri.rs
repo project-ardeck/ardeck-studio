@@ -162,7 +162,8 @@ async fn open_port<R: Runtime>(
     
     // データを受信し、1回分のデータが完成した時の処理
     ardeck.port_data().lock().unwrap().on_complete(move |data| {
-        println!("\n\n[] ardeck.portdata.on_complete\n\n");
+        // println!("\n\n[] ardeck.portdata.on_complete\n\n");
+        // println!("\tdata: {:#?}", data);
 
         app_for_data
             .emit_all("on-message-serial", data.clone())
@@ -175,7 +176,7 @@ async fn open_port<R: Runtime>(
         .lock()
         .unwrap()
         .on_change_action(move |data| {
-            println!("\n\n[] ardeck.portdata.on_complete\n\n");
+            // println!("\n\n[] ardeck.portdata.on_complete\n\n");
 
             tokio::spawn(async move { // TODO
                 // app.emit_all("on-change-serial", data.clone()).unwrap();

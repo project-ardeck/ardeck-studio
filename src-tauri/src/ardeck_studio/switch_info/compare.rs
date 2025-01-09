@@ -18,13 +18,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use std::collections::HashMap;
 
-use super::{Action, SwitchId};
+use super::{SwitchInfo, SwitchId};
 
 // #[derive(Clone)]
 pub struct ActionCompare {
-    actions: HashMap<SwitchId, Action>,
-    prev_actions: HashMap<SwitchId, Action>,
-    on_change_action: Vec<Box<dyn Fn(Action) + Send + 'static>>,
+    actions: HashMap<SwitchId, SwitchInfo>,
+    prev_actions: HashMap<SwitchId, SwitchInfo>,
+    on_change_action: Vec<Box<dyn Fn(SwitchInfo) + Send + 'static>>,
 }
 
 impl ActionCompare {
@@ -36,7 +36,7 @@ impl ActionCompare {
         }
     }
 
-    pub fn put_action(&mut self, action: Action) {
+    pub fn put_action(&mut self, action: SwitchInfo) {
         let switch_id = action.get_switch_id();
         // if
         if let Some(current_action) = self.actions.get(&switch_id) {
@@ -60,11 +60,11 @@ impl ActionCompare {
         }
     }
 
-    pub fn on_change_action<F: Fn(Action) + Send + 'static>(&mut self, callback: F) {
+    pub fn on_change_action<F: Fn(SwitchInfo) + Send + 'static>(&mut self, callback: F) {
         self.on_change_action.push(Box::new(callback));
     }
 
-    fn on_change_action_emit_all(&self, action: Action) {
+    fn on_change_action_emit_all(&self, action: SwitchInfo) {
         for c in self.on_change_action.iter() {
             c(action.clone())
         }

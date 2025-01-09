@@ -24,7 +24,7 @@ use tauri::{
 use tokio::sync::Mutex;
 
 use crate::{
-    ardeck_studio::{action::Action, plugin::PLUGIN_DIR},
+    ardeck_studio::{switch_info::SwitchInfo, plugin::PLUGIN_DIR},
     service::dir::Directories,
 };
 
@@ -67,7 +67,7 @@ pub async fn init<R: Runtime>() -> TauriPlugin<R> {
         .build()
 }
 
-pub async fn send_action_to_plugins(data: Action) {
-    println!("Got push_action in plugin.tauri: {:?}", data);
-    // PLUGIN_SERVER.lock().await.put_action(data);
+pub async fn send_action_to_plugins(data: SwitchInfo) {
+    // println!("Got push_action in plugin.tauri: {:?}", data);
+    PLUGIN_SERVER.lock().await.put_action(data);
 }

@@ -17,7 +17,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 use std::{
-    io::{BufReader, BufWriter}, path::PathBuf, sync::Mutex, vec
+    io::{BufReader, BufWriter},
+    path::PathBuf,
+    sync::Mutex,
+    vec,
 };
 
 use once_cell::sync::Lazy;
@@ -31,14 +34,17 @@ use uuid::Uuid;
 
 use crate::{
     ardeck_studio::{
-        action::{map::ActionMap, SwitchType},
-        settings::definitions::mapping_presets::MappingPreset,
+        action::action_map::ActionMap, settings::definitions::mapping_presets::MappingPreset,
+        switch_info::SwitchType,
     },
     service::{dir::Directories, file::Files},
 };
 
 use super::{
-    definitions::{ardeck::ArdeckProfileConfigJSON, mapping_presets::{self, MappingPresetsJSON}},
+    definitions::{
+        ardeck::ArdeckProfileConfigJSON,
+        mapping_presets::{self, MappingPresetsJSON},
+    },
     Settings, SettingsStore, SettingsStoreError,
 };
 
@@ -90,7 +96,7 @@ async fn save_mapping_preset<R: Runtime>(
     mut mapping_preset: MappingPreset,
 ) -> Result<MappingPreset, String> {
     // println!("save_mapping_preset\n\tmapping_presets_json: {:#?}\n\tmapping_preset: {:#?}", mapping_presets_json.lock().unwrap(), mapping_preset);
-    let index =  mapping_presets_json 
+    let index = mapping_presets_json
         .lock()
         .unwrap()
         .iter()
@@ -104,13 +110,16 @@ async fn save_mapping_preset<R: Runtime>(
         None => {
             //TODO: add new mapping
             mapping_preset.uuid = Uuid::new_v4().to_string();
-            
-            mapping_presets_json
-            .lock()
-            .unwrap()
-            .push(mapping_preset.clone());
 
-            println!("save_mapping_preset.new_data\n\tmapping_presets_json: {:#?}", mapping_presets_json.lock().unwrap());
+            mapping_presets_json
+                .lock()
+                .unwrap()
+                .push(mapping_preset.clone());
+
+            println!(
+                "save_mapping_preset.new_data\n\tmapping_presets_json: {:#?}",
+                mapping_presets_json.lock().unwrap()
+            );
         }
     }
 
@@ -166,6 +175,10 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
 
             Ok(())
         })
-        .invoke_handler(generate_handler![get_mapping_list, get_mapping_preset, save_mapping_preset])
+        .invoke_handler(generate_handler![
+            get_mapping_list,
+            get_mapping_preset,
+            save_mapping_preset
+        ])
         .build()
 }

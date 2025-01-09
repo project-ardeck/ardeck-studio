@@ -27,7 +27,7 @@ use std::sync::Arc;
 
 use tokio::{net::TcpStream, sync::Mutex};
 
-use super::action::{map::ActionMap, Action};
+use super::{action::Action, switch_info::SwitchInfo};
 
 pub static PLUGIN_DIR: &'static str = "./plugins";
 
@@ -60,7 +60,7 @@ impl Plugin {
         self.session = Some(session);
     }
 
-    pub async fn put_action(&mut self, action_id: String, action: Action) {
+    pub async fn put_action(&mut self, action_id: String, action: SwitchInfo) {
         if self.session.is_none() {
             // Error!: Plugin session has not started yet.
             return;
@@ -137,12 +137,7 @@ pub enum PluginMessageData {
         message: String,
     },
     #[serde(rename = "3")]
-    Action {
-        // OP3: Action
-        action_id: String,
-        action_map: ActionMap,
-        action: Action,
-    },
+    Action(Action),
 }
 
 #[derive(Serialize_repr, Deserialize_repr, Debug, Clone)]

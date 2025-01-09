@@ -112,12 +112,12 @@ export default function ActionMappingForm() {
     // const saveNewPreset = (preset: MappingPreset /*newMappingTmp*/) => {}
 
     reRender.current += 1;
-    console.log(
-        `%c[${reRender.current}] render`,
-        "color: red; font-weight: bold; font-size: 20px",
-        presetTmp,
-        newMappingTmp,
-    );
+    // console.log(
+    //     `%c[${reRender.current}] render`,
+    //     "color: red; font-weight: bold; font-size: 20px",
+    //     presetTmp,
+    //     newMappingTmp,
+    // );
 
     useEffect(() => {
         if (!isInit.current) {

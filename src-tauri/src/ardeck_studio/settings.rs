@@ -18,7 +18,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use std::{io, path::PathBuf};
 
-use chrono::format::format;
 use serde::{de::DeserializeOwned, Serialize};
 
 use crate::service::file::Files;
