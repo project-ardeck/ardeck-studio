@@ -16,14 +16,18 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::{io, path::PathBuf};
+use std::{collections::HashMap, io, path::PathBuf};
 
+use cache::Cache;
+use once_cell::sync::Lazy;
 use serde::{de::DeserializeOwned, Serialize};
+use tokio::sync::Mutex;
 
 use crate::service::file::Files;
 
 pub mod definitions;
 pub mod tauri;
+pub mod cache;
 
 
 #[derive(Debug)]
@@ -37,12 +41,17 @@ pub trait Settings {
     fn dir(&self) -> PathBuf;
 }
 
-pub trait SettingsStore: Serialize + DeserializeOwned + Default + Clone + Send + Sync + Settings {
+// TODO: saveしたらフラグを立て、loadするときに確認し、フラグが立っていなければ前回のデータをそのまま返すようなキャッシュ機能を作成する
+// static CACHE: Lazy<Mutex<Cache<(), ()>>> = Lazy::new(|| Mutex::new(Cache::new()));
+
+pub trait SettingsStore<T>: Serialize + DeserializeOwned + Default + Clone + Send + Sync + Settings {
     fn file_path(&self) -> PathBuf {
         self.dir().join(format!("{}.json", self.name()))
     }
 
     fn load(&mut self) -> Self {
+
+
         let file = match Files::open(self.file_path()) {
             Ok(file) => file,
             Err(e) => {
@@ -84,7 +93,7 @@ macro_rules! setting {
         use crate::ardeck_studio::settings::SettingsStore;
         #[allow(private_interfaces)]
         $vis type $name = $t;
-        impl SettingsStore for $name {}
+        impl SettingsStore<$name> for $name {}
     };
     () => {};
 }

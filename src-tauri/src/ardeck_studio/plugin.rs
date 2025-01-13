@@ -37,7 +37,7 @@ pub struct Plugin {
     pub actions: PluginActionJSON,
     pub process: Arc<Mutex<std::process::Child>>,
     pub session: Option<Arc<Mutex<TcpStream>>>,
-    pub server_sink: Option<PluginServerSink>,
+    pub server_sink: Option<Arc<Mutex<PluginServerSink>>>,
 }
 
 impl Plugin {

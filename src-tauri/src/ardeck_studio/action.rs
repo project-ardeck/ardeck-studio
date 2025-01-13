@@ -19,7 +19,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 use action_target::ActionTarget;
 use serde::{Deserialize, Serialize};
 
-use super::switch_info::SwitchInfo;
+use super::{settings::{definitions::mapping_presets, SettingsStore}, switch_info::SwitchInfo};
 
 pub mod action_target;
 pub mod action_map;
@@ -42,5 +42,8 @@ impl Action {
         }
     }
 
-    // fn 
+    fn search_action_target(&self, switch_info: SwitchInfo) -> Option<ActionTarget> {
+        let mapping_presets = mapping_presets::MappingPresetsJSON::new().load();
+        None
+    }
 }

@@ -163,9 +163,10 @@ async fn handle_connection(
     stream: TcpStream,
     plugin_manager: Arc<Mutex<PluginManager>>,
 ) {
-    let mut ws_stream = accept_async(stream).await.expect("Failed to accept");
+    let ws_stream = accept_async(stream).await.expect("Failed to accept");
 
     let (mut sink, mut stream) = ws_stream.split();
+    let sink_arc = Arc::new(Mutex::new(sink));
 
     while let Some(msg) = stream.next().await {
         if let Ok(msg) = msg {
@@ -189,12 +190,17 @@ async fn handle_connection(
                             ardeck_studio_web_socket_version: "0.0.1".to_string(),
                         };
 
-                        sink
+                        sink_arc
+                            .lock()
+                            .await
                             .send(Message::Text(Utf8Bytes::from(
                                 &serde_json::to_string(&data).unwrap(),
                             )))
                             .await
                             .unwrap();
+
+                        let mut plugin = plugin_manager.lock().await;
+                        plugin.get_mut(&plugin_id).unwrap().server_sink = Some(sink_arc.clone());
                     }
                     // PluginMessageData::Success { .. } => (),
                     PluginMessageData::Message { .. } => (),

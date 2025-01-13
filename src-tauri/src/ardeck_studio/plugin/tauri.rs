@@ -54,13 +54,19 @@ pub async fn init<R: Runtime>() -> TauriPlugin<R> {
     // let serve = core.start().await;
 
     Builder::new("ardeck-plugin")
-        .setup(|app| Ok(()))
+        .setup(|app| {
+            tokio::spawn(async move {
+                server_init().await;
+            });
+
+            Ok(())
+        })
         .on_event(|app, event| match event {
             RunEvent::Ready => {
                 println!("[init] ready");
-                tokio::spawn(async {
-                    server_init().await;
-                });
+                // tokio::spawn(async {
+                //     server_init().await;
+                // });
             }
             _ => {},
         })

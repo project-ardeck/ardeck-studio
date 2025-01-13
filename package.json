@@ -14,8 +14,7 @@
         "@types/lodash": "^4.17.13",
         "lodash": "^4.17.21",
         "react": "^18.2.0",
-        "react-dom": "^18.2.0",
-        "tauri-plugin-store-api": "https://github.com/tauri-apps/tauri-plugin-store#v1"
+        "react-dom": "^18.2.0"
     },
     "devDependencies": {
         "@tauri-apps/cli": "^1",

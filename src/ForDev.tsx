@@ -20,7 +20,6 @@ import { ReactNode, useEffect, useRef, useState } from "react";
 import { invoke } from "./tauri/invoke";
 import { emit, listen } from "@tauri-apps/api/event";
 
-import { Store } from "tauri-plugin-store-api";
 import ActionMappingForm from "./component/ActionMappingForm";
 import Settings from "./component/Settings";
 import { Action, SerialPortInfo, SwitchInfo, SwitchType } from "./types/ardeck";
