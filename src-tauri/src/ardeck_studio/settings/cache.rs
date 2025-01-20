@@ -18,46 +18,74 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use std::path::PathBuf;
 
-use super::SettingsStore;
+use serde::{Deserialize, Serialize};
 
-pub struct CacheInfo<T> {
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct CacheInfo {
     pub path: PathBuf,
     pub dirty: bool,
-    pub data: T,
+    pub data: String,
 }
 
-pub struct Cache<Impl, T>
-where
-    Impl: SettingsStore<T>,
-{
-    inner: Vec<CacheInfo<T>>,
-    _marker: std::marker::PhantomData<Impl>,
+pub struct Cache {
+    inner: Vec<CacheInfo>,
 }
 
-impl<Impl, T> Cache<Impl, T>
-where
-    Impl: SettingsStore<T>,
-{
+impl Cache {
     pub fn new() -> Self {
-        Self {
-            inner: Vec::new(),
-            _marker: std::marker::PhantomData,
-        }
+        Self { inner: Vec::new() }
     }
 
-    pub fn is_dirty(&self, path: &PathBuf) -> bool {
-        self.inner.iter().any(|c| c.path == *path)
+    pub fn is_dirty(&self, path: &PathBuf) -> bool { // 前回からデータが変更されていないか、そもそもデータが存在しなければfalse
+        self.inner.iter().any(|c| c.path == *path && c.dirty)
     }
 
-    pub fn get(&self, path: &PathBuf) -> Option<&T> {
-        self.inner.iter().find(|c| c.path == *path).map(|c| &c.data)
+    pub fn set_dirty(&mut self, path: &PathBuf, dirty: bool) { // dirtyの状態を変更する
+        self.inner
+            .iter_mut()
+            .find(|c| c.path == *path)
+            .map(|c| c.dirty = dirty);
     }
 
-    pub fn set(&mut self, path: &PathBuf, data: T) {
+    pub fn mark_dirty(&mut self, path: &PathBuf) {
+        self.inner
+            .iter_mut()
+            .find(|c| c.path == *path)
+            .map(|c| c.dirty = true);
+    }
+
+    pub fn remove(&mut self, path: &PathBuf) {
+        self.inner.retain(|c| c.path != *path);
+    }
+
+    
+
+    pub fn get(&self, path: &PathBuf) -> Option<CacheInfo> {
+        self.inner.iter().find(|c| c.path == *path).cloned()
+    }
+
+    pub fn get_data(&self, path: &PathBuf) -> Option<String> {
+        self.inner
+            .iter()
+            .find(|c| c.path == *path)
+            .map(|c| c.data.clone())
+    }
+
+    pub fn add(&mut self, path: PathBuf, data: String, dirty: bool) {
         self.inner.push(CacheInfo {
-            path: path.clone(),
-            dirty: true,
+            path,
+            dirty,
             data,
         });
+    }
+
+    pub fn update_data(&mut self, path: &PathBuf, data: String) { // ファイルが変更された後に読み込まれた後、データを更新し、dirtyをfalseにする
+        self.inner
+            .iter_mut()
+            .find(|c| c.path == *path)
+            .map(|c| {
+                c.dirty = false;
+                c.data = data;
+            });
     }
 }

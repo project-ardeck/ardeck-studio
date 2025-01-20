@@ -37,15 +37,14 @@ use crate::{
         action::action_map::ActionMap, settings::definitions::mapping_presets::MappingPreset,
         switch_info::SwitchType,
     },
-    service::{dir::Directories, file::Files},
+    service::{dir::{self, Directories}, file::{self, Files}},
 };
 
 use super::{
     definitions::{
         ardeck::ArdeckProfileConfigJSON,
         mapping_presets::{self, MappingPresetsJSON},
-    },
-    Settings, SettingsStore, SettingsStoreError,
+    }, SettingFile, SettingsStore, SettingsStoreError
 };
 
 // Mapping presets
@@ -53,12 +52,10 @@ use super::{
 #[tauri::command]
 async fn get_mapping_list<R: Runtime>(
     app: tauri::AppHandle<R>,
-    mapping_presets_json: State<'_, Mutex<MappingPresetsJSON>>,
+    // mapping_presets_json: State<'_, Mutex<MappingPresetsJSON>>,
 ) -> Result<Vec<(String, String)>, String> {
-    let list: Vec<(String, String)> = mapping_presets_json
-        .lock()
-        .unwrap()
-        .load()
+    let mapping_presets = MappingPresetsJSON::new().load_force().await.unwrap();
+    let list: Vec<(String, String)> = mapping_presets
         .iter()
         .map(|a| (a.uuid.clone(), a.preset_name.clone()))
         .collect();
@@ -71,14 +68,15 @@ async fn get_mapping_list<R: Runtime>(
 #[tauri::command]
 async fn get_mapping_preset<R: Runtime>(
     app: tauri::AppHandle<R>,
-    mapping_presets_json: State<'_, Mutex<MappingPresetsJSON>>,
+    // mapping_presets_json: State<'_, Mutex<MappingPresetsJSON>>,
     uuid: &str,
 ) -> Result<Option<MappingPreset>, String> {
     println!("get_mapping_preset: {}", uuid);
 
     // println!("get_mapping_preset\n\tmapping_presets_json: {:#?}", mapping_presets_json.lock().unwrap());
 
-    for a in mapping_presets_json.lock().unwrap().iter() {
+    let mapping_presets = MappingPresetsJSON::new().load().await.unwrap();
+    for a in mapping_presets.iter() {
         println!("\tuuid: {}", a.uuid);
         if a.uuid == uuid.to_string() {
             println!("\tfound.");
@@ -92,38 +90,61 @@ async fn get_mapping_preset<R: Runtime>(
 #[tauri::command]
 async fn save_mapping_preset<R: Runtime>(
     app: tauri::AppHandle<R>,
-    mapping_presets_json: State<'_, Mutex<MappingPresetsJSON>>,
+    // mapping_presets_json: State<'_, Mutex<MappingPresetsJSON>>,
     mut mapping_preset: MappingPreset,
 ) -> Result<MappingPreset, String> {
+    let mut mapping_presets = MappingPresetsJSON::new().load().await.unwrap();
+    println!("mapping_presets[before]: {:#?}", mapping_presets);
+
     // println!("save_mapping_preset\n\tmapping_presets_json: {:#?}\n\tmapping_preset: {:#?}", mapping_presets_json.lock().unwrap(), mapping_preset);
-    let index = mapping_presets_json
-        .lock()
-        .unwrap()
+    println!("save_mapping_preset.uuid: {}", mapping_preset.uuid);
+
+    // すでに存在するかを確認する
+    let index = mapping_presets
         .iter()
         .position(|p| p.uuid == mapping_preset.uuid);
     match index {
+        // 存在したら、上書きする
         Some(i) => {
-            mapping_presets_json.lock().unwrap()[i] = mapping_preset.clone();
+            mapping_presets[i] = mapping_preset.clone();
 
             // println!("save_mapping_preset.data_change\n\tmapping_presets_json: {:#?}", mapping_presets_json.lock().unwrap());
+            println!(
+                "save_mapping_preset.data_change",
+            );
+            println!("mapping_presets[after]: {:#?}", mapping_presets);
+
+            mapping_presets
+                .save()
+                .await;
         }
+        // 存在しなければ、新規追加する
         None => {
             //TODO: add new mapping
             mapping_preset.uuid = Uuid::new_v4().to_string();
 
-            mapping_presets_json
-                .lock()
-                .unwrap()
+            mapping_presets
                 .push(mapping_preset.clone());
 
             println!(
-                "save_mapping_preset.new_data\n\tmapping_presets_json: {:#?}",
-                mapping_presets_json.lock().unwrap()
+                "save_mapping_preset.new_data",
+                // mapping_presets_json.lock().unwrap()
             );
+            println!("mapping_presets[after]: {:#?}", mapping_presets);
+
+            mapping_presets
+                .save()
+                .await;
         }
     }
 
-    mapping_presets_json.lock().unwrap().save()/*.unwrap()*/;
+    
+    // println!("mapping_presets: {:#?}", mapping_presets);
+
+    // mapping_presets_json.lock().unwrap()./*.unwrap()*/;
+    // setting.save(&mapping_preset).await;
+
+    
 
     Ok(mapping_preset)
 }
@@ -137,7 +158,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
         .setup(|app| {
             // TODO: get_config_dir() log
             Directories::init(Directories::get_config_dir().unwrap()).unwrap();
-            app.manage(Mutex::new(MappingPresetsJSON::new()));
+            // app.manage(Mutex::new(MappingPresetsJSON::new()));
 
             let sample_data = MappingPreset {
                 uuid: Uuid::new_v4().to_string(),

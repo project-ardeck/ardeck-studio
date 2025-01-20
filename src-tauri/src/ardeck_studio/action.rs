@@ -19,10 +19,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 use action_target::ActionTarget;
 use serde::{Deserialize, Serialize};
 
-use super::{settings::{definitions::mapping_presets, SettingsStore}, switch_info::SwitchInfo};
+use super::{settings::definitions::mapping_presets, switch_info::SwitchInfo};
 
-pub mod action_target;
 pub mod action_map;
+pub mod action_target;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -37,13 +37,13 @@ impl Action {
             switch,
             target: ActionTarget {
                 action_id: String::from("foo"),
-                plugin_id: String::from("bar")
-            }
+                plugin_id: String::from("bar"),
+            },
         }
     }
 
     fn search_action_target(&self, switch_info: SwitchInfo) -> Option<ActionTarget> {
-        let mapping_presets = mapping_presets::MappingPresetsJSON::new().load();
+        // let mapping_presets = mapping_presets::MappingPresetsJSON::new().load();
         None
     }
 }

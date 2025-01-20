@@ -20,9 +20,8 @@ use serde::{Deserialize, Serialize};
 use struct_field_names_as_array::FieldNamesAsArray;
 
 use crate::{
-    ardeck_studio::{action::action_map::ActionMap, settings::Settings},
+    ardeck_studio::{action::action_map::ActionMap, settings::{SettingFile, SettingsStore}},
     service::dir::Directories,
-    setting,
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone, FieldNamesAsArray)]
@@ -37,11 +36,11 @@ pub struct MappingPreset {
     pub mapping: Vec<ActionMap>,
 }
 
-setting! {
-    pub type MappingPresetsJSON = Vec<MappingPreset>;
-}
+// setting! {
+pub type MappingPresetsJSON = Vec<MappingPreset>;
+// }
 
-impl Settings for MappingPresetsJSON {
+impl SettingFile for MappingPresetsJSON {
     fn name(&self) -> &'static str {
         "mapping_presets"
     }
@@ -51,3 +50,5 @@ impl Settings for MappingPresetsJSON {
         Directories::get_config_dir().unwrap()
     }
 }
+
+impl SettingsStore for MappingPresetsJSON {}
