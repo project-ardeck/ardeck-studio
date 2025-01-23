@@ -28,9 +28,11 @@ use std::{collections::HashMap, sync::Mutex};
 
 use ardeck_studio::ardeck::Ardeck;
 
+use service::dir;
 use tauri::{
     CustomMenuItem, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem,
 };
+use tauri_plugin_log::LogTarget;
 use window_shadows::set_shadow;
 
 #[tokio::main]
@@ -83,7 +85,7 @@ async fn main() {
             },
             _ => {}
         })
-        .plugin(tauri_plugin_log::Builder::default().build()) // TODO: default().taget(Folder(/* ディレクトリ */))
+        .plugin(tauri_plugin_log::Builder::default().target(LogTarget::Folder(dir::Directories::get_log_dir().unwrap())).build()) // TODO: default().taget(Folder(/* ディレクトリ */))
         .plugin(ardeck_studio::ardeck::tauri::init())
         .plugin(ardeck_studio::plugin::tauri::init().await)
         .plugin(ardeck_studio::settings::tauri::init())
