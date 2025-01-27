@@ -31,7 +31,7 @@ const IDENTIFIER: &str = "com.ardeck.studio";
 impl Directories {
     #[cfg(feature = "portable")]
     pub fn get_log_dir() -> std::io::Result<PathBuf> {
-        Ok(PathBuf::from("./").canonicalize()?.join("log"))
+        Ok(PathBuf::from("./").canonicalize()?.join("logs"))
     }
 
     #[cfg(not(feature = "portable"))]
@@ -41,7 +41,7 @@ impl Directories {
             None => return Err(Error::new(std::io::ErrorKind::NotFound, "Config directory not found")),
         };
 
-        Ok(path.join(IDENTIFIER).join("log"))
+        Ok(path.join(IDENTIFIER).join("logs"))
     }
 
     #[cfg(feature = "portable")]
