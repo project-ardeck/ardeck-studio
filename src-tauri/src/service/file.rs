@@ -26,7 +26,7 @@ impl Files {
         let path = path.as_ref();
         let canonical = path.canonicalize()?;
 
-        if canonical.starts_with(Directories::get_config_dir()?) {
+        if canonical.starts_with(Directories::get_settings_dir()?) {
             Ok(canonical)
         } else {
             Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "Permission denied"))

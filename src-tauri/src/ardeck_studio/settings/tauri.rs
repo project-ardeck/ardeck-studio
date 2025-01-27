@@ -157,7 +157,7 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("settings")
         .setup(|app| {
             // TODO: get_config_dir() log
-            Directories::init(Directories::get_config_dir().unwrap()).unwrap();
+            Directories::init(Directories::get_settings_dir().unwrap()).unwrap();
             // app.manage(Mutex::new(MappingPresetsJSON::new()));
 
             let sample_data = MappingPreset {

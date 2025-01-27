@@ -38,7 +38,7 @@ use crate::service::dir::Directories;
 use super::manager::PluginManager;
 
 use super::{
-    Plugin, PluginAction, PluginManifestJSON, PluginMessage, PluginMessageData, PluginOpCode,
+    Plugin, PluginAction, PluginManifestJSON, PluginMessage, PluginOpCode,
     PLUGIN_DIR,
 };
 
@@ -151,9 +151,20 @@ impl PluginServer {
         }
     }
 
-    pub fn put_action(&self, switch_info: SwitchInfo) {
+    pub async fn put_action(&self, switch_info: SwitchInfo) {
         // TODO: switch_typeとswitch_idからマッピングの設定を見つけ、そのプラグインに（あれば）put_actionする
-        let action = Action::from_switch_info(switch_info);
+        
+        let actions = Action::from_switch_info(switch_info).await;
+
+        // actionsのtargetの中で、読み込まれているプラグインがあれば、プラグインに渡す
+        for action in actions.iter() {
+            match PLUGIN_MANAGER.lock().await.get_mut(&action.target.plugin_id) {
+                Some(plugin) => {
+                    plugin.put_action(action.clone()).await; 
+                }
+                None => (),
+            }
+        }
     }
 }
 
@@ -175,17 +186,17 @@ async fn handle_connection(
 
                 println!("Received: {}", msg_str);
 
-                let message: PluginMessageData = serde_json::from_str(msg_str).unwrap();
+                let message: PluginMessage = serde_json::from_str(msg_str).unwrap();
 
                 match message {
-                    PluginMessageData::Hello {
+                    PluginMessage::Hello {
                         plugin_version,
                         ardeck_plugin_web_socket_version,
                         plugin_id,
                     } => {
                         println!("Hello:\n\t{}", plugin_id);
 
-                        let data = PluginMessageData::Success {
+                        let data = PluginMessage::Success {
                             ardeck_studio_version: "0.1.4".to_string(),
                             ardeck_studio_web_socket_version: "0.0.1".to_string(),
                         };
@@ -203,7 +214,7 @@ async fn handle_connection(
                         plugin.get_mut(&plugin_id).unwrap().server_sink = Some(sink_arc.clone());
                     }
                     // PluginMessageData::Success { .. } => (),
-                    PluginMessageData::Message { .. } => (),
+                    PluginMessage::Message { .. } => (),
                     // PluginMessageData::Action { .. } => (),
                     _ => (),
                 }

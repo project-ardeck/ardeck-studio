@@ -30,12 +30,27 @@ const IDENTIFIER: &str = "com.ardeck.studio";
 
 impl Directories {
     #[cfg(feature = "portable")]
-    pub fn get_config_dir() -> std::io::Result<PathBuf> {
+    pub fn get_log_dir() -> std::io::Result<PathBuf> {
+        Ok(PathBuf::from("./").canonicalize()?.join("log"))
+    }
+
+    #[cfg(not(feature = "portable"))]
+    pub fn get_log_dir() -> std::io::Result<PathBuf> {
+        let path = match dirs::config_dir() {
+            Some(p) => p.canonicalize()?,
+            None => return Err(Error::new(std::io::ErrorKind::NotFound, "Config directory not found")),
+        };
+
+        Ok(path.join(IDENTIFIER).join("log"))
+    }
+
+    #[cfg(feature = "portable")]
+    pub fn get_settings_dir() -> std::io::Result<PathBuf> {
         Ok(PathBuf::from("./").canonicalize()?.join("config"))
     }
 
     #[cfg(not(feature = "portable"))]
-    pub fn get_config_dir() -> std::io::Result<PathBuf> {
+    pub fn get_settings_dir() -> std::io::Result<PathBuf> {
         let path = match dirs::config_dir() {
             Some(p) => p.canonicalize()?,
             None => return Err(Error::new(std::io::ErrorKind::NotFound, "Config directory not found")),

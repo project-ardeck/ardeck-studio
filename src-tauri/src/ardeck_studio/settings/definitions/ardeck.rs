@@ -54,7 +54,7 @@ impl SettingFile for ArdeckProfileConfigJSON {
 
     fn dir(&self) -> PathBuf {
         // TODO: Log
-        Directories::get_config_dir().unwrap()
+        Directories::get_settings_dir().unwrap()
     }
 }
 

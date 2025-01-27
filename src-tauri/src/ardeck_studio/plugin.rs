@@ -20,9 +20,11 @@ pub mod manager;
 pub mod server;
 pub mod tauri;
 
+use futures_util::SinkExt;
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use server::PluginServerSink;
+use tokio_tungstenite::tungstenite::{Message, Utf8Bytes};
 use std::sync::Arc;
 
 use tokio::{net::TcpStream, sync::Mutex};
@@ -60,10 +62,19 @@ impl Plugin {
         self.session = Some(session);
     }
 
-    pub async fn put_action(&mut self, action_id: String, action: SwitchInfo) {
+    /// アクションが発生したことをプラグインに通知する
+    pub async fn put_action(&mut self, action: Action) {
         if self.session.is_none() {
             // Error!: Plugin session has not started yet.
             return;
+        }
+
+        let data = PluginMessage::Action(action);
+
+        if let Some(server_sink) = self.server_sink.as_mut() {
+            server_sink.lock().await.send(Message::Text(Utf8Bytes::from(
+                &serde_json::to_string(&data).unwrap(),
+            ))).await.unwrap();
         }
 
         // let action_message = PluginMessage {
@@ -109,14 +120,14 @@ type PluginActionJSON = Vec<PluginAction>;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
-pub struct PluginMessage {
+struct PluginMessageContainer {
     pub op: PluginOpCode,
-    pub data: PluginMessageData,
+    pub data: PluginMessage,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
-#[serde(rename_all = "camelCase", tag = "op", content = "data")] // TODO: opが数字でなく文字列で変換されてしまう問題
-pub enum PluginMessageData {
+#[serde(rename_all = "camelCase", tag = "op", content = "data")]
+pub enum PluginMessage {
     #[serde(rename = "0")]
     Hello {
         // OP0: Hello

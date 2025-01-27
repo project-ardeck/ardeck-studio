@@ -75,5 +75,5 @@ pub async fn init<R: Runtime>() -> TauriPlugin<R> {
 
 pub async fn send_action_to_plugins(data: SwitchInfo) {
     // println!("Got push_action in plugin.tauri: {:?}", data);
-    PLUGIN_SERVER.lock().await.put_action(data);
+    PLUGIN_SERVER.lock().await.put_action(data).await;
 }

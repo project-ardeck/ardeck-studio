@@ -19,7 +19,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 use action_target::ActionTarget;
 use serde::{Deserialize, Serialize};
 
-use super::{settings::definitions::mapping_presets, switch_info::SwitchInfo};
+use super::{settings::{definitions::mapping_presets::{self, MappingPresetsJSON}, SettingsStore}, switch_info::SwitchInfo};
 
 pub mod action_map;
 pub mod action_target;
@@ -27,23 +27,46 @@ pub mod action_target;
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Action {
-    switch: SwitchInfo,
-    target: ActionTarget,
+    pub switch: SwitchInfo,
+    pub target: ActionTarget,
 }
 
 impl Action {
-    pub fn from_switch_info(switch: SwitchInfo) -> Self {
-        Action {
-            switch,
-            target: ActionTarget {
-                action_id: String::from("foo"),
-                plugin_id: String::from("bar"),
-            },
+    /// スイッチの情報から、そのスイッチが割り当てられているアクションを見つけ、ActionのVecを返す
+    pub async fn from_switch_info(switch: SwitchInfo) -> Vec<Self> {
+        let target = Self::search_action_target(switch.clone()).await;
+
+        let mut actions: Vec<Action> = Vec::new();
+
+        for t in target.iter() {
+            actions.push(Action {
+                switch: switch.clone(),
+                target: t.clone(),
+            });
         }
+
+        actions
     }
 
-    fn search_action_target(&self, switch_info: SwitchInfo) -> Option<ActionTarget> {
-        // let mapping_presets = mapping_presets::MappingPresetsJSON::new().load();
-        None
+    /// スイッチの情報から、そのスイッチが割り当てられているアクションを見つけ、Vec<ActionTarget>を返す
+    async fn search_action_target(switch_info: SwitchInfo) -> Vec<ActionTarget> {
+        let mapping_presets = MappingPresetsJSON::new().load().await.unwrap();
+        let mut target: Vec<ActionTarget> = Vec::new();
+
+        // switch_typeとswitch_idと一致するマッピングを探し、アクションのターゲットを返す
+        for preset in mapping_presets.iter() {
+
+            
+            for map in preset.mapping.iter() {
+                if map.switch_type == switch_info.switch_type && map.switch_id == switch_info.switch_id {
+                    target.push(ActionTarget {
+                        plugin_id: map.plugin_id.clone(),
+                        action_id: map.action_id.clone(),
+                    });
+                }
+            }
+        }
+
+        target
     }
 }

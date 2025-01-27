@@ -19,6 +19,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 use std::{collections::HashMap, fmt::Debug, io, path::{Path, PathBuf}};
 
 use cache::Cache;
+use chrono::DateTime;
 use once_cell::sync::Lazy;
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use struct_field_names_as_array::FieldNamesAsArray;
@@ -68,12 +69,16 @@ pub trait SettingsStore:
         }
     }
 
-    /// キャッシュを無視してファイルから直接読み込みます。
-    /// ここで読み込まれたデータもキャッシュに保存されます。
+    /// キャッシュを無視してファイルから直接読み込む。
+    /// ここで読み込まれたデータもキャッシュに保存される。
     async fn load_force(&mut self) -> Option<Self> {
         let file_path = self.file_path();
         let mut file = self.file_open(&file_path).await;
+
+        // ファイルが存在しない場合は空のデータをセーブする。
         if file.is_none() {
+            self.save().await;
+
             return Some(Self::default());
         }
 
@@ -94,12 +99,17 @@ pub trait SettingsStore:
         let mut file: Option<File> = None;
         let mut file_str = String::new();
 
+        let timestamp = chrono::Utc::now();
+
         if CACHE.lock().await.get(&file_path).is_none() {
             // キャッシュが存在しない場合は、新たに読み込んでキャッシュを作る
-            println!("load(cache is none): {}", file_path.display());
+            println!("[{:?}]load(cache is none): {}", timestamp, file_path.display());
             file = self.file_open(&file_path).await;
 
+            // ファイルが存在しない場合は空のデータをセーブする。
             if file.is_none() {
+                self.save().await;
+
                 return Some(Self::default());
             }
 
@@ -109,7 +119,7 @@ pub trait SettingsStore:
             CACHE.lock().await.add(file_path.clone(), file_str.clone(), false);
         } else if CACHE.lock().await.is_dirty(&file_path) {
             // キャッシュがファイルより古い可能性があるときは、新たに読み込んでキャッシュも更新する
-            println!("load(cache is dirty): {}", file_path.display());
+            println!("[{:?}]load(cache is dirty): {}", timestamp, file_path.display());
             file = self.file_open(&file_path).await;
             
             if file.is_none() {
@@ -125,7 +135,7 @@ pub trait SettingsStore:
                 .update_data(&file_path, file_str.clone());
         } else {
             // キャッシュが存在する場合は、キャッシュを読み込む
-            println!("load(from cache): {}", file_path.display());
+            println!("[{:?}]load(from cache): {}", timestamp, file_path.display());
             let cache = CACHE.lock().await.get_data(&file_path);
             file_str = cache.unwrap();
         };

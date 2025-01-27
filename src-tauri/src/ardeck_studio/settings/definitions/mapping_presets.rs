@@ -47,7 +47,7 @@ impl SettingFile for MappingPresetsJSON {
 
     fn dir(&self) -> std::path::PathBuf {
         // TODO: Log
-        Directories::get_config_dir().unwrap()
+        Directories::get_settings_dir().unwrap()
     }
 }
 
