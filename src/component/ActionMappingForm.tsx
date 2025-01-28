@@ -27,17 +27,13 @@ import {
 } from "react";
 import { makeUid, randomStr } from "../util/props";
 import { invoke } from "../tauri/invoke";
-import {
-    ActionMap,
-    defaultActionMap,
-    SwitchType,
-} from "../types/ardeck";
+import { ActionMap, defaultActionMap, SwitchType } from "../types/ardeck";
 import {
     defaultMappingPreset,
     MappingPreset,
     MappingPresetsJSON,
 } from "../types/settings";
-import { cloneDeep } from "lodash";
+import { cloneDeep, get } from "lodash";
 
 type ActionMapKey = "switchType" | "switchId" | "pluginId" | "actionId";
 type MappingList = Array<[string, string]>; // [uuid, presetName]
@@ -46,7 +42,8 @@ export default function ActionMappingForm() {
     const isInit = useRef(false);
     const reRender = useRef(0);
 
-    const mappingList = useRef<MappingList>([]);
+    /** ファイルから取得されたマッピングの一覧 */
+    const [mappingList, setMappingList] = useState<MappingList>([]);
 
     const [editTarget, setEditTarget] = useState<string>("");
     const [presetTmp, setPresetTmp] =
@@ -54,6 +51,11 @@ export default function ActionMappingForm() {
     const [newMappingTmp, setNewMappingTmp] =
         useState<ActionMap>(defaultActionMap);
 
+    const getMappingList = async () => {
+        return await invoke.settings.mappingPresets.getMappingList();
+    };
+
+    /** 選択されたプリセットのみを取り出し、編集用の変数に移す */
     const changeEditTarget = async (uuid: string) => {
         const mappingPreset =
             await invoke.settings.mappingPresets.getMappingPreset(uuid);
@@ -64,6 +66,7 @@ export default function ActionMappingForm() {
         setNewMappingTmp(defaultActionMap); // reset
     };
 
+    /** マッピングの項目に空白がなければtrue */
     const checkMappingComplete = (map: ActionMap): boolean => {
         return (
             // map.switchType !== SwitchType.Digital ||
@@ -72,10 +75,12 @@ export default function ActionMappingForm() {
         );
     };
 
+    /** プリセット名が空白でなければtrue */
     const checkPresetComplete = (preset: MappingPreset): boolean => {
         return /*preset.uuid !== "" && */ preset.presetName !== "";
     };
 
+    /** プリセットにマッピングを追加 */
     const commitToPresetTmp = (map: ActionMap /* newMappingTmp */) => {
         if (presetTmp) {
             if (!checkMappingComplete(map)) return;
@@ -92,6 +97,7 @@ export default function ActionMappingForm() {
         }
     };
 
+    /** 変更されたプリセットを保存 */
     const savePreset = async (preset: MappingPreset /* presetTmp */) => {
         if (presetTmp) {
             if (!checkPresetComplete(preset)) {
@@ -106,6 +112,7 @@ export default function ActionMappingForm() {
             setEditTarget(savedPreset.uuid);
             setPresetTmp(savedPreset);
             setNewMappingTmp(defaultActionMap); // reset
+            setMappingList(await getMappingList()); // refresh
         }
     };
 
@@ -123,10 +130,11 @@ export default function ActionMappingForm() {
         if (!isInit.current) {
             isInit.current = true;
 
+            // ファイルからマッピング一覧を取得
             const init = async () => {
-                mappingList.current =
-                    await invoke.settings.mappingPresets.getMappingList();
-                console.log("mappingList: ", mappingList.current);
+                const mappingList = await getMappingList();
+                setMappingList(mappingList);
+                console.log("mappingList: ", mappingList);
             };
 
             init();
@@ -147,10 +155,8 @@ export default function ActionMappingForm() {
                 }}
                 value={editTarget}
             >
-                <option value="">
-                    [new preset]
-                </option>
-                {mappingList.current.map((a) => {
+                <option value="">[new preset]</option>
+                {mappingList.map((a) => {
                     return (
                         <option key={a[0]} value={a[0]}>
                             <span>{a[1]}</span>
