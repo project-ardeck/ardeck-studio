@@ -17,16 +17,20 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 use std::fs::File;
+use std::io::{BufRead, Read};
 use std::net::SocketAddr;
 use std::path::Path;
+use std::sync::atomic::{self, AtomicBool};
 use std::sync::Arc;
 
+use env_logger::Env;
 use futures_util::stream::SplitSink;
 use futures_util::{SinkExt, StreamExt};
 use once_cell::sync::Lazy;
 use tokio::sync::Mutex;
 
 use tokio::net::{TcpListener, TcpStream};
+use tokio::sync::mpsc::channel;
 use tokio_tungstenite::tungstenite::Utf8Bytes;
 use tokio_tungstenite::WebSocketStream;
 use tokio_tungstenite::{accept_async, tungstenite::protocol::Message};
@@ -37,12 +41,9 @@ use crate::service::dir::Directories;
 
 use super::manager::PluginManager;
 
-use super::{
-    Plugin, PluginAction, PluginManifestJSON, PluginMessage, PluginOpCode,
-    PLUGIN_DIR,
-};
+use super::{Plugin, PluginAction, PluginManifestJSON, PluginMessage, PluginOpCode, PLUGIN_DIR};
 
-static PLUGIN_MANAGER: Lazy<Mutex<PluginManager>> = Lazy::new(|| Mutex::new(PluginManager::new()));
+// static PLUGIN_MANAGER: Lazy<Mutex<PluginManager>> = Lazy::new(|| Mutex::new(PluginManager::new()));
 
 pub type PluginServerSink = SplitSink<WebSocketStream<TcpStream>, Message>;
 
@@ -59,13 +60,20 @@ impl PluginServer {
         }
     }
 
-    pub async fn start(&mut self) -> Result<(), std::io::Error> {
-        println!("plugin1");
+    pub async fn start(&mut self) -> std::io::Result<()> {
         let plugin_manager = Arc::clone(&self.plugin_manager);
+
+        let (tx, mut rx) = channel::<bool>(100);
+
         // 接続待ち
         self.listener = Some(tokio::spawn(async move {
             let tcp = TcpListener::bind("127.0.0.1:6725").await.unwrap();
             println!("plugin server started.");
+
+            if let Err(_) = tx.send(true).await {
+                println!("[mpsc::channel]Failed to start plugin server.");
+                return;
+            }
 
             // 接続
             while let Ok((stream, _)) = tcp.accept().await {
@@ -79,7 +87,21 @@ impl PluginServer {
             }
         }));
 
-        Ok(())
+        while let Some(b) = rx.recv().await {
+            if b {
+                return Ok(());
+            } else {
+                return Err(std::io::Error::new(
+                    std::io::ErrorKind::Other,
+                    "Failed to start plugin server.",
+                ));
+            }
+        }
+
+        Err(std::io::Error::new(
+            std::io::ErrorKind::Other,
+            "Failed to start plugin server.",
+        ))
     }
 
     pub async fn execute_plugin_all(&self) {
@@ -92,7 +114,6 @@ impl PluginServer {
             }
         };
 
-
         for entry in dir {
             if entry.is_err() {
                 continue;
@@ -100,7 +121,7 @@ impl PluginServer {
             }
 
             let path = entry.unwrap().path();
-        
+
             if path.is_file() {
                 continue;
             }
@@ -109,7 +130,10 @@ impl PluginServer {
             let manifest_file = match File::open(path.clone().join("manifest.json")) {
                 Ok(file) => file,
                 Err(e) => {
-                    println!("Failed to open manifest.json: {}", path.join("manifest.json").display());
+                    println!(
+                        "Failed to open manifest.json: {}",
+                        path.join("manifest.json").display()
+                    );
                     println!("Failed to open manifest.json: {}", e);
                     continue;
                 }
@@ -124,47 +148,90 @@ impl PluginServer {
                 }
             };
 
-            let manifest: PluginManifestJSON =
-                serde_json::from_reader(manifest_file).unwrap();
-            let actions: Vec<PluginAction> =
-                serde_json::from_reader(actions_file).unwrap();
+            let manifest: PluginManifestJSON = serde_json::from_reader(manifest_file).unwrap();
+            let actions: Vec<PluginAction> = serde_json::from_reader(actions_file).unwrap();
 
             // プラグインの実行ファイルのパスを取得
             let plugin_main_path = path.clone().join(manifest.clone().main);
-            
+
+            println!("Found plugin [{}][{}]", &manifest.name, &manifest.main);
 
             // プラグインを実行
             let process = std::process::Command::new(plugin_main_path)
                 .arg("6725")
+                // .stdout(std::process::Stdio::piped())
+                // .stderr(std::process::Stdio::piped())
+                // .output()
                 .spawn()
                 .expect("Failed to execute plugin");
 
+            // let stdout = process.stdout.unwrap();
+            // let mut out_reader = std::io::BufReader::new(stdout);
+            // let mut err_reader = std::io::BufReader::new(process.stderr.unwrap());
+
+            // tokio::spawn(async move {
+            //     loop {
+            //         let mut line = String::new();
+            //         out_reader.read_line(&mut line).unwrap();
+            //         err_reader.read_line(&mut line).unwrap();
+            //         if line.is_empty() {
+            //             continue;
+            //         }
+            //         println!("Plugin stdout: {}", line);
+            //     }
+            // });
+
+            println!(
+                "\t[plugin.server]: plugin launched: {}, {}",
+                &manifest.name, &manifest.id
+            );
+
             // プラグイン情報とプロセスをマネージャーに登録
-            self.plugin_manager
-                .lock()
-                .await
-                .insert(
-                    manifest.clone().id,
-                    Plugin::new(manifest, actions, Arc::new(Mutex::new(process))),
-                )
-                .unwrap();
+            match self.plugin_manager.lock().await.insert(
+                manifest.id.clone(),
+                // Plugin::new(manifest, actions, Arc::new(Mutex::new(process))),
+                Plugin::new(manifest.clone(), actions),
+            ) {
+                None => (),
+                Some(_) => (),
+            }
+
+            println!("\t[plugin.server]: plugin registered: {}", &manifest.id);
         }
+
+        println!(
+            "[[plugin.server]]: plugins loaded: {}",
+            self.plugin_manager.lock().await.len()
+        );
     }
 
-    pub async fn put_action(&self, switch_info: SwitchInfo) {
+    pub async fn put_action(&mut self, switch_info: SwitchInfo) {
         // TODO: switch_typeとswitch_idからマッピングの設定を見つけ、そのプラグインに（あれば）put_actionする
-        
+
         let actions = Action::from_switch_info(switch_info).await;
+        println!("# actions");
 
         // actionsのtargetの中で、読み込まれているプラグインがあれば、プラグインに渡す
         for action in actions.iter() {
-            match PLUGIN_MANAGER.lock().await.get_mut(&action.target.plugin_id) {
+            println!("{:?}", action);
+            match self
+                .plugin_manager
+                .lock()
+                .await
+                .get_mut(&action.target.plugin_id)
+            {
                 Some(plugin) => {
-                    plugin.put_action(action.clone()).await; 
+                    // println!("\t[plugin.server]: put_action: {}", action.target.plugin_id);
+                    plugin.put_action(action.clone()).await;
                 }
-                None => (),
+                None => println!(
+                    "\t[plugin.server]: put_action: plugin not found: {}",
+                    action.target.plugin_id
+                ),
             }
         }
+
+        println!();
     }
 }
 
@@ -176,7 +243,7 @@ async fn handle_connection(
 ) {
     let ws_stream = accept_async(stream).await.expect("Failed to accept");
 
-    let (mut sink, mut stream) = ws_stream.split();
+    let (sink, mut stream) = ws_stream.split();
     let sink_arc = Arc::new(Mutex::new(sink));
 
     while let Some(msg) = stream.next().await {
@@ -211,7 +278,12 @@ async fn handle_connection(
                             .unwrap();
 
                         let mut plugin = plugin_manager.lock().await;
-                        plugin.get_mut(&plugin_id).unwrap().server_sink = Some(sink_arc.clone());
+                        plugin.get_mut(&plugin_id).unwrap().set_server_sink(sink_arc.clone());
+
+                        println!(
+                            "\t[plugin.server]: plugin session started: {}",
+                            plugin_id
+                        )
                     }
                     // PluginMessageData::Success { .. } => (),
                     PluginMessage::Message { .. } => (),

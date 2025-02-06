@@ -34,6 +34,7 @@ pub struct Action {
 impl Action {
     /// スイッチの情報から、そのスイッチが割り当てられているアクションを見つけ、ActionのVecを返す
     pub async fn from_switch_info(switch: SwitchInfo) -> Vec<Self> {
+        println!("# Action::from_switch_info\n\tswitch_state: {}", switch.switch_state);
         let target = Self::search_action_target(switch.clone()).await;
 
         let mut actions: Vec<Action> = Vec::new();

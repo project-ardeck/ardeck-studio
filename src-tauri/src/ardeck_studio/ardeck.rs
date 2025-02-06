@@ -24,8 +24,10 @@ use serialport::{self, SerialPort};
 
 use std::sync::{
     atomic::{AtomicBool, Ordering},
-    Arc, Mutex,
+    Arc
 };
+
+use tokio::sync::Mutex;
 
 use crate::ardeck_studio::switch_info::ActionDataParser;
 
@@ -70,8 +72,8 @@ impl Ardeck {
         ports
     }
 
-    pub fn is_continue(&self) -> bool {
-        self.continue_flag.lock().unwrap().load(Ordering::Relaxed)
+    pub async fn is_continue(&self) -> bool {
+        self.continue_flag.lock().await.load(Ordering::Relaxed)
     }
 
     pub fn continue_flag(&self) -> Arc<Mutex<AtomicBool>> {
@@ -86,10 +88,10 @@ impl Ardeck {
         Arc::clone(&self.port_data)
     }
 
-    pub fn close_requset(&self) {
+    pub async fn close_requset(&self) {
         self.continue_flag
             .lock()
-            .unwrap()
+            .await
             .store(false, Ordering::SeqCst)
     }
 }

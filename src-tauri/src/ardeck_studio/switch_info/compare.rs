@@ -37,27 +37,30 @@ impl ActionCompare {
     }
 
     pub fn put_action(&mut self, action: SwitchInfo) {
-        let switch_id = action.get_switch_id();
-        // if
-        if let Some(current_action) = self.actions.get(&switch_id) {
-            self.prev_actions.insert(switch_id, current_action.clone());
-        }
+        // let switch_id = action.get_switch_id();
+        // // if
+        // if let Some(current_action) = self.actions.get(&switch_id) {
+        //     self.prev_actions.insert(switch_id, current_action.clone());
+        // }
 
-        self.actions.insert(switch_id, action);
+        // self.actions.insert(switch_id, action);
 
-        self.compare(switch_id);
+        self.compare(action);
     }
 
-    fn compare(&self, switch_id: SwitchId) {
-        if let Some(prev_action) = self.prev_actions.get(&switch_id) {
-            let now_action = self.actions.get(&switch_id).unwrap();
-            if now_action.get_switch_state() != prev_action.get_switch_state() {
-                self.on_change_action_emit_all(now_action.clone());
+    fn compare(&mut self, new_switch_info: SwitchInfo) {
+        if let Some(prev_action) = self.prev_actions.get(&new_switch_info.get_switch_id()) {
+            if new_switch_info.get_switch_state() != prev_action.get_switch_state() {
+                println!("%%change state%%: {}", new_switch_info.get_switch_id());
+                self.on_change_action_emit_all(new_switch_info.clone());
+                self.prev_actions.insert(new_switch_info.get_switch_id(), new_switch_info);
             }
         } else {
-            let now_action = self.actions.get(&switch_id).unwrap();
-            self.on_change_action_emit_all(now_action.clone());
+            println!("%%new switch%%: {}", new_switch_info.get_switch_id());
+            self.on_change_action_emit_all(new_switch_info.clone());
+            self.prev_actions.insert(new_switch_info.get_switch_id(), new_switch_info);
         }
+
     }
 
     pub fn on_change_action<F: Fn(SwitchInfo) + Send + 'static>(&mut self, callback: F) {

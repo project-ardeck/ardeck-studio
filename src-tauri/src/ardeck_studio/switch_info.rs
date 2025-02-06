@@ -18,6 +18,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 pub mod compare;
 
+use std::future::Future;
+
 use compare::ActionCompare;
 use ::serde::{Deserialize, Serialize};
 use chrono::Utc;
@@ -330,7 +332,7 @@ impl ActionDataParser {
         self.put_challenge(data.clone()[0]);
     }
 
-    pub fn on_complete<F: Fn(SwitchInfo) + Send + 'static>(&mut self, callback: F) {
+    pub fn on_complete_action<F: Fn(SwitchInfo) + Send + 'static>(&mut self, callback: F) {
         self.on_correct_handler.push(Box::new(callback));
     }
 
@@ -352,5 +354,14 @@ impl ActionDataParser {
             // println!("On Correct! {}", Local.timestamp_millis_opt(time).unwrap());
             // println!("------------------------------------------------");
         }
+        // let on_correct_handler = self.on_correct_handler.clone();
+        // let action = action.clone();
+        
+        // tokio::spawn(async move {
+        //     for h in on_correct_handler.iter() {
+        //         let time = ActionDataParser::get_time_millis();
+        //         h(action.clone());
+        //     }
+        // });
     }
 }

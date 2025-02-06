@@ -37,7 +37,7 @@ pub static PLUGIN_DIR: &'static str = "./plugins";
 pub struct Plugin {
     pub manifest: PluginManifestJSON, //TODO: PluginManifest
     pub actions: PluginActionJSON,
-    pub process: Arc<Mutex<std::process::Child>>,
+    // pub process: Arc<Mutex<std::process::Child>>,
     pub session: Option<Arc<Mutex<TcpStream>>>,
     pub server_sink: Option<Arc<Mutex<PluginServerSink>>>,
 }
@@ -46,13 +46,13 @@ impl Plugin {
     pub fn new(
         manifest: PluginManifestJSON,
         actions: PluginActionJSON,
-        process: Arc<Mutex<std::process::Child>>,
+        // process: Arc<Mutex<std::process::Child>>,
         // session: Arc<Mutex<WebSocket>>
     ) -> Plugin {
         Plugin {
             manifest,
             actions,
-            process,
+            // process,
             session: None,
             server_sink: None,
         }
@@ -62,12 +62,17 @@ impl Plugin {
         self.session = Some(session);
     }
 
+    pub fn set_server_sink(&mut self, server_sink: Arc<Mutex<PluginServerSink>>) {
+        self.server_sink = Some(server_sink);
+    }
+
     /// アクションが発生したことをプラグインに通知する
     pub async fn put_action(&mut self, action: Action) {
-        if self.session.is_none() {
-            // Error!: Plugin session has not started yet.
-            return;
-        }
+        // if self.server_sink.is_none() {
+        //     // Error!: Plugin session has not started yet.
+        //     println!("Plugin session has not started yet.");
+        //     return;
+        // }
 
         let data = PluginMessage::Action(action);
 
@@ -75,25 +80,10 @@ impl Plugin {
             server_sink.lock().await.send(Message::Text(Utf8Bytes::from(
                 &serde_json::to_string(&data).unwrap(),
             ))).await.unwrap();
+        } else {
+            // Error!: Plugin session has not started yet.
+            println!("Plugin session has not started yet.");
         }
-
-        // let action_message = PluginMessage {
-        //     op: PluginOpCode::Action,
-        //     data: PluginMessageData::Action {
-        //         action_id,
-        //         action_data: ActionMap::from(action),
-        //     },
-        // };
-
-        // let action_str = serde_json::to_string(&action_message).unwrap();
-        // self.session
-        //     .as_mut()
-        //     .unwrap()
-        //     .lock()
-        //     .await
-        //     .send(axum::extract::ws::Message::Text(action_str))
-        //     .await
-        //     .unwrap();
     }
 }
 

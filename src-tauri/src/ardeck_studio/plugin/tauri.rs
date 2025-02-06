@@ -35,27 +35,24 @@ static PLUGIN_SERVER: Lazy<Mutex<PluginServer>> = Lazy::new(|| Mutex::new(Plugin
 async fn server_init() {
     println!("[init] server init");
 
-    let mut core = PLUGIN_SERVER.lock().await;
+    let mut server = PLUGIN_SERVER.lock().await;
     Directories::init(Directories::get_plugin_dir().unwrap()).unwrap();
 
-    match core.start().await {
+    match server.start().await {
         Ok(_) => {
             println!("[init] server started.");
+            server.execute_plugin_all().await;
         }
         Err(e) => println!("Failed to start plugin server: {}", e),
     };
-
-    core.execute_plugin_all().await;
 }
 
 pub async fn init<R: Runtime>() -> TauriPlugin<R> {
     println!("[init] plugin init");
-    let mut core = PLUGIN_SERVER.lock().await;
-    // let serve = core.start().await;
 
     Builder::new("ardeck-plugin")
         .setup(|app| {
-            tokio::spawn(async move {
+            tokio::spawn(async {
                 server_init().await;
             });
 
@@ -75,5 +72,7 @@ pub async fn init<R: Runtime>() -> TauriPlugin<R> {
 
 pub async fn send_action_to_plugins(data: SwitchInfo) {
     // println!("Got push_action in plugin.tauri: {:?}", data);
-    PLUGIN_SERVER.lock().await.put_action(data).await;
+    println!("# send_action_to_plugins\n\tswitch_id: {}\n\tswitch_state: {}", data.switch_id, data.switch_state);
+    PLUGIN_SERVER.lock().await.put_action(data.clone()).await;
+    println!("Locked");
 }
