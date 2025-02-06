@@ -37,6 +37,14 @@ use window_shadows::set_shadow;
 
 #[tokio::main]
 async fn main() {
+    // console_subscriber::init();
+
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
+        .filter_module("tokio_tungstenite", log::LevelFilter::Off) // ここでクレートのログレベルを設定します
+        .init();
+    
+    // print!("\x1B[2J\x1B[1;1H"); // ! コンソールをクリア
+
     // システムトレイアイコンの設定
     let hide = CustomMenuItem::new("hide".to_string(), "Hide");
     let quit = CustomMenuItem::new("quit".to_string(), "Quit");
@@ -46,10 +54,7 @@ async fn main() {
         .add_item(quit);
     let tray = SystemTray::new().with_menu(tray_menu);
 
-    let ardeck_manager: Mutex<HashMap<String, Ardeck>> = Mutex::new(HashMap::new());
-
     tauri::Builder::default()
-        .manage(ardeck_manager)
         .setup(|app| {
             let for_manage = app.app_handle();
             app.manage(Mutex::new(for_manage));
@@ -85,7 +90,7 @@ async fn main() {
             },
             _ => {}
         })
-        .plugin(tauri_plugin_log::Builder::default().target(LogTarget::Folder(dir::Directories::get_log_dir().unwrap())).build()) // TODO: default().taget(Folder(/* ディレクトリ */))
+        // .plugin(tauri_plugin_log::Builder::default().target(LogTarget::Folder(dir::Directories::get_log_dir().unwrap())).build()) // TODO: default().taget(Folder(/* ディレクトリ */))
         .plugin(ardeck_studio::ardeck::tauri::init())
         .plugin(ardeck_studio::plugin::tauri::init().await)
         .plugin(ardeck_studio::settings::tauri::init())
