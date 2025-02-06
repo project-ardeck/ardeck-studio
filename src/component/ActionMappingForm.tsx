@@ -40,14 +40,18 @@ type MappingList = Array<[string, string]>; // [uuid, presetName]
 
 export default function ActionMappingForm() {
     const isInit = useRef(false);
-    const reRender = useRef(0);
 
     /** ファイルから取得されたマッピングの一覧 */
     const [mappingList, setMappingList] = useState<MappingList>([]);
 
+    /** 編集するプリセットのUUID */
     const [editTarget, setEditTarget] = useState<string>("");
+
+    /** 編集中のプリセットの一時保存 */
     const [presetTmp, setPresetTmp] =
         useState<MappingPreset>(defaultMappingPreset);
+
+    /** 追加中のマッピングの一時保存 */
     const [newMappingTmp, setNewMappingTmp] =
         useState<ActionMap>(defaultActionMap);
 
@@ -59,7 +63,7 @@ export default function ActionMappingForm() {
     const changeEditTarget = async (uuid: string) => {
         const mappingPreset =
             await invoke.settings.mappingPresets.getMappingPreset(uuid);
-        console.log("mappingPreset: ", mappingPreset);
+        // console.log("mappingPreset: ", mappingPreset);
 
         setEditTarget(uuid);
         setPresetTmp(mappingPreset ?? defaultMappingPreset);
@@ -80,8 +84,16 @@ export default function ActionMappingForm() {
         return /*preset.uuid !== "" && */ preset.presetName !== "";
     };
 
+    // debug
+    useEffect(() => {
+        console.log(
+            `%c[Rerender] presetTmp`, "color: red",);
+    }, [presetTmp]);
+
     /** プリセットにマッピングを追加 */
-    const commitToPresetTmp = (map: ActionMap /* newMappingTmp */) => {
+    const addNewMapToPresetTmp = (map: ActionMap /* newMappingTmp */) => {
+        // TODO: ardeckに接続中にActionMapの追加が適用されない
+        console.log("%ccommitToPresetTmp%c", "color: red", "color: black", map);
         if (presetTmp) {
             if (!checkMappingComplete(map)) return;
 
@@ -94,6 +106,10 @@ export default function ActionMappingForm() {
             });
 
             setNewMappingTmp(defaultActionMap);
+
+            console.log("newMappingTmp: ", newMappingTmp);
+        } else {
+            console.log("presetTmp is null");
         }
     };
 
@@ -104,7 +120,7 @@ export default function ActionMappingForm() {
                 return;
             }
 
-            console.log("applyPreset", preset, checkPresetComplete(preset));
+            // console.log("applyPreset", preset, checkPresetComplete(preset));
             const savedPreset =
                 await invoke.settings.mappingPresets.saveMappingPreset(preset);
             // await
@@ -118,7 +134,6 @@ export default function ActionMappingForm() {
 
     // const saveNewPreset = (preset: MappingPreset /*newMappingTmp*/) => {}
 
-    reRender.current += 1;
     // console.log(
     //     `%c[${reRender.current}] render`,
     //     "color: red; font-weight: bold; font-size: 20px",
@@ -134,7 +149,7 @@ export default function ActionMappingForm() {
             const init = async () => {
                 const mappingList = await getMappingList();
                 setMappingList(mappingList);
-                console.log("mappingList: ", mappingList);
+                // console.log("mappingList: ", mappingList);
             };
 
             init();
@@ -151,7 +166,7 @@ export default function ActionMappingForm() {
                 className="w-full rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
                 onChange={(e) => {
                     changeEditTarget(e.target.value);
-                    console.log("setPresetTmp", presetTmp);
+                    // console.log("setPresetTmp", presetTmp);
                 }}
                 value={editTarget}
             >
@@ -171,11 +186,11 @@ export default function ActionMappingForm() {
                 */}
                 {presetTmp?.mapping.concat(newMappingTmp).map((a, i) => {
                     const isNew = presetTmp.mapping.length <= i;
-                    console.log(
-                        `${i}${isNew ? "[new]" : ""}: presetTmp`,
-                        a,
-                        checkMappingComplete(a),
-                    );
+                    // console.log(
+                    //     `${i}${isNew ? "[new]" : ""}: presetTmp`,
+                    //     a,
+                    //     checkMappingComplete(a),
+                    // );
 
                     return (
                         <div key={i} className="flex w-full gap-1">
@@ -313,10 +328,14 @@ export default function ActionMappingForm() {
                                 type="button"
                                 disabled={!checkMappingComplete(a)}
                                 onClick={() => {
+                                    console.log("--------------------------------------------")
+                                    console.log("onClick: add/remove", a);
                                     if (presetTmp) {
+                                        console.log("if (presetTmp)");
                                         if (isNew) {
+                                        console.log("if (isNew)");
                                             setPresetTmp((prev) => {
-                                                commitToPresetTmp(
+                                                addNewMapToPresetTmp(
                                                     newMappingTmp,
                                                 );
 

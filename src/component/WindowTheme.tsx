@@ -24,6 +24,7 @@ const themeList = [
     "fk-neon",
     // "kawaii-blue",
     "d1sc0rd-dark",
+    "party",
 ] as const;
 
 declare global {
