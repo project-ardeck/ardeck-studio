@@ -18,12 +18,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 pub mod compare;
 
-use std::future::Future;
-
-use compare::ActionCompare;
 use ::serde::{Deserialize, Serialize};
 use chrono::Utc;
-use serde_repr::{Deserialize_repr, Serialize_repr};
+use compare::ActionCompare;
 
 #[derive(Clone, Copy, Deserialize, Serialize, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
@@ -230,7 +227,6 @@ impl ActionDataParser {
             let switch_type = self.action_buf.get_switch_type();
 
             // print!("Switch-Type: {:?}", switch_type);
-            
 
             match switch_type {
                 SwitchType::Unknown => {
@@ -251,7 +247,7 @@ impl ActionDataParser {
                             self.action_raw_buf.push(_data);
 
                             // print!("\tCollect-Data-Digital");
-                            
+
                             // println!("{:08b}", _data);
                         }
                         SwitchType::Analog => {
@@ -343,10 +339,9 @@ impl ActionDataParser {
     fn on_complete_emit_all(&mut self, action: SwitchInfo) {
         self.countup_complete();
         self.compare.put_action(action.clone()); // on change actionのために
-        // println!("{:?}", action);
+                                                 // println!("{:?}", action);
 
         for h in self.on_correct_handler.iter() {
-            
             let time = Self::get_time_millis();
             // println!("Switch data: {:?}", data);
             // *h.as_mut()(data.clone());
@@ -356,7 +351,7 @@ impl ActionDataParser {
         }
         // let on_correct_handler = self.on_correct_handler.clone();
         // let action = action.clone();
-        
+
         // tokio::spawn(async move {
         //     for h in on_correct_handler.iter() {
         //         let time = ActionDataParser::get_time_millis();

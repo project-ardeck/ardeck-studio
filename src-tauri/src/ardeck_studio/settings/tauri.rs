@@ -16,19 +16,12 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::{
-    io::{BufReader, BufWriter},
-    path::PathBuf,
-    sync::Mutex,
-    vec,
-};
+use std::vec;
 
-use once_cell::sync::Lazy;
-use serde::{Deserialize, Serialize};
 use tauri::{
     generate_handler,
     plugin::{Builder, TauriPlugin},
-    Manager, Runtime, State,
+    Runtime,
 };
 use uuid::Uuid;
 
@@ -37,15 +30,10 @@ use crate::{
         action::action_map::ActionMap, settings::definitions::mapping_presets::MappingPreset,
         switch_info::SwitchType,
     },
-    service::{dir::{self, Directories}, file::{self, Files}},
+    service::dir::Directories,
 };
 
-use super::{
-    definitions::{
-        ardeck::ArdeckProfileConfigJSON,
-        mapping_presets::{self, MappingPresetsJSON},
-    }, SettingFile, SettingsStore, SettingsStoreError
-};
+use super::{definitions::mapping_presets::MappingPresetsJSON, SettingsStore};
 
 // Mapping presets
 
@@ -109,22 +97,17 @@ async fn save_mapping_preset<R: Runtime>(
             mapping_presets[i] = mapping_preset.clone();
 
             // println!("save_mapping_preset.data_change\n\tmapping_presets_json: {:#?}", mapping_presets_json.lock().unwrap());
-            println!(
-                "save_mapping_preset.data_change",
-            );
+            println!("save_mapping_preset.data_change",);
             println!("mapping_presets[after]: {:#?}", mapping_presets);
 
-            mapping_presets
-                .save()
-                .await;
+            mapping_presets.save().await;
         }
         // 存在しなければ、新規追加する
         None => {
             //TODO: add new mapping
             mapping_preset.uuid = Uuid::new_v4().to_string();
 
-            mapping_presets
-                .push(mapping_preset.clone());
+            mapping_presets.push(mapping_preset.clone());
 
             println!(
                 "save_mapping_preset.new_data",
@@ -132,19 +115,14 @@ async fn save_mapping_preset<R: Runtime>(
             );
             println!("mapping_presets[after]: {:#?}", mapping_presets);
 
-            mapping_presets
-                .save()
-                .await;
+            mapping_presets.save().await;
         }
     }
 
-    
     // println!("mapping_presets: {:#?}", mapping_presets);
 
     // mapping_presets_json.lock().unwrap()./*.unwrap()*/;
     // setting.save(&mapping_preset).await;
-
-    
 
     Ok(mapping_preset)
 }

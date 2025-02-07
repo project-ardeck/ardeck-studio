@@ -33,5 +33,3 @@ pub struct ActionMap {
     // アクションのID
     pub action_id: String,
 }
-
-struct Mapping {}

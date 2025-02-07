@@ -16,20 +16,20 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::{collections::HashMap, fmt::Debug, io, path::{Path, PathBuf}};
-
-use cache::Cache;
-use chrono::DateTime;
-use once_cell::sync::Lazy;
-use serde::{de::DeserializeOwned, Deserialize, Serialize};
-use struct_field_names_as_array::FieldNamesAsArray;
-use tokio::{
-    fs::File,
-    io::{AsyncReadExt, AsyncWriteExt, BufReader, BufWriter},
-    sync::Mutex,
+use std::{
+    fmt::Debug,
+    io,
+    path::{Path, PathBuf},
 };
 
-use crate::service::file::{self, Files};
+use cache::Cache;
+use once_cell::sync::Lazy;
+use serde::{de::DeserializeOwned, Serialize};
+use tokio::{
+    fs::File,
+    io::{AsyncReadExt, BufReader},
+    sync::Mutex,
+};
 
 pub mod cache;
 pub mod definitions;
@@ -56,8 +56,7 @@ static CACHE: Lazy<Mutex<Cache>> = Lazy::new(|| Mutex::new(Cache::new()));
 pub trait SettingsStore:
     Serialize + DeserializeOwned + Default + Clone + Send + Sync + SettingFile + Debug
 {
-    async fn file_open<P: AsRef<Path>>(&self, path: P) -> Option<File>
-    {
+    async fn file_open<P: AsRef<Path>>(&self, path: P) -> Option<File> {
         match File::open(path).await {
             Ok(file) => Some(file),
             Err(e) => match e.kind() {
@@ -103,7 +102,11 @@ pub trait SettingsStore:
 
         if CACHE.lock().await.get(&file_path).is_none() {
             // キャッシュが存在しない場合は、新たに読み込んでキャッシュを作る
-            println!("[{:?}]load(cache is none): {}", timestamp, file_path.display());
+            println!(
+                "[{:?}]load(cache is none): {}",
+                timestamp,
+                file_path.display()
+            );
             file = self.file_open(&file_path).await;
 
             // ファイルが存在しない場合は空のデータをセーブする。
@@ -116,12 +119,19 @@ pub trait SettingsStore:
             file.unwrap().read_to_string(&mut file_str).await.unwrap();
 
             // キャッシュを作る
-            CACHE.lock().await.add(file_path.clone(), file_str.clone(), false);
+            CACHE
+                .lock()
+                .await
+                .add(file_path.clone(), file_str.clone(), false);
         } else if CACHE.lock().await.is_dirty(&file_path) {
             // キャッシュがファイルより古い可能性があるときは、新たに読み込んでキャッシュも更新する
-            println!("[{:?}]load(cache is dirty): {}", timestamp, file_path.display());
+            println!(
+                "[{:?}]load(cache is dirty): {}",
+                timestamp,
+                file_path.display()
+            );
             file = self.file_open(&file_path).await;
-            
+
             if file.is_none() {
                 return Some(Self::default());
             }
@@ -129,10 +139,7 @@ pub trait SettingsStore:
             file.unwrap().read_to_string(&mut file_str).await.unwrap();
 
             // キャッシュを更新する
-            CACHE
-                .lock()
-                .await
-                .update_data(&file_path, file_str.clone());
+            CACHE.lock().await.update_data(&file_path, file_str.clone());
         } else {
             // キャッシュが存在する場合は、キャッシュを読み込む
             println!("[{:?}]load(from cache): {}", timestamp, file_path.display());

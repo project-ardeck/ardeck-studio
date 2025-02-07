@@ -18,21 +18,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-// mod ardeck_serial;
-// mod ardeck_data;
 
 mod ardeck_studio;
 mod service;
 
-use std::{collections::HashMap, sync::Mutex};
+use std::sync::Mutex;
 
-use ardeck_studio::ardeck::Ardeck;
-
-use service::dir;
 use tauri::{
     CustomMenuItem, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem,
 };
-use tauri_plugin_log::LogTarget;
 use window_shadows::set_shadow;
 
 #[tokio::main]
@@ -42,7 +36,7 @@ async fn main() {
     env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
         .filter_module("tokio_tungstenite", log::LevelFilter::Off) // ここでクレートのログレベルを設定します
         .init();
-    
+
     // print!("\x1B[2J\x1B[1;1H"); // ! コンソールをクリア
 
     // システムトレイアイコンの設定

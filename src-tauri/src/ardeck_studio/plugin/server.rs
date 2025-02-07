@@ -17,16 +17,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 use std::fs::File;
-use std::io::{BufRead, Read};
 use std::net::SocketAddr;
-use std::path::Path;
-use std::sync::atomic::{self, AtomicBool};
 use std::sync::Arc;
 
-use env_logger::Env;
 use futures_util::stream::SplitSink;
 use futures_util::{SinkExt, StreamExt};
-use once_cell::sync::Lazy;
 use tokio::sync::Mutex;
 
 use tokio::net::{TcpListener, TcpStream};
@@ -41,7 +36,7 @@ use crate::service::dir::Directories;
 
 use super::manager::PluginManager;
 
-use super::{Plugin, PluginAction, PluginManifestJSON, PluginMessage, PluginOpCode, PLUGIN_DIR};
+use super::{Plugin, PluginAction, PluginManifestJSON, PluginMessage};
 
 // static PLUGIN_MANAGER: Lazy<Mutex<PluginManager>> = Lazy::new(|| Mutex::new(PluginManager::new()));
 
@@ -278,12 +273,12 @@ async fn handle_connection(
                             .unwrap();
 
                         let mut plugin = plugin_manager.lock().await;
-                        plugin.get_mut(&plugin_id).unwrap().set_server_sink(sink_arc.clone());
+                        plugin
+                            .get_mut(&plugin_id)
+                            .unwrap()
+                            .set_server_sink(sink_arc.clone());
 
-                        println!(
-                            "\t[plugin.server]: plugin session started: {}",
-                            plugin_id
-                        )
+                        println!("\t[plugin.server]: plugin session started: {}", plugin_id)
                     }
                     // PluginMessageData::Success { .. } => (),
                     PluginMessage::Message { .. } => (),

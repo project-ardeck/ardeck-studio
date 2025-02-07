@@ -24,12 +24,12 @@ use futures_util::SinkExt;
 use serde::{Deserialize, Serialize};
 use serde_repr::{Deserialize_repr, Serialize_repr};
 use server::PluginServerSink;
-use tokio_tungstenite::tungstenite::{Message, Utf8Bytes};
 use std::sync::Arc;
+use tokio_tungstenite::tungstenite::{Message, Utf8Bytes};
 
 use tokio::{net::TcpStream, sync::Mutex};
 
-use super::{action::Action, switch_info::SwitchInfo};
+use super::action::Action;
 
 pub static PLUGIN_DIR: &'static str = "./plugins";
 
@@ -77,9 +77,14 @@ impl Plugin {
         let data = PluginMessage::Action(action);
 
         if let Some(server_sink) = self.server_sink.as_mut() {
-            server_sink.lock().await.send(Message::Text(Utf8Bytes::from(
-                &serde_json::to_string(&data).unwrap(),
-            ))).await.unwrap();
+            server_sink
+                .lock()
+                .await
+                .send(Message::Text(Utf8Bytes::from(
+                    &serde_json::to_string(&data).unwrap(),
+                )))
+                .await
+                .unwrap();
         } else {
             // Error!: Plugin session has not started yet.
             println!("Plugin session has not started yet.");

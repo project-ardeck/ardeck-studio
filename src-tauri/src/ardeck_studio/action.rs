@@ -19,7 +19,10 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 use action_target::ActionTarget;
 use serde::{Deserialize, Serialize};
 
-use super::{settings::{definitions::mapping_presets::{self, MappingPresetsJSON}, SettingsStore}, switch_info::SwitchInfo};
+use super::{
+    settings::{definitions::mapping_presets::MappingPresetsJSON, SettingsStore},
+    switch_info::SwitchInfo,
+};
 
 pub mod action_map;
 pub mod action_target;
@@ -34,7 +37,10 @@ pub struct Action {
 impl Action {
     /// スイッチの情報から、そのスイッチが割り当てられているアクションを見つけ、ActionのVecを返す
     pub async fn from_switch_info(switch: SwitchInfo) -> Vec<Self> {
-        println!("# Action::from_switch_info\n\tswitch_state: {}", switch.switch_state);
+        println!(
+            "# Action::from_switch_info\n\tswitch_state: {}",
+            switch.switch_state
+        );
         let target = Self::search_action_target(switch.clone()).await;
 
         let mut actions: Vec<Action> = Vec::new();
@@ -56,10 +62,10 @@ impl Action {
 
         // switch_typeとswitch_idと一致するマッピングを探し、アクションのターゲットを返す
         for preset in mapping_presets.iter() {
-
-            
             for map in preset.mapping.iter() {
-                if map.switch_type == switch_info.switch_type && map.switch_id == switch_info.switch_id {
+                if map.switch_type == switch_info.switch_type
+                    && map.switch_id == switch_info.switch_id
+                {
                     target.push(ActionTarget {
                         plugin_id: map.plugin_id.clone(),
                         action_id: map.action_id.clone(),

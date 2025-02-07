@@ -21,9 +21,10 @@ use std::path::PathBuf;
 use serde::{Deserialize, Serialize};
 use struct_field_names_as_array::FieldNamesAsArray;
 
-use crate::{ardeck_studio::settings::{SettingFile, SettingsStore}, service::dir::Directories};
-
-use super::ardeck_studio::ArdeckStudioConfigJSON;
+use crate::{
+    ardeck_studio::settings::{SettingFile, SettingsStore},
+    service::dir::Directories,
+};
 
 #[derive(Debug, Serialize, Deserialize, Clone, FieldNamesAsArray)]
 #[serde(rename_all = "camelCase")]
@@ -44,7 +45,7 @@ pub struct ArdeckProfileConfigItem {
 }
 
 // setting! {
-    pub type ArdeckProfileConfigJSON = Vec<ArdeckProfileConfigItem>;
+pub type ArdeckProfileConfigJSON = Vec<ArdeckProfileConfigItem>;
 // }
 
 impl SettingFile for ArdeckProfileConfigJSON {

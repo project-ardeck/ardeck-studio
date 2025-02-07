@@ -54,7 +54,7 @@ impl Ardeck {
         let port = serialport::new(port_name, baud_rate).open();
 
         match port {
-            Ok(mut port) => {
+            Ok(port) => {
                 println!("Port Opened.");
                 Ok(Ardeck {
                     continue_flag: Arc::new(Mutex::new(AtomicBool::new(true))),

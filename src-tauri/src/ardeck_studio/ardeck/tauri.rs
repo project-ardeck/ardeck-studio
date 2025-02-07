@@ -16,20 +16,14 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::{
-    io,
-    os::windows::thread,
-    sync::{atomic::AtomicBool, Arc},
-    thread::park_timeout,
-    time::Duration,
-};
-use tokio::sync::Mutex;
 use once_cell::sync::Lazy;
 use serialport::{SerialPort, SerialPortInfo};
+use std::{io, sync::Arc, time::Duration};
 use tauri::{
     plugin::{Builder, TauriPlugin},
     Manager, Runtime,
 };
+use tokio::sync::Mutex;
 
 use crate::ardeck_studio::plugin;
 
@@ -195,17 +189,24 @@ async fn open_port<R: Runtime>(
             // let atomic_bool = Arc::new(Mutex::new(AtomicBool::new(false)));
 
             // let atomic_bool_spawn = atomic_bool.clone();
-            tokio::spawn(async move { // TODO
-            // thread::spawn(move || {
+            tokio::spawn(async move {
+                // TODO
+                // thread::spawn(move || {
 
-                println!("# Ardeck::on_change_action/tokio::spawn\n\tswitch_id: {}\n\tswitch_state: {}", data.switch_id, data.switch_state);
+                println!(
+                    "# Ardeck::on_change_action/tokio::spawn\n\tswitch_id: {}\n\tswitch_state: {}",
+                    data.switch_id, data.switch_state
+                );
 
-            //     // app.emit_all("on-change-serial", data.clone()).unwrap();
+                //     // app.emit_all("on-change-serial", data.clone()).unwrap();
                 plugin::tauri::send_action_to_plugins(data.clone()).await;
 
-            //     // atomic_bool_spawn.lock().unwrap().store(true, std::sync::atomic::Ordering::SeqCst);
-                println!("----- send_action_to_plugins end -----\tswitch_id: {}\n", data.switch_id);
-            //     // tx.send(true).unwrap();
+                //     // atomic_bool_spawn.lock().unwrap().store(true, std::sync::atomic::Ordering::SeqCst);
+                println!(
+                    "----- send_action_to_plugins end -----\tswitch_id: {}\n",
+                    data.switch_id
+                );
+                //     // tx.send(true).unwrap();
             });
 
             // rx.recv().unwrap();
