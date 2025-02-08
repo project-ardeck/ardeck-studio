@@ -85,15 +85,12 @@ export default function ActionMappingForm() {
     };
 
     // debug
-    useEffect(() => {
-        console.log(
-            `%c[Rerender] presetTmp`, "color: red",);
-    }, [presetTmp]);
+    // useEffect(() => {
+    //     console.log(`%c[Rerender] presetTmp`, "color: red");
+    // }, [presetTmp]);
 
     /** プリセットにマッピングを追加 */
     const addNewMapToPresetTmp = (map: ActionMap /* newMappingTmp */) => {
-        // TODO: ardeckに接続中にActionMapの追加が適用されない
-        console.log("%ccommitToPresetTmp%c", "color: red", "color: black", map);
         if (presetTmp) {
             if (!checkMappingComplete(map)) return;
 
@@ -105,6 +102,7 @@ export default function ActionMappingForm() {
                 };
             });
 
+            // 入力欄をクリアする
             setNewMappingTmp(defaultActionMap);
 
             console.log("newMappingTmp: ", newMappingTmp);
@@ -328,19 +326,15 @@ export default function ActionMappingForm() {
                                 type="button"
                                 disabled={!checkMappingComplete(a)}
                                 onClick={() => {
-                                    console.log("--------------------------------------------")
-                                    console.log("onClick: add/remove", a);
+                                    // console.log(
+                                    //     "--------------------------------------------",
+                                    // );
+                                    // console.log("onClick: add/remove", a);
                                     if (presetTmp) {
-                                        console.log("if (presetTmp)");
+                                        // console.log("if (presetTmp)");
                                         if (isNew) {
-                                        console.log("if (isNew)");
-                                            setPresetTmp((prev) => {
-                                                addNewMapToPresetTmp(
-                                                    newMappingTmp,
-                                                );
-
-                                                return prev;
-                                            });
+                                            // console.log("if (isNew)");
+                                            addNewMapToPresetTmp(newMappingTmp);
                                         } else {
                                             setPresetTmp((prev) => {
                                                 if (!prev) return prev;
