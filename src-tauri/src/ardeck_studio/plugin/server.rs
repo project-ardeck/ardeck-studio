@@ -258,8 +258,9 @@ async fn handle_connection(
                     } => {
                         println!("Hello:\n\t{}", plugin_id);
 
+                        // TODO: tauri.conf.jsonからのバージョン情報の取得
                         let data = PluginMessage::Success {
-                            ardeck_studio_version: "0.1.4".to_string(),
+                            ardeck_studio_version: "0.2.0".to_string(),
                             ardeck_studio_web_socket_version: "0.0.1".to_string(),
                         };
 
