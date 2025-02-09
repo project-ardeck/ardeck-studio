@@ -1,6 +1,6 @@
 /*
 Ardeck studio - The ardeck command mapping software.
-Copyright (C) 2024 project-ardeck
+Copyright (C) 2024 Project Ardeck
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -20,9 +20,8 @@ use serde::{Deserialize, Serialize};
 use struct_field_names_as_array::FieldNamesAsArray;
 
 use crate::{
-    ardeck_studio::{action::map::ActionMap, settings::Settings},
+    ardeck_studio::{action::action_map::ActionMap, settings::{SettingFile, SettingsStore}},
     service::dir::Directories,
-    setting,
 };
 
 #[derive(Debug, Serialize, Deserialize, Clone, FieldNamesAsArray)]
@@ -37,17 +36,19 @@ pub struct MappingPreset {
     pub mapping: Vec<ActionMap>,
 }
 
-setting! {
-    pub type MappingPresetsJSON = Vec<MappingPreset>;
-}
+// setting! {
+pub type MappingPresetsJSON = Vec<MappingPreset>;
+// }
 
-impl Settings for MappingPresetsJSON {
+impl SettingFile for MappingPresetsJSON {
     fn name(&self) -> &'static str {
         "mapping_presets"
     }
 
     fn dir(&self) -> std::path::PathBuf {
         // TODO: Log
-        Directories::get_config_dir().unwrap()
+        Directories::get_settings_dir().unwrap()
     }
 }
+
+impl SettingsStore for MappingPresetsJSON {}

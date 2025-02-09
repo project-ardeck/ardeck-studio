@@ -1,0 +1,27 @@
+{
+    "id": "party",
+    "name": "Let's Party",
+    "author": "akuRakuu",
+
+    "base": "dark",
+
+    "colors": {
+        "bg-titlebar": [255, 31, 34],
+        
+        "bg-primary": [30, 255, 34],
+        "bg-secondary": [43, 45, 255],
+        "bg-tertiary": [49, 255, 56],
+        "bg-quaternary": [56, 58, 255],
+
+        "text-primary": [242, 255, 245],
+        "text-reverse": [255, 255, 10],
+
+        "accent-primary": [88, 101, 242],
+        "accent-secondary": [235, 255, 158],
+
+        "accent-positive": [255, 255, 135],
+        "accent-caution": [255, 231, 92],
+        "accent-negative": [237, 66, 255],
+        "accent-link": [88, 255, 242]
+    }
+}

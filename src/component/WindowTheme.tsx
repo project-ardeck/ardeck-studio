@@ -1,6 +1,6 @@
 /*
 Ardeck studio - The ardeck command mapping software.
-Copyright (C) 2024 project-ardeck
+Copyright (C) 2024 Project Ardeck
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,6 +24,7 @@ const themeList = [
     "fk-neon",
     // "kawaii-blue",
     "d1sc0rd-dark",
+    "party",
 ] as const;
 
 declare global {

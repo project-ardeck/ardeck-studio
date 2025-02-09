@@ -1,6 +1,6 @@
 /*
 Ardeck studio - The ardeck command mapping software.
-Copyright (C) 2024 project-ardeck
+Copyright (C) 2024 Project Ardeck
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -27,43 +27,50 @@ import {
 } from "react";
 import { makeUid, randomStr } from "../util/props";
 import { invoke } from "../tauri/invoke";
-import {
-    ActionMap,
-    defaultActionMap,
-    SwitchType,
-} from "../types/ardeck";
+import { ActionMap, defaultActionMap, SwitchType } from "../types/ardeck";
 import {
     defaultMappingPreset,
     MappingPreset,
     MappingPresetsJSON,
 } from "../types/settings";
-import { cloneDeep } from "lodash";
+import { cloneDeep, get } from "lodash";
 
 type ActionMapKey = "switchType" | "switchId" | "pluginId" | "actionId";
 type MappingList = Array<[string, string]>; // [uuid, presetName]
 
 export default function ActionMappingForm() {
     const isInit = useRef(false);
-    const reRender = useRef(0);
 
-    const mappingList = useRef<MappingList>([]);
+    /** ファイルから取得されたマッピングの一覧 */
+    const [mappingList, setMappingList] = useState<MappingList>([]);
 
+    /** 編集するプリセットのUUID */
     const [editTarget, setEditTarget] = useState<string>("");
+
+    /** 編集中のプリセットの一時保存 */
     const [presetTmp, setPresetTmp] =
         useState<MappingPreset>(defaultMappingPreset);
+
+    /** 追加中のマッピングの一時保存 */
     const [newMappingTmp, setNewMappingTmp] =
         useState<ActionMap>(defaultActionMap);
 
+    const getMappingList = async () => {
+        return await invoke.settings.mappingPresets.getMappingList();
+    };
+
+    /** 選択されたプリセットのみを取り出し、編集用の変数に移す */
     const changeEditTarget = async (uuid: string) => {
         const mappingPreset =
             await invoke.settings.mappingPresets.getMappingPreset(uuid);
-        console.log("mappingPreset: ", mappingPreset);
+        // console.log("mappingPreset: ", mappingPreset);
 
         setEditTarget(uuid);
         setPresetTmp(mappingPreset ?? defaultMappingPreset);
         setNewMappingTmp(defaultActionMap); // reset
     };
 
+    /** マッピングの項目に空白がなければtrue */
     const checkMappingComplete = (map: ActionMap): boolean => {
         return (
             // map.switchType !== SwitchType.Digital ||
@@ -72,11 +79,18 @@ export default function ActionMappingForm() {
         );
     };
 
+    /** プリセット名が空白でなければtrue */
     const checkPresetComplete = (preset: MappingPreset): boolean => {
         return /*preset.uuid !== "" && */ preset.presetName !== "";
     };
 
-    const commitToPresetTmp = (map: ActionMap /* newMappingTmp */) => {
+    // debug
+    // useEffect(() => {
+    //     console.log(`%c[Rerender] presetTmp`, "color: red");
+    // }, [presetTmp]);
+
+    /** プリセットにマッピングを追加 */
+    const addNewMapToPresetTmp = (map: ActionMap /* newMappingTmp */) => {
         if (presetTmp) {
             if (!checkMappingComplete(map)) return;
 
@@ -88,17 +102,23 @@ export default function ActionMappingForm() {
                 };
             });
 
+            // 入力欄をクリアする
             setNewMappingTmp(defaultActionMap);
+
+            console.log("newMappingTmp: ", newMappingTmp);
+        } else {
+            console.log("presetTmp is null");
         }
     };
 
+    /** 変更されたプリセットを保存 */
     const savePreset = async (preset: MappingPreset /* presetTmp */) => {
         if (presetTmp) {
             if (!checkPresetComplete(preset)) {
                 return;
             }
 
-            console.log("applyPreset", preset, checkPresetComplete(preset));
+            // console.log("applyPreset", preset, checkPresetComplete(preset));
             const savedPreset =
                 await invoke.settings.mappingPresets.saveMappingPreset(preset);
             // await
@@ -106,27 +126,28 @@ export default function ActionMappingForm() {
             setEditTarget(savedPreset.uuid);
             setPresetTmp(savedPreset);
             setNewMappingTmp(defaultActionMap); // reset
+            setMappingList(await getMappingList()); // refresh
         }
     };
 
     // const saveNewPreset = (preset: MappingPreset /*newMappingTmp*/) => {}
 
-    reRender.current += 1;
-    console.log(
-        `%c[${reRender.current}] render`,
-        "color: red; font-weight: bold; font-size: 20px",
-        presetTmp,
-        newMappingTmp,
-    );
+    // console.log(
+    //     `%c[${reRender.current}] render`,
+    //     "color: red; font-weight: bold; font-size: 20px",
+    //     presetTmp,
+    //     newMappingTmp,
+    // );
 
     useEffect(() => {
         if (!isInit.current) {
             isInit.current = true;
 
+            // ファイルからマッピング一覧を取得
             const init = async () => {
-                mappingList.current =
-                    await invoke.settings.mappingPresets.getMappingList();
-                console.log("mappingList: ", mappingList.current);
+                const mappingList = await getMappingList();
+                setMappingList(mappingList);
+                // console.log("mappingList: ", mappingList);
             };
 
             init();
@@ -143,14 +164,12 @@ export default function ActionMappingForm() {
                 className="w-full rounded-md bg-bg-quaternary px-4 py-2 text-text-primary"
                 onChange={(e) => {
                     changeEditTarget(e.target.value);
-                    console.log("setPresetTmp", presetTmp);
+                    // console.log("setPresetTmp", presetTmp);
                 }}
                 value={editTarget}
             >
-                <option value="">
-                    [new preset]
-                </option>
-                {mappingList.current.map((a) => {
+                <option value="">[new preset]</option>
+                {mappingList.map((a) => {
                     return (
                         <option key={a[0]} value={a[0]}>
                             <span>{a[1]}</span>
@@ -165,11 +184,11 @@ export default function ActionMappingForm() {
                 */}
                 {presetTmp?.mapping.concat(newMappingTmp).map((a, i) => {
                     const isNew = presetTmp.mapping.length <= i;
-                    console.log(
-                        `${i}${isNew ? "[new]" : ""}: presetTmp`,
-                        a,
-                        checkMappingComplete(a),
-                    );
+                    // console.log(
+                    //     `${i}${isNew ? "[new]" : ""}: presetTmp`,
+                    //     a,
+                    //     checkMappingComplete(a),
+                    // );
 
                     return (
                         <div key={i} className="flex w-full gap-1">
@@ -307,15 +326,15 @@ export default function ActionMappingForm() {
                                 type="button"
                                 disabled={!checkMappingComplete(a)}
                                 onClick={() => {
+                                    // console.log(
+                                    //     "--------------------------------------------",
+                                    // );
+                                    // console.log("onClick: add/remove", a);
                                     if (presetTmp) {
+                                        // console.log("if (presetTmp)");
                                         if (isNew) {
-                                            setPresetTmp((prev) => {
-                                                commitToPresetTmp(
-                                                    newMappingTmp,
-                                                );
-
-                                                return prev;
-                                            });
+                                            // console.log("if (isNew)");
+                                            addNewMapToPresetTmp(newMappingTmp);
                                         } else {
                                             setPresetTmp((prev) => {
                                                 if (!prev) return prev;

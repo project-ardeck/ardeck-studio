@@ -1,6 +1,6 @@
 /*
 Ardeck studio - The ardeck command mapping software.
-Copyright (C) 2024 project-ardeck
+Copyright (C) 2024 Project Ardeck
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -18,15 +18,11 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-// mod ardeck_serial;
-// mod ardeck_data;
 
 mod ardeck_studio;
 mod service;
 
-use std::{collections::HashMap, sync::Mutex};
-
-use ardeck_studio::ardeck::Ardeck;
+use std::sync::Mutex;
 
 use tauri::{
     CustomMenuItem, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem,
@@ -35,6 +31,14 @@ use window_shadows::set_shadow;
 
 #[tokio::main]
 async fn main() {
+    // console_subscriber::init();
+
+    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
+        .filter_module("tokio_tungstenite", log::LevelFilter::Off) // ここでクレートのログレベルを設定します
+        .init();
+
+    // print!("\x1B[2J\x1B[1;1H"); // ! コンソールをクリア
+
     // システムトレイアイコンの設定
     let hide = CustomMenuItem::new("hide".to_string(), "Hide");
     let quit = CustomMenuItem::new("quit".to_string(), "Quit");
@@ -44,10 +48,7 @@ async fn main() {
         .add_item(quit);
     let tray = SystemTray::new().with_menu(tray_menu);
 
-    let ardeck_manager: Mutex<HashMap<String, Ardeck>> = Mutex::new(HashMap::new());
-
     tauri::Builder::default()
-        .manage(ardeck_manager)
         .setup(|app| {
             let for_manage = app.app_handle();
             app.manage(Mutex::new(for_manage));
@@ -83,7 +84,7 @@ async fn main() {
             },
             _ => {}
         })
-        .plugin(tauri_plugin_log::Builder::default().build()) // TODO: default().taget(Folder(/* ディレクトリ */))
+        // .plugin(tauri_plugin_log::Builder::default().target(LogTarget::Folder(dir::Directories::get_log_dir().unwrap())).build()) // TODO: default().taget(Folder(/* ディレクトリ */))
         .plugin(ardeck_studio::ardeck::tauri::init())
         .plugin(ardeck_studio::plugin::tauri::init().await)
         .plugin(ardeck_studio::settings::tauri::init())

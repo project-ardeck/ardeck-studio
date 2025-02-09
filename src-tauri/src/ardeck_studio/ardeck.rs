@@ -1,6 +1,6 @@
 /*
 Ardeck studio - The ardeck command mapping software.
-Copyright (C) 2024 project-ardeck
+Copyright (C) 2024 Project Ardeck
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -24,10 +24,12 @@ use serialport::{self, SerialPort};
 
 use std::sync::{
     atomic::{AtomicBool, Ordering},
-    Arc, Mutex,
+    Arc
 };
 
-use crate::ardeck_studio::action::ActionDataParser;
+use tokio::sync::Mutex;
+
+use crate::ardeck_studio::switch_info::ActionDataParser;
 
 #[derive(Clone)]
 pub struct Ardeck {
@@ -52,7 +54,7 @@ impl Ardeck {
         let port = serialport::new(port_name, baud_rate).open();
 
         match port {
-            Ok(mut port) => {
+            Ok(port) => {
                 println!("Port Opened.");
                 Ok(Ardeck {
                     continue_flag: Arc::new(Mutex::new(AtomicBool::new(true))),
@@ -70,8 +72,8 @@ impl Ardeck {
         ports
     }
 
-    pub fn is_continue(&self) -> bool {
-        self.continue_flag.lock().unwrap().load(Ordering::Relaxed)
+    pub async fn is_continue(&self) -> bool {
+        self.continue_flag.lock().await.load(Ordering::Relaxed)
     }
 
     pub fn continue_flag(&self) -> Arc<Mutex<AtomicBool>> {
@@ -86,10 +88,10 @@ impl Ardeck {
         Arc::clone(&self.port_data)
     }
 
-    pub fn close_requset(&self) {
+    pub async fn close_request(&self) {
         self.continue_flag
             .lock()
-            .unwrap()
+            .await
             .store(false, Ordering::SeqCst)
     }
 }

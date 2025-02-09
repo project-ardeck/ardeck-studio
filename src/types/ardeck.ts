@@ -1,6 +1,6 @@
 /*
 Ardeck studio - The ardeck command mapping software.
-Copyright (C) 2024 project-ardeck
+Copyright (C) 2024 Project Ardeck
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -71,12 +71,21 @@ export type OnMessageSerial = {
     timestamp: number;
 };
 
-export type Action = {
+export type SwitchInfo = {
     switchType: SwitchType;
     switchId: number;
     switchState: number;
-    rawValue: number[];
     timestamp: number;
+}
+
+export type ActionTarget = {
+    actionId: string;
+    pluginId: string;
+}
+
+export type Action = {
+    switch: SwitchInfo;
+    target: ActionTarget;
 };
 
 export type serialPortState = {

@@ -1,6 +1,6 @@
 /*
 Ardeck studio - The ardeck command mapping software.
-Copyright (C) 2024 project-ardeck
+Copyright (C) 2024 Project Ardeck
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -19,5 +19,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 pub mod ardeck;
 pub mod plugin;
-pub mod action;
+pub mod switch_info;
 pub mod settings;
+pub mod action;

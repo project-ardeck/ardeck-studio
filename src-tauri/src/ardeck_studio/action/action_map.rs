@@ -1,6 +1,6 @@
 /*
 Ardeck studio - The ardeck command mapping software.
-Copyright (C) 2024 project-ardeck
+Copyright (C) 2024 Project Ardeck
 
 This program is free software; you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -18,7 +18,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use serde::{Deserialize, Serialize};
 
-use super::{SwitchId, SwitchType};
+use crate::ardeck_studio::switch_info::{SwitchId, SwitchType};
+
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
@@ -32,5 +33,3 @@ pub struct ActionMap {
     // アクションのID
     pub action_id: String,
 }
-
-struct Mapping {}
