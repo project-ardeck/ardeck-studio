@@ -88,7 +88,7 @@ impl Ardeck {
         Arc::clone(&self.port_data)
     }
 
-    pub async fn close_requset(&self) {
+    pub async fn close_request(&self) {
         self.continue_flag
             .lock()
             .await

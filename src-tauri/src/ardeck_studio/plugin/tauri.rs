@@ -33,7 +33,19 @@ async fn server_init() {
     println!("[init] server init");
 
     let mut server = PLUGIN_SERVER.lock().await;
-    Directories::init(Directories::get_plugin_dir().unwrap()).unwrap();
+    // Directories::init(Directories::get_plugin_dir().unwrap()).unwrap();
+    let plugin_dir = match Directories::get_plugin_dir() {
+        Ok(dir) => dir,
+        Err(e) => {
+            println!("[init] Failed to get plugin dir: {}", e);
+            return;
+        }
+    };
+
+    if let Err(e) = Directories::init(plugin_dir) {
+        println!("[init] Failed to init plugin dir: {}", e);
+        return;
+    };
 
     match server.start().await {
         Ok(_) => {

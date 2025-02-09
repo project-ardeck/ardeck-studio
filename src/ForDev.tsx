@@ -433,6 +433,7 @@ export default function ForDev() {
 
                         return (
                             <div
+                                key={pin}
                                 className={`${className} relative mb-1 flex place-content-between items-center rounded-md border-2 px-4 transition-colors`}
                             >
                                 <div className="z-10">

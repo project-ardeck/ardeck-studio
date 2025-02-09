@@ -111,7 +111,7 @@ async fn close_port<R: Runtime>(_app: tauri::AppHandle<R>, port_name: &str) -> R
     // 要求されたデバイスの処理継続フラグを折る
     match ARDECK_MANAGER.lock().await.get_mut(port_name) {
         Some(a) => {
-            a.close_requset().await;
+            a.close_request().await;
 
             return Ok(200);
         }
