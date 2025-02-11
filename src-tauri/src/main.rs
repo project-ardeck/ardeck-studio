@@ -22,20 +22,39 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 mod ardeck_studio;
 mod service;
 
-use std::sync::Mutex;
+use std::{path::PathBuf, sync::Mutex};
 
+use service::dir::Directories;
 use tauri::{
     CustomMenuItem, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem,
 };
+use tokio::fs::File;
 use window_shadows::set_shadow;
 
 #[tokio::main]
 async fn main() {
-    // console_subscriber::init();
+    // TODO: ロガーの初期化時のエラーハンドリング
 
-    env_logger::Builder::from_env(env_logger::Env::default().default_filter_or("info"))
-        .filter_module("tokio_tungstenite", log::LevelFilter::Off) // ここでクレートのログレベルを設定します
-        .init();
+    // ログファイルの作成
+    let log_file_path = format!("{}/{}.log", Directories::get_log_dir().unwrap().display(), chrono::Local::now().format("%Y-%m-%d-%H-%M-%S"));         
+    let log_file = File::create(&log_file_path).await.unwrap();
+
+    // ログの設定
+    fern::Dispatch::new()
+    .format(|out, message, record| {
+        out.finish(format_args!(
+            "[{}][{}][{}]: {}",
+            chrono::Local::now().format("%Y-%m-%d %H:%M:%S%.3f"),
+            record.level(),
+            record.target(),
+            message
+        ));
+    })
+    .chain(std::io::stdout())
+    .chain(fern::log_file(PathBuf::from(log_file_path)).unwrap())
+    .level_for("tokio_tungstenite", log::LevelFilter::Off)
+    .apply()
+    .unwrap();
 
     // print!("\x1B[2J\x1B[1;1H"); // ! コンソールをクリア
 
