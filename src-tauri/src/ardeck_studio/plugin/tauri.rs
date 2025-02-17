@@ -30,35 +30,33 @@ use super::server::PluginServer;
 static PLUGIN_SERVER: Lazy<Mutex<PluginServer>> = Lazy::new(|| Mutex::new(PluginServer::new()));
 
 async fn server_init() {
-    println!("[init] server init");
+    log::info!("Initializing plugin server...");
 
     let mut server = PLUGIN_SERVER.lock().await;
     // Directories::init(Directories::get_plugin_dir().unwrap()).unwrap();
     let plugin_dir = match Directories::get_plugin_dir() {
         Ok(dir) => dir,
         Err(e) => {
-            println!("[init] Failed to get plugin dir: {}", e);
+            log::error!("[init] Failed to get plugin dir: {}", e);
             return;
         }
     };
 
     if let Err(e) = Directories::init(plugin_dir) {
-        println!("[init] Failed to init plugin dir: {}", e);
+        log::error!("[init] Failed to init plugin dir: {}", e);
         return;
     };
 
     match server.start().await {
         Ok(_) => {
-            println!("[init] server started.");
+            log::info!("Plugin server started.");
             server.execute_plugin_all().await;
         }
-        Err(e) => println!("Failed to start plugin server: {}", e),
+        Err(e) => log::error!("Failed to start plugin server: {}", e),
     };
 }
 
 pub async fn init<R: Runtime>() -> TauriPlugin<R> {
-    println!("[init] plugin init");
-
     Builder::new("ardeck-plugin")
         .setup(|app| {
             tokio::spawn(async {
@@ -67,24 +65,9 @@ pub async fn init<R: Runtime>() -> TauriPlugin<R> {
 
             Ok(())
         })
-        .on_event(|app, event| match event {
-            RunEvent::Ready => {
-                println!("[init] ready");
-                // tokio::spawn(async {
-                //     server_init().await;
-                // });
-            }
-            _ => {}
-        })
         .build()
 }
 
 pub async fn send_action_to_plugins(data: SwitchInfo) {
-    // println!("Got push_action in plugin.tauri: {:?}", data);
-    println!(
-        "# send_action_to_plugins\n\tswitch_id: {}\n\tswitch_state: {}",
-        data.switch_id, data.switch_state
-    );
     PLUGIN_SERVER.lock().await.put_action(data.clone()).await;
-    println!("Locked");
 }

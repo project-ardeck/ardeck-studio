@@ -37,7 +37,7 @@ pub struct Action {
 impl Action {
     /// スイッチの情報から、そのスイッチが割り当てられているアクションを見つけ、ActionのVecを返す
     pub async fn from_switch_info(switch: SwitchInfo) -> Vec<Self> {
-        println!(
+        log::trace!(
             "# Action::from_switch_info\n\tswitch_state: {}",
             switch.switch_state
         );

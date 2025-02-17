@@ -31,30 +31,56 @@ use tauri::{
 use tokio::fs::File;
 use window_shadows::set_shadow;
 
-#[tokio::main]
-async fn main() {
+async fn init_logger() {
     // TODO: ロガーの初期化時のエラーハンドリング
 
-    // ログファイルの作成
-    let log_file_path = format!("{}/{}.log", Directories::get_log_dir().unwrap().display(), chrono::Local::now().format("%Y-%m-%d-%H-%M-%S"));         
-    let log_file = File::create(&log_file_path).await.unwrap();
+    let log_file_path = format!(
+        "{}/{}.log",
+        Directories::get_log_dir().unwrap().display(),
+        chrono::Local::now().format("%Y-%m-%d-%H-%M-%S")
+    );
+    File::create(&log_file_path).await.unwrap();
 
-    // ログの設定
-    fern::Dispatch::new()
-    .format(|out, message, record| {
-        out.finish(format_args!(
-            "[{}][{}][{}]: {}",
-            chrono::Local::now().format("%Y-%m-%d %H:%M:%S%.3f"),
-            record.level(),
-            record.target(),
-            message
-        ));
-    })
-    .chain(std::io::stdout())
-    .chain(fern::log_file(PathBuf::from(log_file_path)).unwrap())
-    .level_for("tokio_tungstenite", log::LevelFilter::Off)
-    .apply()
-    .unwrap();
+    let base_config = fern::Dispatch::new();
+
+    // TODO: debugやtraceは、コンフィグ次第で出力できるようにする
+    let stdout_config = fern::Dispatch::new()
+        .level(log::LevelFilter::Info)
+        .chain(std::io::stdout())
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "[{}][{}][{}][{:?}] {}",
+                chrono::Local::now().format("%Y-%m-%d %H:%M:%S%.3f"),
+                record.level(),
+                record.target(),
+                record.module_path(),
+                message
+            ));
+        });
+    let file_config = fern::Dispatch::new()
+        .level(log::LevelFilter::Info)
+        .chain(fern::log_file(PathBuf::from(log_file_path)).unwrap())
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "[{}][{}][{}] {}",
+                chrono::Local::now().format("%Y-%m-%d %H:%M:%S%.3f"),
+                record.level(),
+                record.target(),
+                message
+            ));
+        });
+
+    base_config
+        .chain(stdout_config)
+        .chain(file_config)
+        .apply()
+        .unwrap();
+}
+
+#[tokio::main]
+async fn main() {
+    init_logger().await;
+    log::info!("Ardeck Studio v{}", env!("CARGO_PKG_VERSION"));
 
     // print!("\x1B[2J\x1B[1;1H"); // ! コンソールをクリア
 

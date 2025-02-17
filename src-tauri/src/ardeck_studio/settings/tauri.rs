@@ -48,7 +48,7 @@ async fn get_mapping_list<R: Runtime>(
         .map(|a| (a.uuid.clone(), a.preset_name.clone()))
         .collect();
 
-    // println!("get_mapping_list\n\tmapping_presets_json: {:#?}", mapping_presets_json.lock().unwrap());
+    log::trace!("get_mapping_list: {:#?}", list);
 
     Ok(list)
 }
@@ -59,19 +59,20 @@ async fn get_mapping_preset<R: Runtime>(
     // mapping_presets_json: State<'_, Mutex<MappingPresetsJSON>>,
     uuid: &str,
 ) -> Result<Option<MappingPreset>, String> {
-    println!("get_mapping_preset: {}", uuid);
+    log::trace!("get_mapping_preset: {}", uuid);
 
-    // println!("get_mapping_preset\n\tmapping_presets_json: {:#?}", mapping_presets_json.lock().unwrap());
+    log::trace!("get_mapping_preset.uuid: {}", uuid);
 
     let mapping_presets = MappingPresetsJSON::new().load().await.unwrap();
     for a in mapping_presets.iter() {
-        println!("\tuuid: {}", a.uuid);
+        log::trace!("\tuuid: {}", a.uuid);
+
         if a.uuid == uuid.to_string() {
-            println!("\tfound.");
+            log::trace!("\tfound.");
             return Ok(Some(a.clone()));
         }
     }
-    println!("\tnot found.");
+    log::trace!("\tnot found.");
     Ok(None)
 }
 
@@ -82,10 +83,9 @@ async fn save_mapping_preset<R: Runtime>(
     mut mapping_preset: MappingPreset,
 ) -> Result<MappingPreset, String> {
     let mut mapping_presets = MappingPresetsJSON::new().load().await.unwrap();
-    println!("mapping_presets[before]: {:#?}", mapping_presets);
+    log::trace!("save_mapping_preset: {:#?}", mapping_preset);
 
-    // println!("save_mapping_preset\n\tmapping_presets_json: {:#?}\n\tmapping_preset: {:#?}", mapping_presets_json.lock().unwrap(), mapping_preset);
-    println!("save_mapping_preset.uuid: {}", mapping_preset.uuid);
+    log::trace!("save_mapping_preset.uuid: {}", mapping_preset.uuid);
 
     // すでに存在するかを確認する
     let index = mapping_presets
@@ -96,9 +96,8 @@ async fn save_mapping_preset<R: Runtime>(
         Some(i) => {
             mapping_presets[i] = mapping_preset.clone();
 
-            // println!("save_mapping_preset.data_change\n\tmapping_presets_json: {:#?}", mapping_presets_json.lock().unwrap());
-            println!("save_mapping_preset.data_change",);
-            println!("mapping_presets[after]: {:#?}", mapping_presets);
+            log::trace!("save_mapping_preset.data_change");
+            log::trace!("mapping_presets[after]: {:#?}", mapping_presets);
 
             mapping_presets.save().await;
         }
@@ -109,20 +108,12 @@ async fn save_mapping_preset<R: Runtime>(
 
             mapping_presets.push(mapping_preset.clone());
 
-            println!(
-                "save_mapping_preset.new_data",
-                // mapping_presets_json.lock().unwrap()
-            );
-            println!("mapping_presets[after]: {:#?}", mapping_presets);
+            log::trace!("save_mapping_preset.new_data");
+            log::trace!("mapping_presets[after]: {:#?}", mapping_presets);
 
             mapping_presets.save().await;
         }
     }
-
-    // println!("mapping_presets: {:#?}", mapping_presets);
-
-    // mapping_presets_json.lock().unwrap()./*.unwrap()*/;
-    // setting.save(&mapping_preset).await;
 
     Ok(mapping_preset)
 }
@@ -136,41 +127,6 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
         .setup(|app| {
             // TODO: get_config_dir() log
             Directories::init(Directories::get_settings_dir().unwrap()).unwrap();
-            // app.manage(Mutex::new(MappingPresetsJSON::new()));
-
-            let sample_data = MappingPreset {
-                uuid: Uuid::new_v4().to_string(),
-                preset_name: "sample".to_string(),
-
-                mapping: vec![
-                    ActionMap {
-                        switch_type: SwitchType::Digital,
-                        switch_id: 1,
-                        plugin_id: "sample_plugin".to_string(),
-                        action_id: "sample_action_1".to_string(),
-                    },
-                    ActionMap {
-                        switch_type: SwitchType::Digital,
-                        switch_id: 2,
-                        plugin_id: "sample_plugin".to_string(),
-                        action_id: "sample_action_2".to_string(),
-                    },
-                    ActionMap {
-                        switch_type: SwitchType::Analog,
-                        switch_id: 3,
-                        plugin_id: "sample_plugin".to_string(),
-                        action_id: "sample_action_3".to_string(),
-                    },
-                ],
-            };
-
-            // let mut mapping = MAPPING_PRESETS.load();
-            // // TODO: グローバル変数やめる
-            // if mapping.is_empty() {
-            //     mapping.push(sample_data);
-            // }
-
-            // mapping.save();
 
             Ok(())
         })
