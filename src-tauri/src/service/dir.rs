@@ -26,52 +26,32 @@ use std::{
 
 pub struct Directories {}
 
-const IDENTIFIER: &str = "com.ardeck.studio";
-
 impl Directories {
     #[cfg(feature = "portable")]
+    pub fn get_confing_dir() -> std::io::Result<PathBuf> {
+        Ok(PathBuf::from("./").canonicalize()?)
+    }
+
+    #[cfg(not(feature = "portable"))]
+    pub fn get_confing_dir() -> std::io::Result<PathBuf> {
+        let path = match dirs::config_dir() {
+            Some(p) => p.canonicalize()?,
+            None => return Err(Error::new(std::io::ErrorKind::NotFound, "Config directory not found")),
+        };
+
+        Ok(path.join(tauri::generate_context!().config().tauri.bundle.identifier.clone()))
+    }
+    
     pub fn get_log_dir() -> std::io::Result<PathBuf> {
-        Ok(PathBuf::from("./").canonicalize()?.join("logs"))
+        Ok(Self::get_confing_dir()?.join("logs"))
     }
 
-    #[cfg(not(feature = "portable"))]
-    pub fn get_log_dir() -> std::io::Result<PathBuf> {
-        let path = match dirs::config_dir() {
-            Some(p) => p.canonicalize()?,
-            None => return Err(Error::new(std::io::ErrorKind::NotFound, "Config directory not found")),
-        };
-
-        Ok(path.join(IDENTIFIER).join("logs"))
-    }
-
-    #[cfg(feature = "portable")]
     pub fn get_settings_dir() -> std::io::Result<PathBuf> {
-        Ok(PathBuf::from("./").canonicalize()?.join("config"))
+        Ok(Self::get_confing_dir()?.join("config"))
     }
 
-    #[cfg(not(feature = "portable"))]
-    pub fn get_settings_dir() -> std::io::Result<PathBuf> {
-        let path = match dirs::config_dir() {
-            Some(p) => p.canonicalize()?,
-            None => return Err(Error::new(std::io::ErrorKind::NotFound, "Config directory not found")),
-        };
-
-        Ok(path.join(IDENTIFIER).join("config"))
-    }
-
-    #[cfg(feature = "portable")]
     pub fn get_plugin_dir() -> std::io::Result<PathBuf> {
-        Ok(PathBuf::from("./").canonicalize()?.join("plugins"))
-    }
-
-    #[cfg(not(feature = "portable"))]
-    pub fn get_plugin_dir() -> std::io::Result<PathBuf> {
-        let path = match dirs::config_dir() {
-            Some(p) => p.canonicalize()?,
-            None => return Err(Error::new(std::io::ErrorKind::NotFound, "Config directory not found")),
-        };
-
-        Ok(path.join(IDENTIFIER).join("plugins"))
+        Ok(Self::get_confing_dir()?.join("plugins"))
     }
 
     pub fn init<P: AsRef<Path>>(path: P) -> Result<(), Error> {

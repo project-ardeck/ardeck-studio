@@ -22,7 +22,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 mod ardeck_studio;
 mod service;
 
-use std::{path::PathBuf, sync::Mutex, time::SystemTime};
+use std::time::SystemTime;
 
 use fern::colors::ColoredLevelConfig;
 use service::dir::Directories;
@@ -141,16 +141,17 @@ async fn main() {
 
     tauri::Builder::default()
         .setup(|app| {
-            let for_manage = app.app_handle();
-            app.manage(Mutex::new(for_manage));
-
             let window = app.get_window("main").unwrap();
             window.show().unwrap();
 
             #[cfg(any(windows, target_os = "macos"))]
             set_shadow(window, true).unwrap(); // Windowに影や角丸などの装飾を施す
 
-            log::info!("Ardeck Studio {}", app.package_info().version.to_string());
+            log::info!(
+                "{} {}",
+                app.config().tauri.bundle.identifier,
+                app.package_info().version.to_string()
+            );
 
             Ok(())
         })
