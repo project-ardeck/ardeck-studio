@@ -46,9 +46,10 @@ async fn close<R: Runtime>(app: tauri::AppHandle<R>, port_name: &str) {
     let mut ardeck_manager = ARDECK_MANAGER.lock().await;
     ardeck_manager.remove(port_name);
 
+    // TODO: DELETE
     app.emit_all("on-close-serial", port_name).unwrap();
 
-    println!("[{}] closed.", port_name);
+    log::info!("closed: {}", port_name);
 }
 
 async fn get_port(port_name: &str) -> io::Result<Arc<Mutex<Box<dyn SerialPort>>>> {
@@ -92,10 +93,7 @@ async fn port_read<R: Runtime>(app: tauri::AppHandle<R>, port_name: &str) {
                     port_data.lock().await.put_data(serial_buf);
                 }
                 Err(kind) => {
-                    println!(
-                        "[{}] Connection error. Connection stoped.\nKind: {}",
-                        &port_name, kind
-                    );
+                    log::error!("Connection error. Connection stoped.\nKind: {}", kind);
                     close(app.app_handle(), &port_name).await;
 
                     break;
@@ -130,10 +128,10 @@ async fn open_port<R: Runtime>(
     baud_rate: u32,
 ) -> Result<u32, u32> {
     // print!("\x1B[2J\x1B[1;1H"); // ! コンソールをクリア
-    println!("[{}] plugin:ardeck|open_port", port_name);
+    log::info!("Ardeck Connect Request: {}", port_name);
     // 接続済みのポートならば何もしない
     if ARDECK_MANAGER.lock().await.get(port_name).is_some() {
-        println!("[{}] Already Opened.", port_name);
+        log::warn!("[{}] Already Opened.", port_name);
         return Err(501);
     }
 
@@ -141,7 +139,7 @@ async fn open_port<R: Runtime>(
     let ardeck = match Ardeck::open(port_name, baud_rate) {
         Ok(f) => f,
         Err(_e) => {
-            println!("Open Error !!!!!! {}", port_name);
+            log::error!("Open Error: {}", port_name);
 
             return Err(500);
         }
@@ -163,8 +161,7 @@ async fn open_port<R: Runtime>(
         .lock()
         .await
         .on_complete_action(move |data| {
-            // println!("\n\n[] ardeck.portdata.on_complete\n\n");
-            // println!("\tdata: {:#?}", data);
+            log::trace!("# Ardeck::on_complete_action\n\tdata: {:#?}", data);
 
             app_for_data
                 .emit_all("on-message-serial", data.clone())
@@ -178,11 +175,10 @@ async fn open_port<R: Runtime>(
         .lock()
         .await
         .on_change_action(move |data| {
-            // println!("\n\n[] ardeck.portdata.on-change: {:?}\n\n", data);
-
-            println!(
+            log::trace!(
                 "# Ardeck::on_change_action\n\tswitch_id: {}\n\tswitch_state: {}",
-                data.switch_id, data.switch_state
+                data.switch_id,
+                data.switch_state
             );
 
             // let (tx, mut rx) = std::sync::mpsc::channel::<bool>();
@@ -191,33 +187,19 @@ async fn open_port<R: Runtime>(
             // let atomic_bool_spawn = atomic_bool.clone();
             tokio::spawn(async move {
                 // TODO
-                // thread::spawn(move || {
 
-                println!(
-                    "# Ardeck::on_change_action/tokio::spawn\n\tswitch_id: {}\n\tswitch_state: {}",
-                    data.switch_id, data.switch_state
-                );
+                // println!(
+                //     "# Ardeck::on_change_action/tokio::spawn\n\tswitch_id: {}\n\tswitch_state: {}",
+                //     data.switch_id, data.switch_state
+                // );
 
-                //     // app.emit_all("on-change-serial", data.clone()).unwrap();
                 plugin::tauri::send_action_to_plugins(data.clone()).await;
 
-                //     // atomic_bool_spawn.lock().unwrap().store(true, std::sync::atomic::Ordering::SeqCst);
-                println!(
-                    "----- send_action_to_plugins end -----\tswitch_id: {}\n",
-                    data.switch_id
-                );
-                //     // tx.send(true).unwrap();
+                // println!(
+                //     "----- send_action_to_plugins end -----\tswitch_id: {}\n",
+                //     data.switch_id
+                // );
             });
-
-            // rx.recv().unwrap();
-
-            // loop {
-            //     if atomic_bool.lock().unwrap().load(std::sync::atomic::Ordering::SeqCst) {
-            //         break;
-            //     }
-            // }
-
-            println!("----- on_change_action end -----\n");
         });
 
     // マネージャーにデバイスを追加
@@ -235,8 +217,8 @@ async fn open_port<R: Runtime>(
 }
 
 fn serial_watch<R: Runtime>(tauri_app: tauri::AppHandle<R>) {
-    println!("serial.watch");
     let refresh_fps = 1000 / 4;
+    log::info!("Serial port watching: {}ms", refresh_fps);
 
     tokio::spawn(async move {
         let mut last_ports: Vec<SerialPortInfo> = Vec::new();
@@ -245,13 +227,12 @@ fn serial_watch<R: Runtime>(tauri_app: tauri::AppHandle<R>) {
             let ports = serialport::available_ports().unwrap();
 
             if last_ports.clone() != ports.clone() {
-                println!("serial.watch");
+                log::info!("Ports list changed: {:?}", ports);
                 tauri_app.emit_all("on-ports", ports.clone()).unwrap();
             }
 
             last_ports = ports;
 
-            // park_timeout(Duration::from_millis(refresh_fps));
             tokio::time::sleep(Duration::from_millis(refresh_fps)).await;
         }
     });
@@ -260,13 +241,13 @@ fn serial_watch<R: Runtime>(tauri_app: tauri::AppHandle<R>) {
 // ポートの一覧を取得する
 #[tauri::command]
 fn get_ports() -> Vec<serialport::SerialPortInfo> {
-    println!("get_ports");
     let ports = serialport::available_ports().unwrap();
-    println!("got.");
     ports
 }
 
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
+    log::info!("Initializing Ardeck Tauri Plugin");
+
     Builder::new("ardeck")
         .invoke_handler(tauri::generate_handler![
             open_port,

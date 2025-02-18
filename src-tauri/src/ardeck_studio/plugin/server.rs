@@ -60,32 +60,37 @@ impl PluginServer {
 
         let (tx, mut rx) = channel::<bool>(100);
 
-        // 接続待ち
+        // 起動
         self.listener = Some(tokio::spawn(async move {
+            // TODO: ポート番号を設定可能にする
             let tcp = TcpListener::bind("127.0.0.1:6725").await.unwrap();
-            println!("plugin server started.");
 
+            // 起動失敗
             if let Err(_) = tx.send(true).await {
-                println!("[mpsc::channel]Failed to start plugin server.");
                 return;
             }
 
-            // 接続
+            log::trace!("listening on {}", tcp.local_addr().unwrap());
+
+            // 接続待ち
             while let Ok((stream, _)) = tcp.accept().await {
                 let peer = stream
                     .peer_addr()
                     .expect("connected streams should have a peer address");
 
-                println!("Peer address: {}", peer);
-
                 tokio::spawn(handle_connection(peer, stream, plugin_manager.clone()));
             }
         }));
 
+        // 起動待ち
         while let Some(b) = rx.recv().await {
             if b {
+                log::trace!("plugin server OK.");
+
                 return Ok(());
             } else {
+                log::trace!("plugin server failed.");
+
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::Other,
                     "Failed to start plugin server.",
@@ -93,6 +98,7 @@ impl PluginServer {
             }
         }
 
+        log::error!("Failed to start plugin server.");
         Err(std::io::Error::new(
             std::io::ErrorKind::Other,
             "Failed to start plugin server.",
@@ -100,11 +106,12 @@ impl PluginServer {
     }
 
     pub async fn execute_plugin_all(&self) {
-        // let dir = Directories::get_or_init(Path::new(PLUGIN_DIR)).unwrap();
+        log::info!("Executing plugin all...");
+
         let dir = match Directories::get(Directories::get_plugin_dir().unwrap()) {
             Ok(read_dir) => read_dir,
             Err(_) => {
-                println!("[plugin.core]: plugins dir is not found");
+                log::error!("Failed to get plugin dir.");
                 return;
             }
         };
@@ -125,11 +132,8 @@ impl PluginServer {
             let manifest_file = match File::open(path.clone().join("manifest.json")) {
                 Ok(file) => file,
                 Err(e) => {
-                    println!(
-                        "Failed to open manifest.json: {}",
-                        path.join("manifest.json").display()
-                    );
-                    println!("Failed to open manifest.json: {}", e);
+                    log::error!("Failed to open manifest.json: {}", e);
+
                     continue;
                 }
             };
@@ -138,7 +142,8 @@ impl PluginServer {
             let actions_file = match File::open(path.clone().join("actions.json")) {
                 Ok(file) => file,
                 Err(e) => {
-                    println!("Failed to open actions.json: {}", e);
+                    log::error!("Failed to open actions.json: {}", e);
+
                     continue;
                 }
             };
@@ -149,37 +154,13 @@ impl PluginServer {
             // プラグインの実行ファイルのパスを取得
             let plugin_main_path = path.clone().join(manifest.clone().main);
 
-            println!("Found plugin [{}][{}]", &manifest.name, &manifest.main);
+            log::info!("Executing plugin: {}", &manifest.name);
 
             // プラグインを実行
             let process = std::process::Command::new(plugin_main_path)
                 .arg("6725")
-                // .stdout(std::process::Stdio::piped())
-                // .stderr(std::process::Stdio::piped())
-                // .output()
                 .spawn()
                 .expect("Failed to execute plugin");
-
-            // let stdout = process.stdout.unwrap();
-            // let mut out_reader = std::io::BufReader::new(stdout);
-            // let mut err_reader = std::io::BufReader::new(process.stderr.unwrap());
-
-            // tokio::spawn(async move {
-            //     loop {
-            //         let mut line = String::new();
-            //         out_reader.read_line(&mut line).unwrap();
-            //         err_reader.read_line(&mut line).unwrap();
-            //         if line.is_empty() {
-            //             continue;
-            //         }
-            //         println!("Plugin stdout: {}", line);
-            //     }
-            // });
-
-            println!(
-                "\t[plugin.server]: plugin launched: {}, {}",
-                &manifest.name, &manifest.id
-            );
 
             // プラグイン情報とプロセスをマネージャーに登録
             match self.plugin_manager.lock().await.insert(
@@ -191,24 +172,19 @@ impl PluginServer {
                 Some(_) => (),
             }
 
-            println!("\t[plugin.server]: plugin registered: {}", &manifest.id);
+            log::info!("Registered plugin: {}", &manifest.name);
         }
 
-        println!(
-            "[[plugin.server]]: plugins loaded: {}",
-            self.plugin_manager.lock().await.len()
-        );
+        log::info!("Plugin all executed.");
     }
 
     pub async fn put_action(&mut self, switch_info: SwitchInfo) {
         // TODO: switch_typeとswitch_idからマッピングの設定を見つけ、そのプラグインに（あれば）put_actionする
 
         let actions = Action::from_switch_info(switch_info).await;
-        println!("# actions");
 
         // actionsのtargetの中で、読み込まれているプラグインがあれば、プラグインに渡す
         for action in actions.iter() {
-            println!("{:?}", action);
             match self
                 .plugin_manager
                 .lock()
@@ -216,17 +192,16 @@ impl PluginServer {
                 .get_mut(&action.target.plugin_id)
             {
                 Some(plugin) => {
-                    // println!("\t[plugin.server]: put_action: {}", action.target.plugin_id);
+                    log::trace!(
+                        "\t[plugin.server]: put_action: plugin found: {}",
+                        action.target.plugin_id
+                    );
                     plugin.put_action(action.clone()).await;
                 }
-                None => println!(
-                    "\t[plugin.server]: put_action: plugin not found: {}",
-                    action.target.plugin_id
-                ),
+                None => log::trace!("\t[plugin.server]: put_action: plugin not found"),
             }
         }
 
-        println!();
     }
 }
 
@@ -246,7 +221,7 @@ async fn handle_connection(
             if msg.is_text() {
                 let msg_str = msg.to_text().unwrap();
 
-                println!("Received: {}", msg_str);
+                log::trace!("Received: {}", msg_str);
 
                 let message: PluginMessage = serde_json::from_str(msg_str).unwrap();
 
@@ -256,7 +231,7 @@ async fn handle_connection(
                         ardeck_plugin_web_socket_version,
                         plugin_id,
                     } => {
-                        println!("Hello:\n\t{}", plugin_id);
+                        log::trace!("Hello:\n\t{}", plugin_id);
 
                         // TODO: tauri.conf.jsonからのバージョン情報の取得
                         let data = PluginMessage::Success {
@@ -279,7 +254,7 @@ async fn handle_connection(
                             .unwrap()
                             .set_server_sink(sink_arc.clone());
 
-                        println!("\t[plugin.server]: plugin session started: {}", plugin_id)
+                        log::info!("\t[plugin.server]: plugin session started: {}", plugin_id);
                     }
                     // PluginMessageData::Success { .. } => (),
                     PluginMessage::Message { .. } => (),

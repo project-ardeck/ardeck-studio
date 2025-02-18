@@ -68,12 +68,6 @@ impl Plugin {
 
     /// アクションが発生したことをプラグインに通知する
     pub async fn put_action(&mut self, action: Action) {
-        // if self.server_sink.is_none() {
-        //     // Error!: Plugin session has not started yet.
-        //     println!("Plugin session has not started yet.");
-        //     return;
-        // }
-
         let data = PluginMessage::Action(action);
 
         if let Some(server_sink) = self.server_sink.as_mut() {
@@ -86,8 +80,12 @@ impl Plugin {
                 .await
                 .unwrap();
         } else {
-            // Error!: Plugin session has not started yet.
-            println!("Plugin session has not started yet.");
+            log::error!(
+                "Plugin session has not started yet.\n\tPlugin name: {}\n\tPlugin id: {}",
+                self.manifest.name, self.manifest.id
+            );
+
+            // TODO: 対象のプラグインを再起動、もしくは停止、もしくはデバイスの停止
         }
     }
 }

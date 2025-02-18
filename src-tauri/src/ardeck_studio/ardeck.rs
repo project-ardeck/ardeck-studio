@@ -20,6 +20,7 @@ pub mod core;
 pub mod manager;
 pub mod tauri;
 
+use log::trace;
 use serialport::{self, SerialPort};
 
 use std::sync::{
@@ -50,12 +51,11 @@ pub enum OpenError {
 
 impl Ardeck {
     pub fn open(port_name: &str, baud_rate: u32) -> Result<Ardeck, OpenError> {
-        println!("Open Port: {} - {}", port_name, baud_rate);
         let port = serialport::new(port_name, baud_rate).open();
 
         match port {
             Ok(port) => {
-                println!("Port Opened.");
+                trace!("Port Opened: {} {}", port_name, baud_rate);
                 Ok(Ardeck {
                     continue_flag: Arc::new(Mutex::new(AtomicBool::new(true))),
                     port: Arc::new(Mutex::new(port)),

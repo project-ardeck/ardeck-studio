@@ -98,15 +98,11 @@ pub trait SettingsStore:
         let mut file: Option<File> = None;
         let mut file_str = String::new();
 
-        let timestamp = chrono::Utc::now();
-
         if CACHE.lock().await.get(&file_path).is_none() {
             // キャッシュが存在しない場合は、新たに読み込んでキャッシュを作る
-            println!(
-                "[{:?}]load(cache is none): {}",
-                timestamp,
-                file_path.display()
-            );
+            log::info!("File load: {}", file_path.display());
+            log::trace!("load(cache is none): {}", file_path.display());
+
             file = self.file_open(&file_path).await;
 
             // ファイルが存在しない場合は空のデータをセーブする。
@@ -125,11 +121,8 @@ pub trait SettingsStore:
                 .add(file_path.clone(), file_str.clone(), false);
         } else if CACHE.lock().await.is_dirty(&file_path) {
             // キャッシュがファイルより古い可能性があるときは、新たに読み込んでキャッシュも更新する
-            println!(
-                "[{:?}]load(cache is dirty): {}",
-                timestamp,
-                file_path.display()
-            );
+            log::trace!("load(cache is dirty): {}", file_path.display());
+
             file = self.file_open(&file_path).await;
 
             if file.is_none() {
@@ -142,7 +135,8 @@ pub trait SettingsStore:
             CACHE.lock().await.update_data(&file_path, file_str.clone());
         } else {
             // キャッシュが存在する場合は、キャッシュを読み込む
-            println!("[{:?}]load(from cache): {}", timestamp, file_path.display());
+            log::trace!("load(from cache): {}", file_path.display());
+
             let cache = CACHE.lock().await.get_data(&file_path);
             file_str = cache.unwrap();
         };
@@ -159,13 +153,7 @@ pub trait SettingsStore:
     async fn save(&self) {
         // TODO: Error handling
         let path = self.file_path();
-        // let data = serde_json::to_string_pretty(self).unwrap();
-        // println!("save: {:#?}", data);
-        // let mut f = File::create(&path).await.unwrap();
-        // let mut writer = BufWriter::new(f);
-        // writer.write_all(data.as_bytes()).await.unwrap();
-
-        // CACHE.lock().await.mark_dirty(&path);
+        log::info!("File save: {}", path.display());
 
         let file = std::fs::File::create(&path).unwrap();
         let writer = std::io::BufWriter::new(file);

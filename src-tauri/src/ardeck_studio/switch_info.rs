@@ -91,6 +91,8 @@ impl SwitchInfo {
     }
 }
 
+/// ActionDataParser
+/// Ardeckから送られてきたデータを解析します
 pub struct ActionDataParser {
     header_buf: String,
     is_reading: bool,
@@ -129,41 +131,48 @@ impl ActionDataParser {
         }
     }
 
-    fn data_of_digital_switch(&mut self) {
+    // 受け取ったデータがDigitalであった時の処理
+    fn data_is_digital_switch(&mut self) {
         self.body_len = BodyLen::Digital;
         self.data_len = Self::HEADER_LEN + BodyLen::Digital as usize;
     }
 
-    fn data_of_analog_switch(&mut self) {
+    // 受け取ったデータがAnalogであった時の処理
+    fn data_is_analog_switch(&mut self) {
         self.body_len = BodyLen::Analog;
         self.data_len = Self::HEADER_LEN + BodyLen::Analog as usize;
     }
 
+    // 現在のステップが完了し、次のステップへ進む
     fn countup_read(&mut self) {
         self.read_count += 1;
-        // print!("\tCountup-Read: {}", self.read_count);
     }
 
+    // すべてのステップが完了した
     fn countup_complete(&mut self) {
         self.complete_count += 1;
     }
 
+    // フラグをクリアする
     fn clear_flag_count(&mut self) {
         self.is_reading = false;
         self.read_count = 0;
         self.has_collect = false;
     }
 
+    // バッファをクリアする
     fn clear_buf(&mut self) {
         self.header_buf.clear();
         self.action_buf = SwitchInfo::new();
         self.action_raw_buf.clear();
     }
 
+    // 現在の時間をミリ秒単位で取得する
     fn get_time_millis() -> i64 {
         Utc::now().timestamp_millis()
     }
 
+    // 収集したデータをもとに構造化する
     fn format_switch_data(&mut self) {
         let switch_type = self.action_buf.get_switch_type();
         let raw_data = &self.action_raw_buf;
@@ -192,16 +201,14 @@ impl ActionDataParser {
         self.action_buf.set_timestamp(time);
     }
 
-    fn put_challenge(&mut self, _data: u8) -> bool {
-        // print!("count: {}", self.read_count);
-        // print!("\t{:08b}", &_data);
+    // 受け取ったデータを解析する
+    fn put(&mut self, _data: u8) -> bool {
+        log::trace!("put: {:08b}", &_data);
 
         let if_str = String::from_utf8(vec![_data]).unwrap_or("".to_string());
         let msg = if_str.clone();
-        // print!("\t{}", msg);
         // ADECのヘッダーの頭であるAが来たら、読み取り開始
         if msg == "A" && !self.is_reading
-        /* && self.read_count == 0 */
         {
             self.clear_flag_count(); // 念のためリセット
             self.clear_buf();
@@ -242,7 +249,7 @@ impl ActionDataParser {
 
                     match check {
                         SwitchType::Digital => {
-                            self.data_of_digital_switch();
+                            self.data_is_digital_switch();
 
                             self.action_raw_buf.push(_data);
 
@@ -251,7 +258,7 @@ impl ActionDataParser {
                             // println!("{:08b}", _data);
                         }
                         SwitchType::Analog => {
-                            self.data_of_analog_switch();
+                            self.data_is_analog_switch();
 
                             self.action_raw_buf.push(_data);
 
@@ -298,6 +305,7 @@ impl ActionDataParser {
             if self.header_buf == Self::HEADER && self.read_count as i8 == self.data_len as i8 {
                 self.clear_flag_count();
                 // print!("\tComplete-Data");
+                log::trace!("\tComplete-Data");
                 // println!("");
 
                 self.format_switch_data();
@@ -324,14 +332,17 @@ impl ActionDataParser {
         }
     }
 
+    /// 受け取ったデータをここに投げる
     pub fn put_data(&mut self, data: Vec<u8>) {
-        self.put_challenge(data.clone()[0]);
+        self.put(data.clone()[0]);
     }
 
+    /// 解析完了したときに実行する処理を登録する
     pub fn on_complete_action<F: Fn(SwitchInfo) + Send + 'static>(&mut self, callback: F) {
         self.on_correct_handler.push(Box::new(callback));
     }
 
+    /// 解析完了かつ、同じスイッチでデータが変わったときに実行する処理を登録する
     pub fn on_change_action<F: Fn(SwitchInfo) + Send + 'static>(&mut self, callback: F) {
         self.compare.on_change_action(callback);
     }
@@ -349,14 +360,5 @@ impl ActionDataParser {
             // println!("On Correct! {}", Local.timestamp_millis_opt(time).unwrap());
             // println!("------------------------------------------------");
         }
-        // let on_correct_handler = self.on_correct_handler.clone();
-        // let action = action.clone();
-
-        // tokio::spawn(async move {
-        //     for h in on_correct_handler.iter() {
-        //         let time = ActionDataParser::get_time_millis();
-        //         h(action.clone());
-        //     }
-        // });
     }
 }
