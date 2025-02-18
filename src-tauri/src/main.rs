@@ -113,6 +113,7 @@ async fn delete_old_logs(max_file: usize) -> Result<(), Box<dyn std::error::Erro
             .and_then(|m| m.created())
             .unwrap_or_else(|_| SystemTime::now())
     });
+    files.reverse();
 
     for (i, d) in files.iter().enumerate() {
         if i >= max_file {
