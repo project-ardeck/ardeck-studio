@@ -22,7 +22,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 mod ardeck_studio;
 mod service;
 
-use std::{path::PathBuf, sync::Mutex};
+use std::{path::PathBuf, sync::Mutex, time::SystemTime};
 
 use fern::colors::ColoredLevelConfig;
 use service::dir::Directories;
@@ -41,8 +41,6 @@ async fn init_logger() {
 
 async fn init_logger_internal() -> Result<(), Box<dyn std::error::Error>> {
     const MAX_FILE: usize = 10;
-
-    // TODO: ロガーの初期化時のエラーハンドリング
 
     let log_dir = Directories::get_log_dir()?;
     std::fs::create_dir_all(&log_dir)?;
@@ -99,20 +97,22 @@ async fn delete_old_logs(max_file: usize) -> Result<(), Box<dyn std::error::Erro
 
     let mut files = std::fs::read_dir(log_dir)?
         .filter_map(|f| {
-            if let Ok(f) = f {
-                if f.path().extension().and_then(|e| e.to_str()) == Some("log") {
-                    Some(f)
-                } else {
-                    None
-                }
-            } else {
-                None
-            }
+            f.ok().filter(|entry| {
+                entry
+                    .path()
+                    .extension()
+                    .and_then(|ext| ext.to_str())
+                    .map_or(false, |ext| ext == "log")
+            })
         })
         .collect::<Vec<_>>();
 
-    files.sort_by_key(|f| f.file_name());
-    files.reverse();
+    // タイムスタンプでソート（古い順）
+    files.sort_by_key(|f| {
+        f.metadata()
+            .and_then(|m| m.created())
+            .unwrap_or_else(|_| SystemTime::now())
+    });
 
     for (i, d) in files.iter().enumerate() {
         if i >= max_file {
@@ -175,7 +175,6 @@ async fn main() {
             },
             _ => {}
         })
-        // .plugin(tauri_plugin_log::Builder::default().target(LogTarget::Folder(dir::Directories::get_log_dir().unwrap())).build()) // TODO: default().taget(Folder(/* ディレクトリ */))
         .plugin(ardeck_studio::ardeck::tauri::init())
         .plugin(ardeck_studio::plugin::tauri::init().await)
         .plugin(ardeck_studio::settings::tauri::init())
