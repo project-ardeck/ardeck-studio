@@ -127,7 +127,6 @@ async fn delete_old_logs(max_file: usize) -> Result<(), Box<dyn std::error::Erro
 #[tokio::main]
 async fn main() {
     init_logger().await;
-    log::info!("Ardeck Studio v{}", env!("CARGO_PKG_VERSION"));
 
     // print!("\x1B[2J\x1B[1;1H"); // ! コンソールをクリア
 
@@ -150,6 +149,8 @@ async fn main() {
 
             #[cfg(any(windows, target_os = "macos"))]
             set_shadow(window, true).unwrap(); // Windowに影や角丸などの装飾を施す
+
+            log::info!("Ardeck Studio {}", app.package_info().version.to_string());
 
             Ok(())
         })
