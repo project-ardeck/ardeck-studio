@@ -24,22 +24,39 @@ mod service;
 
 use std::{path::PathBuf, sync::Mutex};
 
+use fern::colors::ColoredLevelConfig;
 use service::dir::Directories;
 use tauri::{
     CustomMenuItem, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem,
 };
-use tokio::fs::File;
+use tokio::fs::{self, File};
 use window_shadows::set_shadow;
 
 async fn init_logger() {
+    if let Err(e) = init_logger_internal().await {
+        eprintln!("Failed to initialize logger: {}", e);
+        std::process::exit(1);
+    };
+}
+
+async fn init_logger_internal() -> Result<(), Box<dyn std::error::Error>> {
+    const MAX_FILE: usize = 10;
+
     // TODO: ロガーの初期化時のエラーハンドリング
 
-    let log_file_path = format!(
-        "{}/{}.log",
-        Directories::get_log_dir().unwrap().display(),
-        chrono::Local::now().format("%Y-%m-%d-%H-%M-%S")
-    );
-    File::create(&log_file_path).await.unwrap();
+    let log_dir = Directories::get_log_dir()?;
+    std::fs::create_dir_all(&log_dir)?;
+    let log_file_name = format!("{}.log", chrono::Local::now().format("%Y-%m-%d-%H-%M-%S"));
+    let log_file_path = log_dir.join(&log_file_name);
+    File::create(&log_file_path).await?;
+    delete_old_logs(MAX_FILE).await?;
+
+    let colors = ColoredLevelConfig::new()
+        .error(fern::colors::Color::Red)
+        .warn(fern::colors::Color::Yellow)
+        .info(fern::colors::Color::Blue)
+        .debug(fern::colors::Color::White)
+        .trace(fern::colors::Color::BrightBlack);
 
     let base_config = fern::Dispatch::new();
 
@@ -47,19 +64,18 @@ async fn init_logger() {
     let stdout_config = fern::Dispatch::new()
         .level(log::LevelFilter::Info)
         .chain(std::io::stdout())
-        .format(|out, message, record| {
+        .format(move |out, message, record| {
             out.finish(format_args!(
-                "[{}][{}][{}][{:?}] {}",
+                "[{}][{}][{}] {}",
                 chrono::Local::now().format("%Y-%m-%d %H:%M:%S%.3f"),
-                record.level(),
+                colors.color(record.level()),
                 record.target(),
-                record.module_path(),
                 message
             ));
         });
     let file_config = fern::Dispatch::new()
         .level(log::LevelFilter::Info)
-        .chain(fern::log_file(PathBuf::from(log_file_path)).unwrap())
+        .chain(fern::log_file(log_file_path)?)
         .format(|out, message, record| {
             out.finish(format_args!(
                 "[{}][{}][{}] {}",
@@ -73,8 +89,38 @@ async fn init_logger() {
     base_config
         .chain(stdout_config)
         .chain(file_config)
-        .apply()
-        .unwrap();
+        .apply()?;
+
+    Ok(())
+}
+
+async fn delete_old_logs(max_file: usize) -> Result<(), Box<dyn std::error::Error>> {
+    let log_dir = Directories::get_log_dir()?;
+
+    let mut files = std::fs::read_dir(log_dir)?
+        .filter_map(|f| {
+            if let Ok(f) = f {
+                if f.path().extension().and_then(|e| e.to_str()) == Some("log") {
+                    Some(f)
+                } else {
+                    None
+                }
+            } else {
+                None
+            }
+        })
+        .collect::<Vec<_>>();
+
+    files.sort_by_key(|f| f.file_name());
+    files.reverse();
+
+    for (i, d) in files.iter().enumerate() {
+        if i >= max_file {
+            fs::remove_file(d.path()).await?;
+        }
+    }
+
+    Ok(())
 }
 
 #[tokio::main]
