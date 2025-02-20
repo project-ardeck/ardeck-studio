@@ -16,12 +16,14 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import ForDev from "./ForDev";
+import { Link } from "react-router";
 
 export default function App() {
     return (
-        <div>
-            <ForDev />
+        <div className="">
+            <nav>
+                <Link to="config">Config</Link>
+            </nav>
         </div>
     );
 }

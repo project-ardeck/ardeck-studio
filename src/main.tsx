@@ -18,23 +18,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import React from "react";
 import ReactDOM from "react-dom/client";
-import App from "./App";
-import TitleBar from "./component/TitleBar";
 import WindowTheme from "./component/WindowTheme";
 
 import "./main.css";
+import Router from "./router";
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
     <React.StrictMode>
         <WindowTheme>
-            <div className="flex h-full w-full flex-col overflow-hidden">
-                <header>
-                    <TitleBar />
-                </header>
-                <main className="scrollbar-theme flex-1 overflow-auto">
-                    <App />
-                </main>
-            </div>
+            <Router />
         </WindowTheme>
     </React.StrictMode>,
 );

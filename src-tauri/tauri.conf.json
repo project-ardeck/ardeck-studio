@@ -33,7 +33,6 @@
         "title": "ardeck",
         "width": 800,
         "height": 600,
-        "url": "src/index.html",
         "decorations": false,
         "resizable": false,
         "visible": false
