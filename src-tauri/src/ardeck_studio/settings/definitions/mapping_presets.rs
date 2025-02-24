@@ -20,7 +20,10 @@ use serde::{Deserialize, Serialize};
 use struct_field_names_as_array::FieldNamesAsArray;
 
 use crate::{
-    ardeck_studio::{action::action_map::ActionMap, settings::{SettingFile, SettingsStore}},
+    ardeck_studio::{
+        action::action_map::ActionMap,
+        settings::{SettingFile, SettingsStore},
+    },
     service::dir::Directories,
 };
 

@@ -18,7 +18,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use std::collections::HashMap;
 
-use super::{SwitchInfo, SwitchId};
+use super::{SwitchId, SwitchInfo};
 
 // #[derive(Clone)]
 pub struct ActionCompare {
@@ -53,14 +53,15 @@ impl ActionCompare {
             if new_switch_info.get_switch_state() != prev_action.get_switch_state() {
                 log::trace!("change state: {}", new_switch_info.get_switch_id());
                 self.on_change_action_emit_all(new_switch_info.clone());
-                self.prev_actions.insert(new_switch_info.get_switch_id(), new_switch_info);
+                self.prev_actions
+                    .insert(new_switch_info.get_switch_id(), new_switch_info);
             }
         } else {
             log::trace!("new switch: {}", new_switch_info.get_switch_id());
             self.on_change_action_emit_all(new_switch_info.clone());
-            self.prev_actions.insert(new_switch_info.get_switch_id(), new_switch_info);
+            self.prev_actions
+                .insert(new_switch_info.get_switch_id(), new_switch_info);
         }
-
     }
 
     pub fn on_change_action<F: Fn(SwitchInfo) + Send + 'static>(&mut self, callback: F) {

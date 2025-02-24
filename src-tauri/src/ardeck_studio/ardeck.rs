@@ -25,7 +25,7 @@ use serialport::{self, SerialPort};
 
 use std::sync::{
     atomic::{AtomicBool, Ordering},
-    Arc
+    Arc,
 };
 
 use tokio::sync::Mutex;

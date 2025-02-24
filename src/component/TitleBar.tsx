@@ -16,11 +16,12 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { appWindow } from "@tauri-apps/api/window";
 import { useState } from "react";
 
 import closeButton from "/titlebar/close_24dp_FILL0_wght200_GRAD0_opsz24.svg";
 import minimizeButton from "/titlebar/remove_24dp_FILL0_wght200_GRAD0_opsz24.svg";
+import { getCurrent } from "@tauri-apps/api/window";
+const appWindow = getCurrent();
 
 export default function TitleBar() {
     const [title, setTitle] = useState("");

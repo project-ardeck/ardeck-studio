@@ -208,8 +208,7 @@ impl ActionDataParser {
         let if_str = String::from_utf8(vec![_data]).unwrap_or("".to_string());
         let msg = if_str.clone();
         // ADECのヘッダーの頭であるAが来たら、読み取り開始
-        if msg == "A" && !self.is_reading
-        {
+        if msg == "A" && !self.is_reading {
             self.clear_flag_count(); // 念のためリセット
             self.clear_buf();
             self.is_reading = true;

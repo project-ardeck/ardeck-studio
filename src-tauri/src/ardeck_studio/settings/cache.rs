@@ -36,11 +36,13 @@ impl Cache {
         Self { inner: Vec::new() }
     }
 
-    pub fn is_dirty(&self, path: &PathBuf) -> bool { // 前回からデータが変更されていないか、そもそもデータが存在しなければfalse
+    pub fn is_dirty(&self, path: &PathBuf) -> bool {
+        // 前回からデータが変更されていないか、そもそもデータが存在しなければfalse
         self.inner.iter().any(|c| c.path == *path && c.dirty)
     }
 
-    pub fn set_dirty(&mut self, path: &PathBuf, dirty: bool) { // dirtyの状態を変更する
+    pub fn set_dirty(&mut self, path: &PathBuf, dirty: bool) {
+        // dirtyの状態を変更する
         self.inner
             .iter_mut()
             .find(|c| c.path == *path)
@@ -58,8 +60,6 @@ impl Cache {
         self.inner.retain(|c| c.path != *path);
     }
 
-    
-
     pub fn get(&self, path: &PathBuf) -> Option<CacheInfo> {
         self.inner.iter().find(|c| c.path == *path).cloned()
     }
@@ -72,20 +72,14 @@ impl Cache {
     }
 
     pub fn add(&mut self, path: PathBuf, data: String, dirty: bool) {
-        self.inner.push(CacheInfo {
-            path,
-            dirty,
-            data,
-        });
+        self.inner.push(CacheInfo { path, dirty, data });
     }
 
-    pub fn update_data(&mut self, path: &PathBuf, data: String) { // ファイルが変更された後に読み込まれた後、データを更新し、dirtyをfalseにする
-        self.inner
-            .iter_mut()
-            .find(|c| c.path == *path)
-            .map(|c| {
-                c.dirty = false;
-                c.data = data;
-            });
+    pub fn update_data(&mut self, path: &PathBuf, data: String) {
+        // ファイルが変更された後に読み込まれた後、データを更新し、dirtyをfalseにする
+        self.inner.iter_mut().find(|c| c.path == *path).map(|c| {
+            c.dirty = false;
+            c.data = data;
+        });
     }
 }

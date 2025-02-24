@@ -20,7 +20,6 @@ use serde::{Deserialize, Serialize};
 
 use crate::ardeck_studio::switch_info::{SwitchId, SwitchType};
 
-
 #[derive(Serialize, Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct ActionMap {

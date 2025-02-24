@@ -16,7 +16,10 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-use std::{fs::File, path::{Path, PathBuf}};
+use std::{
+    fs::File,
+    path::{Path, PathBuf},
+};
 
 use super::dir::Directories;
 
@@ -29,7 +32,10 @@ impl Files {
         if canonical.starts_with(Directories::get_settings_dir()?) {
             Ok(canonical)
         } else {
-            Err(std::io::Error::new(std::io::ErrorKind::PermissionDenied, "Permission denied"))
+            Err(std::io::Error::new(
+                std::io::ErrorKind::PermissionDenied,
+                "Permission denied",
+            ))
         }
     }
 

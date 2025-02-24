@@ -82,7 +82,8 @@ impl Plugin {
         } else {
             log::error!(
                 "Plugin session has not started yet.\n\tPlugin name: {}\n\tPlugin id: {}",
-                self.manifest.name, self.manifest.id
+                self.manifest.name,
+                self.manifest.id
             );
 
             // TODO: 対象のプラグインを再起動、もしくは停止、もしくはデバイスの停止

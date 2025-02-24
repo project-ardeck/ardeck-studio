@@ -34,14 +34,22 @@ impl Directories {
 
     #[cfg(not(feature = "portable"))]
     pub fn get_confing_dir() -> std::io::Result<PathBuf> {
+
         let path = match dirs::config_dir() {
             Some(p) => p.canonicalize()?,
-            None => return Err(Error::new(std::io::ErrorKind::NotFound, "Config directory not found")),
+            None => {
+                return Err(Error::new(
+                    std::io::ErrorKind::NotFound,
+                    "Config directory not found",
+                ))
+            }
         };
 
-        Ok(path.join(tauri::generate_context!().config().tauri.bundle.identifier.clone()))
+        let runtime: tauri::Context<Box<dyn tauri::Runtime>> = tauri::generate_context!();
+        // let path = path.join(tauri::)
+        Ok(path.join(runtime.config().identifier.as_str()))
     }
-    
+
     pub fn get_log_dir() -> std::io::Result<PathBuf> {
         Ok(Self::get_confing_dir()?.join("logs"))
     }

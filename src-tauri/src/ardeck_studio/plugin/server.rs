@@ -201,7 +201,6 @@ impl PluginServer {
                 None => log::trace!("\t[plugin.server]: put_action: plugin not found"),
             }
         }
-
     }
 }
 

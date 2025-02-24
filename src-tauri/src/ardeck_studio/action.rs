@@ -59,9 +59,9 @@ impl Action {
     async fn search_action_target(switch_info: SwitchInfo) -> Vec<ActionTarget> {
         let mapping_presets = match MappingPresetsJSON::new().load().await {
             Some(presets) => presets,
-            None => return Vec::new(),  // TODO: Error
+            None => return Vec::new(), // TODO: Error
         };
-        
+
         let mut target: Vec<ActionTarget> = Vec::new();
 
         // switch_typeとswitch_idと一致するマッピングを探し、アクションのターゲットを返す
