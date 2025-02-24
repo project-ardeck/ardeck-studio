@@ -124,7 +124,7 @@ macro_rules! ext_config_file {
 
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("settings")
-        .setup(|app| {
+        .setup(|app, api| {
             // TODO: get_config_dir() log
             Directories::init(Directories::get_settings_dir().unwrap()).unwrap();
 

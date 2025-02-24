@@ -45,9 +45,7 @@ impl Directories {
             }
         };
 
-        let runtime: tauri::Context<Box<dyn tauri::Runtime>> = tauri::generate_context!();
-        // let path = path.join(tauri::)
-        Ok(path.join(runtime.config().identifier.as_str()))
+        Ok(path.join("com.ardeck.studio"))
     }
 
     pub fn get_log_dir() -> std::io::Result<PathBuf> {

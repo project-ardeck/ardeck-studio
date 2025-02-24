@@ -20,8 +20,7 @@ use once_cell::sync::Lazy;
 use serialport::{SerialPort, SerialPortInfo};
 use std::{io, sync::Arc, time::Duration};
 use tauri::{
-    plugin::{Builder, TauriPlugin},
-    Manager, Runtime,
+    plugin::{Builder, TauriPlugin}, Emitter, Manager, Runtime
 };
 use tokio::sync::Mutex;
 
@@ -47,7 +46,7 @@ async fn close<R: Runtime>(app: tauri::AppHandle<R>, port_name: &str) {
     ardeck_manager.remove(port_name);
 
     // TODO: DELETE
-    app.emit_all("on-close-serial", port_name).unwrap();
+    app.emit("on-close-serial", port_name).unwrap();
 
     log::info!("closed: {}", port_name);
 }
@@ -75,7 +74,7 @@ async fn port_read<R: Runtime>(app: tauri::AppHandle<R>, port_name: &str) {
                 .await
             {
                 // drop(am);
-                close(app.app_handle(), &port_name).await;
+                close(app.app_handle().clone(), &port_name).await;
                 break;
             }
 
@@ -94,7 +93,7 @@ async fn port_read<R: Runtime>(app: tauri::AppHandle<R>, port_name: &str) {
                 }
                 Err(kind) => {
                     log::error!("Connection error. Connection stoped.\nKind: {}", kind);
-                    close(app.app_handle(), &port_name).await;
+                    close(app.app_handle().clone(), &port_name).await;
 
                     break;
                 }
@@ -153,7 +152,7 @@ async fn open_port<R: Runtime>(
         .set_timeout(Duration::from_millis(5000))
         .unwrap();
 
-    let app_for_data = app.app_handle();
+    let app_for_data = app.app_handle().clone();
 
     // データを受信し、1回分のデータが完成した時の処理
     ardeck
@@ -164,7 +163,7 @@ async fn open_port<R: Runtime>(
             log::trace!("# Ardeck::on_complete_action\n\tdata: {:#?}", data);
 
             app_for_data
-                .emit_all("on-message-serial", data.clone())
+                .emit("on-message-serial", data.clone())
                 .unwrap();
         });
 
@@ -208,10 +207,10 @@ async fn open_port<R: Runtime>(
         .await
         .insert(port_name.to_string(), ardeck);
 
-    app.emit_all("on-open-serial", port_name).unwrap();
+    app.emit("on-open-serial", port_name).unwrap();
 
     // 受信データの読み取り開始
-    port_read(app.app_handle(), port_name).await;
+    port_read(app.app_handle().clone(), port_name).await;
 
     Ok(200)
 }
@@ -228,7 +227,7 @@ fn serial_watch<R: Runtime>(tauri_app: tauri::AppHandle<R>) {
 
             if last_ports.clone() != ports.clone() {
                 log::info!("Ports list changed: {:?}", ports);
-                tauri_app.emit_all("on-ports", ports.clone()).unwrap();
+                tauri_app.emit("on-ports", ports.clone()).unwrap();
             }
 
             last_ports = ports;
@@ -255,8 +254,8 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
             get_connecting_serials,
             get_ports
         ])
-        .setup(|app| {
-            serial_watch(app.app_handle());
+        .setup(|app, api| {
+            serial_watch(app.app_handle().clone());
             // app.manage(Mutex::new(ArdeckManager::new()));
             Ok(())
         })
