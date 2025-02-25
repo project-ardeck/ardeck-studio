@@ -16,7 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { invoke as tauriInvoke } from "@tauri-apps/api";
+import { invoke as tauriInvoke } from "@tauri-apps/api/core";
 import { SerialPortInfo } from "../types/ardeck";
 import { MappingPreset } from "../types/settings";
 

@@ -154,7 +154,7 @@ pub async fn run() {
                 .on_menu_event(|app, event| match event.id().as_ref() {
                     "hide" => {
                         if let Some(webview_window) = app.get_webview_window("main") {
-                            webview_window.hide();
+                            let _ = webview_window.hide();
                         }
                     }
                     "quit" => {
@@ -166,8 +166,8 @@ pub async fn run() {
                     TrayIconEvent::DoubleClick { .. } => {
                         let app = tray.app_handle();
                         if let Some(webview_window) = app.get_webview_window("main") {
-                            webview_window.show();
-                            webview_window.set_focus();
+                            let _ = webview_window.show();
+                            let _ = webview_window.set_focus();
                         }
                     }
                     _ => {}

@@ -16,15 +16,30 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
-import closeButton from "/titlebar/close_24dp_FILL0_wght200_GRAD0_opsz24.svg";
-import minimizeButton from "/titlebar/remove_24dp_FILL0_wght200_GRAD0_opsz24.svg";
-import { getCurrent } from "@tauri-apps/api/window";
-const appWindow = getCurrent();
+import closeButton from "/titlebar/close_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg";
+import maximizeButton from "/titlebar/fullscreen_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg";
+import unmaximizeButton from "/titlebar/fullscreen_exit_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg";
+import minimizeButton from "/titlebar/minimize_24dp_E3E3E3_FILL0_wght400_GRAD0_opsz24.svg";
+import { getCurrentWindow } from "@tauri-apps/api/window";
+const appWindow = getCurrentWindow();
 
 export default function TitleBar() {
     const [title, setTitle] = useState("");
+    const [isMaximized, setIsMaximized] = useState(false);
+
+    useEffect(() => {
+        appWindow.isMaximized().then((e) => {
+            setIsMaximized(e);
+        });
+
+        appWindow.onResized(() => {
+            appWindow.isMaximized().then((e) => {
+                setIsMaximized(e);
+            });
+        })
+    }, []);
 
     appWindow.title().then((e) => {
         setTitle(e);
@@ -62,7 +77,19 @@ export default function TitleBar() {
                         alt="minimize"
                     />
                 </div>
-                {import.meta.env.DEV && <div onClick={maxHandler}>max</div>}
+                <div
+                    onClick={maxHandler}
+                    onKeyDown={(e) => e.key === "Enter" && minHandler()}
+                    tabIndex={0}
+                    role="button"
+                    className="flex h-full items-center px-2 transition-colors hover:bg-bg-secondary"
+                >
+                    <img
+                        src={isMaximized ? unmaximizeButton : maximizeButton}
+                        className="pointer-events-none"
+                        alt="minimize"
+                    />
+                </div>
                 <div
                     onClick={closeHandler}
                     onKeyDown={(e) => e.key === "Enter" && closeHandler()}
