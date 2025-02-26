@@ -26,9 +26,7 @@ use std::time::SystemTime;
 use fern::colors::ColoredLevelConfig;
 use service::dir::Directories;
 use tauri::{
-    menu::{MenuBuilder, MenuItemBuilder},
-    tray::{TrayIconBuilder, TrayIconEvent},
-    Manager,
+    image::Image, menu::{MenuBuilder, MenuItemBuilder}, tray::{TrayIcon, TrayIconBuilder, TrayIconEvent}, Manager
 };
 use tokio::fs::{self, File};
 use window_shadows::set_shadow;
@@ -131,14 +129,6 @@ pub async fn run() {
 
     // print!("\x1B[2J\x1B[1;1H"); // ! コンソールをクリア
 
-    // システムトレイアイコンの設定
-    // let hide = CustomMenuItem::new("hide".to_string(), "Hide");
-    // let quit = CustomMenuItem::new("quit".to_string(), "Quit");
-    // let tray_menu = SystemTrayMenu::new()
-    //     .add_item(hide)
-    //     .add_native_item(SystemTrayMenuItem::Separator)
-    //     .add_item(quit);
-
     tauri::Builder::default()
         .plugin(tauri_plugin_shell::init())
         .setup(|app| {
@@ -149,8 +139,10 @@ pub async fn run() {
             let quit = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
             let menu = MenuBuilder::new(app).items(&[&hide, &quit]).build()?;
 
-            let tray = TrayIconBuilder::new()
+            let _tray = TrayIconBuilder::new()
                 .menu(&menu)
+                .show_menu_on_left_click(false)
+                .icon(Image::from_path("icons/32x32.png").unwrap())
                 .on_menu_event(|app, event| match event.id().as_ref() {
                     "hide" => {
                         if let Some(webview_window) = app.get_webview_window("main") {
@@ -169,7 +161,7 @@ pub async fn run() {
                             let _ = webview_window.show();
                             let _ = webview_window.set_focus();
                         }
-                    }
+                    },
                     _ => {}
                 })
                 .build(app)?;
@@ -183,7 +175,7 @@ pub async fn run() {
             Ok(())
         })
         .plugin(ardeck_studio::ardeck::tauri::init())
-        .plugin(ardeck_studio::plugin::tauri::init().await)
+        .plugin(ardeck_studio::plugin::tauri::init())
         .plugin(ardeck_studio::settings::tauri::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

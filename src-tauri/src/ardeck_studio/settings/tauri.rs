@@ -124,16 +124,16 @@ macro_rules! ext_config_file {
 
 pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("settings")
+        .invoke_handler(generate_handler![
+            get_mapping_list,
+            get_mapping_preset,
+            save_mapping_preset
+        ])
         .setup(|app, api| {
             // TODO: get_config_dir() log
             Directories::init(Directories::get_settings_dir().unwrap()).unwrap();
 
             Ok(())
         })
-        .invoke_handler(generate_handler![
-            get_mapping_list,
-            get_mapping_preset,
-            save_mapping_preset
-        ])
         .build()
 }

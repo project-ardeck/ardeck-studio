@@ -56,7 +56,7 @@ async fn server_init() {
     };
 }
 
-pub async fn init<R: Runtime>() -> TauriPlugin<R> {
+pub fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("ardeck-plugin")
         .setup(|app, api| {
             tokio::spawn(async {

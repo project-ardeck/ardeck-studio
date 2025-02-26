@@ -22,10 +22,6 @@
   "identifier": "com.ardeck.studio",
   "plugins": {},
   "app": {
-    "trayIcon": {
-      "iconPath": "icons/32x32.png",
-      "iconAsTemplate": true
-    },
     "windows": [
       {
         "title": "ardeck",
