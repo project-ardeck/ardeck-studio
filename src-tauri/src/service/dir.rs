@@ -34,7 +34,6 @@ impl Directories {
 
     #[cfg(not(feature = "portable"))]
     pub fn get_confing_dir() -> std::io::Result<PathBuf> {
-
         let path = match dirs::config_dir() {
             Some(p) => p.canonicalize()?,
             None => {

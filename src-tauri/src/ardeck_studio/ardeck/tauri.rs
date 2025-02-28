@@ -20,7 +20,8 @@ use once_cell::sync::Lazy;
 use serialport::{SerialPort, SerialPortInfo};
 use std::{io, sync::Arc, time::Duration};
 use tauri::{
-    plugin::{Builder, TauriPlugin}, Emitter, Manager, Runtime
+    plugin::{Builder, TauriPlugin},
+    Emitter, Manager, Runtime,
 };
 use tokio::sync::Mutex;
 
@@ -160,7 +161,7 @@ async fn open_port<R: Runtime>(
         .lock()
         .await
         .on_complete_action(move |data| {
-            log::trace!("# Ardeck::on_complete_action\n\tdata: {:#?}", data);
+            log::debug!("# Ardeck::on_complete_action\n\tdata: {:#?}", data);
 
             app_for_data
                 .emit("on-message-serial", data.clone())
@@ -174,7 +175,7 @@ async fn open_port<R: Runtime>(
         .lock()
         .await
         .on_change_action(move |data| {
-            log::trace!(
+            log::debug!(
                 "# Ardeck::on_change_action\n\tswitch_id: {}\n\tswitch_state: {}",
                 data.switch_id,
                 data.switch_state

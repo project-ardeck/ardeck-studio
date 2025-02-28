@@ -18,7 +18,7 @@ console-subscriber = "0.4.1"
 tauri = { version = "2", features = ["tray-icon", "image-ico", "image-png"] }
 # tauri-plugin-store = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 tauri-plugin-window-state = { version = "2" }
-tauri-plugin-log = { version = "2" }
+tauri-plugin-log = "2"
 # tauri-plugin-autostart = { git = "https://github.com/tauri-apps/plugins-workspace", branch = "v1" }
 
 tokio-tungstenite = "*"

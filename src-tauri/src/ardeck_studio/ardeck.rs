@@ -20,7 +20,6 @@ pub mod core;
 pub mod manager;
 pub mod tauri;
 
-use log::trace;
 use serialport::{self, SerialPort};
 
 use std::sync::{
@@ -55,7 +54,7 @@ impl Ardeck {
 
         match port {
             Ok(port) => {
-                trace!("Port Opened: {} {}", port_name, baud_rate);
+                log::debug!("Port Opened: {} {}", port_name, baud_rate);
                 Ok(Ardeck {
                     continue_flag: Arc::new(Mutex::new(AtomicBool::new(true))),
                     port: Arc::new(Mutex::new(port)),

@@ -101,7 +101,7 @@ pub trait SettingsStore:
         if CACHE.lock().await.get(&file_path).is_none() {
             // キャッシュが存在しない場合は、新たに読み込んでキャッシュを作る
             log::info!("File load: {}", file_path.display());
-            log::trace!("load(cache is none): {}", file_path.display());
+            log::debug!("load(cache is none): {}", file_path.display());
 
             file = self.file_open(&file_path).await;
 
@@ -121,7 +121,7 @@ pub trait SettingsStore:
                 .add(file_path.clone(), file_str.clone(), false);
         } else if CACHE.lock().await.is_dirty(&file_path) {
             // キャッシュがファイルより古い可能性があるときは、新たに読み込んでキャッシュも更新する
-            log::trace!("load(cache is dirty): {}", file_path.display());
+            log::debug!("load(cache is dirty): {}", file_path.display());
 
             file = self.file_open(&file_path).await;
 
@@ -135,7 +135,7 @@ pub trait SettingsStore:
             CACHE.lock().await.update_data(&file_path, file_str.clone());
         } else {
             // キャッシュが存在する場合は、キャッシュを読み込む
-            log::trace!("load(from cache): {}", file_path.display());
+            log::debug!("load(from cache): {}", file_path.display());
 
             let cache = CACHE.lock().await.get_data(&file_path);
             file_str = cache.unwrap();

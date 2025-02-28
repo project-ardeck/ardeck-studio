@@ -26,8 +26,12 @@ use std::time::SystemTime;
 use fern::colors::ColoredLevelConfig;
 use service::dir::Directories;
 use tauri::{
-    image::Image, menu::{MenuBuilder, MenuItemBuilder}, tray::{TrayIcon, TrayIconBuilder, TrayIconEvent}, Manager
+    image::Image,
+    menu::{MenuBuilder, MenuItemBuilder},
+    tray::{TrayIcon, TrayIconBuilder, TrayIconEvent},
+    Manager,
 };
+use tauri_plugin_log::{RotationStrategy, Target, TargetKind};
 use tokio::fs::{self, File};
 use window_shadows::set_shadow;
 
@@ -57,9 +61,15 @@ async fn init_logger_internal() -> Result<(), Box<dyn std::error::Error>> {
 
     let base_config = fern::Dispatch::new();
 
+    #[cfg(debug_assertions)]
+    let level = log::LevelFilter::Debug;
+
+    #[cfg(not(debug_assertions))]
+    let level = log::LevelFilter::Info;
+
     // TODO: debugやtraceは、コンフィグ次第で出力できるようにする
     let stdout_config = fern::Dispatch::new()
-        .level(log::LevelFilter::Info)
+        .level(level)
         .chain(std::io::stdout())
         .format(move |out, message, record| {
             out.finish(format_args!(
@@ -70,6 +80,7 @@ async fn init_logger_internal() -> Result<(), Box<dyn std::error::Error>> {
                 message
             ));
         });
+
     let file_config = fern::Dispatch::new()
         .level(log::LevelFilter::Info)
         .chain(fern::log_file(log_file_path)?)
@@ -125,19 +136,56 @@ async fn delete_old_logs(max_file: usize) -> Result<(), Box<dyn std::error::Erro
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub async fn run() {
-    init_logger().await;
+    // init_logger().await;
 
     // print!("\x1B[2J\x1B[1;1H"); // ! コンソールをクリア
 
+    #[cfg(debug_assertions)]
+    let level = log::LevelFilter::Debug;
+
+    #[cfg(not(debug_assertions))]
+    let level = log::LevelFilter::Info;
+
     tauri::Builder::default()
-        .plugin(tauri_plugin_shell::init())
+        .plugin(tauri_plugin_log::Builder::new().build())
+        .plugin(
+            tauri_plugin_log::Builder::new()
+                .targets([
+                    Target::new(TargetKind::Stdout),
+                    Target::new(TargetKind::Folder {
+                        path: Directories::get_log_dir().unwrap(),
+                        file_name: Some(format!(
+                            "{}.log",
+                            chrono::Local::now().format("%Y-%m-%d-%H-%M-%S").to_string()
+                        )),
+                    }),
+                ])
+                .rotation_strategy(RotationStrategy::KeepAll)
+                .level(level)
+                .format(|out, message, record| {
+                    out.finish(format_args!(
+                        "[{}][{}][{}] {}",
+                        chrono::Local::now().format("%Y-%m-%d %H:%M:%S%.3f"),
+                        record.level(),
+                        record.target(),
+                        message
+                    ));
+                })
+                .build(),
+        )
+        .plugin(ardeck_studio::ardeck::tauri::init())
+        .plugin(ardeck_studio::plugin::tauri::init())
+        .plugin(ardeck_studio::settings::tauri::init())
         .setup(|app| {
             let window = app.get_webview_window("main").unwrap();
             window.show().unwrap();
 
+            let show = MenuItemBuilder::with_id("show", "Show").build(app)?;
             let hide = MenuItemBuilder::with_id("hide", "Hide").build(app)?;
             let quit = MenuItemBuilder::with_id("quit", "Quit").build(app)?;
-            let menu = MenuBuilder::new(app).items(&[&hide, &quit]).build()?;
+            let menu = MenuBuilder::new(app)
+                .items(&[&show, &hide, &quit])
+                .build()?;
 
             let _tray = TrayIconBuilder::new()
                 .menu(&menu)
@@ -161,7 +209,7 @@ pub async fn run() {
                             let _ = webview_window.show();
                             let _ = webview_window.set_focus();
                         }
-                    },
+                    }
                     _ => {}
                 })
                 .build(app)?;
@@ -174,9 +222,6 @@ pub async fn run() {
 
             Ok(())
         })
-        .plugin(ardeck_studio::ardeck::tauri::init())
-        .plugin(ardeck_studio::plugin::tauri::init())
-        .plugin(ardeck_studio::settings::tauri::init())
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
