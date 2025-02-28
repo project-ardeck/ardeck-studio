@@ -49,18 +49,24 @@ async fn init_logger_internal() -> Result<(), Box<dyn std::error::Error>> {
     File::create(&log_file_path).await?;
     delete_old_logs(MAX_FILE).await?;
 
+    #[cfg(debug_assertions)]
+    let level = log::LevelFilter::Debug;
+
+    #[cfg(not(debug_assertions))]
+    let level = log::LevelFilter::Info;
+
     let colors = ColoredLevelConfig::new()
         .error(fern::colors::Color::Red)
         .warn(fern::colors::Color::Yellow)
         .info(fern::colors::Color::Blue)
-        .debug(fern::colors::Color::White)
+        .debug(fern::colors::Color::BrightBlue)
         .trace(fern::colors::Color::BrightBlack);
 
     let base_config = fern::Dispatch::new();
 
     // TODO: debugやtraceは、コンフィグ次第で出力できるようにする
     let stdout_config = fern::Dispatch::new()
-        .level(log::LevelFilter::Info)
+        .level(level)
         .chain(std::io::stdout())
         .format(move |out, message, record| {
             out.finish(format_args!(
