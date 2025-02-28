@@ -43,7 +43,9 @@ export const invoke = {
                 });
             },
 
-            async saveMappingPreset(mappingPreset: MappingPreset): Promise<MappingPreset> {
+            async saveMappingPreset(
+                mappingPreset: MappingPreset,
+            ): Promise<MappingPreset> {
                 return await tauriInvoke(
                     "plugin:settings|save_mapping_preset",
                     {
@@ -70,4 +72,9 @@ export const invoke = {
             return await tauriInvoke("plugin:ardeck|get_ports");
         },
     },
+    openWindow: {
+        async about() {
+            return await tauriInvoke("open_about");
+        }
+    }
 };

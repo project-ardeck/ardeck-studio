@@ -17,12 +17,17 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import { Link } from "react-router";
+import { invoke } from "./tauri/invoke";
 
 export default function App() {
+    const openAbout = () => {
+        invoke.openWindow.about();
+    };
     return (
         <div className="">
             <nav>
                 <Link to="config">Config</Link>
+                <button className="" onClick={openAbout}>About Ardeck</button>
             </nav>
         </div>
     );

@@ -27,7 +27,7 @@ use std::time::SystemTime;
 use fern::colors::ColoredLevelConfig;
 use service::dir::Directories;
 use tauri::{
-    CustomMenuItem, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem,
+    CustomMenuItem, LogicalSize, Manager, Runtime, Size, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem, Window, WindowBuilder
 };
 use tokio::fs::{self, File};
 use window_shadows::set_shadow;
@@ -130,6 +130,29 @@ async fn delete_old_logs(max_file: usize) -> Result<(), Box<dyn std::error::Erro
     Ok(())
 }
 
+#[tauri::command]
+async fn open_about<R: Runtime>(
+    app: tauri::AppHandle<R>,
+    window: tauri::Window<R>,
+) -> Result<(), String> {
+    match WindowBuilder::new(&app, "about-ardeck", tauri::WindowUrl::App("/about".into()))
+        .maximizable(false)
+        .resizable(false)
+        .inner_size(720.0, 405.0)
+        .title("About ardeck studio")
+        .build()
+    {
+        Ok(window) => {
+            window.show().unwrap();
+        }
+        Err(e) => {
+            return Err(e.to_string());
+        }
+    }
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() {
     init_logger().await;
@@ -187,6 +210,7 @@ async fn main() {
         .plugin(ardeck_studio::ardeck::tauri::init())
         .plugin(ardeck_studio::plugin::tauri::init().await)
         .plugin(ardeck_studio::settings::tauri::init())
+        .invoke_handler(tauri::generate_handler![open_about])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

@@ -16,14 +16,16 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-
-import BackToRoot from "../_component/back_to_root";
-
-export default function Config() {
+export default function Authors() {
     return (
         <div>
-            <div>config page</div>
-            <BackToRoot>Back to root</BackToRoot>
+            <h1 className="text-2xl font-bold">Authors</h1>
+            <p>
+                Project Ardeck
+                <ul className="list-disc pl-8">
+                    <li>akurakuu</li>
+                </ul>
+            </p>
         </div>
     );
 }

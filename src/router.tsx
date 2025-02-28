@@ -3,6 +3,9 @@ import MainWindow from "./window_main";
 import App from "./App";
 import ForDev from "./ForDev";
 import Config from "./pages/config";
+import About from "./pages/about";
+import License from "./pages/about/license";
+import Authors from "./pages/about/authors";
 
 export default function Router() {
     return (
@@ -12,6 +15,10 @@ export default function Router() {
                     <Route index element={<App />} />
                     <Route path="config" element={<Config />} />
                     <Route path="dev" element={<ForDev />} />
+                </Route>
+                <Route path="about" element={<About />}>
+                    <Route index element={<License />} />
+                    <Route path="authors" element={<Authors />} />
                 </Route>
             </Routes>
         </BrowserRouter>

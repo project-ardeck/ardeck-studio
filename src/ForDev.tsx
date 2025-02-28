@@ -376,19 +376,19 @@ export default function ForDev() {
                                     {`${pin.toString().padStart(2, "0")} : ${state.switchState ? "HIGH" : "LOW"}`}
                                 </div>
                                 <div className="pointer-events-none absolute bottom-0 left-0 right-0 top-0 flex items-center justify-center">
-                            
-                                    {//state.raw.map((val, index) => {
-                                     //   return (
-                                     //       <span
-                                     //           key={index}
-                                     //           className="pointer-events-auto text-sm"
-                                     //       >
-                                     //           {val
-                                     //               .toString(2)
-                                     //               .padStart(8, "0")}
-                                     //       </span>
-                                     //   );
-                                    //})
+                                    {
+                                        //state.raw.map((val, index) => {
+                                        //   return (
+                                        //       <span
+                                        //           key={index}
+                                        //           className="pointer-events-auto text-sm"
+                                        //       >
+                                        //           {val
+                                        //               .toString(2)
+                                        //               .padStart(8, "0")}
+                                        //       </span>
+                                        //   );
+                                        //})
                                     }
                                 </div>
                                 <div className="text-sm text-text-primary text-opacity-50">
@@ -440,18 +440,19 @@ export default function ForDev() {
                                     {`${pin.toString().padStart(2, "0")} : ${state.switchState}`}
                                 </div>
                                 <div className="pointer-events-none absolute bottom-0 left-0 right-0 top-0 z-10 flex items-center justify-center gap-2">
-                                    {//state.raw.map((val, index) => {
-                                     //   return (
-                                     //       <span
-                                     //           key={index}
-                                     //           className="pointer-events-auto text-sm"
-                                     //       >
-                                     //           {val
-                                     //               .toString(2)
-                                     //               .padStart(8, "0")}
-                                     //       </span>
-                                     //   );
-                                     //   })
+                                    {
+                                        //state.raw.map((val, index) => {
+                                        //   return (
+                                        //       <span
+                                        //           key={index}
+                                        //           className="pointer-events-auto text-sm"
+                                        //       >
+                                        //           {val
+                                        //               .toString(2)
+                                        //               .padStart(8, "0")}
+                                        //       </span>
+                                        //   );
+                                        //   })
                                     }
                                 </div>
                                 <div className="z-10 text-sm text-text-primary text-opacity-50">
@@ -517,9 +518,9 @@ export default function ForDev() {
                 <Infomations title="Mappings">
                     <div className="flex flex-col gap-2">
                         <ActionMappingForm
-                            // onSubmit={(e) => {
-                            //     return;
-                            // }}
+                        // onSubmit={(e) => {
+                        //     return;
+                        // }}
                         />
                     </div>
                 </Infomations>
