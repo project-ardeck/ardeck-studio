@@ -16,20 +16,12 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Link } from "react-router";
-import { invoke } from "./tauri/invoke";
+import { listen as _listen } from "@tauri-apps/api/event"
+import { SerialPortInfo } from "../types/ardeck";
 
-export default function App() {
-    const openAbout = () => {
-        invoke.openWindow.about();
-    };
-    return (
-        <div className="">
-            <nav className="flex gap-4">
-                <Link to="config">Config</Link>
-                <Link to="devices">Devices</Link>
-                <button className="" onClick={openAbout}>About Ardeck</button>
-            </nav>
-        </div>
-    );
+export const listen = {
+    async onPorts(callback: (payload: SerialPortInfo[]) => void) {
+        _listen("on-ports", (e) => callback(e.payload as SerialPortInfo[]));
+    }
 }
+
