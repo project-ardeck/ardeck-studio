@@ -160,9 +160,11 @@ async fn main() {
     // print!("\x1B[2J\x1B[1;1H"); // ! コンソールをクリア
 
     // システムトレイアイコンの設定
+    let show = CustomMenuItem::new("show".to_string(), "Show");
     let hide = CustomMenuItem::new("hide".to_string(), "Hide");
     let quit = CustomMenuItem::new("quit".to_string(), "Quit");
     let tray_menu = SystemTrayMenu::new()
+        .add_item(show)
         .add_item(hide)
         .add_native_item(SystemTrayMenuItem::Separator)
         .add_item(quit);
@@ -196,6 +198,10 @@ async fn main() {
                 window.set_focus().unwrap();
             }
             SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
+                "show" => {
+                    let window = app.get_window("main").unwrap();
+                    window.show().unwrap();
+                }
                 "hide" => {
                     let window = app.get_window("main").unwrap();
                     window.hide().unwrap();
