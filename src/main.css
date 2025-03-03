@@ -58,7 +58,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
         --accent-positive: 121 192 255; /* #79c0ff */
         --accent-caution: 255 171 92; /* #ffab5c */
-        --accent-negative: 255 92 141; /* #ff5c8d */
+        --accent-negative: 255 50 72; /* #ff5c8d */
         --accent-link: 88 166 255; /* #58a6ff */
     }
 }
