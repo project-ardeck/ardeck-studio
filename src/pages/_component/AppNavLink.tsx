@@ -16,10 +16,27 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+import { NavLink } from "react-router";
 
-import { ReactNode } from "react";
-import { Link } from "react-router";
-
-export default function BackToRoot(props: { children: ReactNode }) {
-    return <Link to="/">{props.children}</Link>;
+export default function AppNavLink({
+    to,
+    children,
+}: {
+    to: string;
+    children: React.ReactNode;
+}) {
+    return (
+        <NavLink
+            to={to}
+            className={({ isActive }) => {
+                const defaultStyle = "px-2 py-1 rounded-md";
+                const activeStyle = "bg-bg-secondary";
+                return isActive
+                    ? defaultStyle + " " + activeStyle
+                    : defaultStyle;
+            }}
+        >
+            {children}
+        </NavLink>
+    );
 }

@@ -13,9 +13,11 @@ export default function Router() {
         <BrowserRouter>
             <Routes>
                 <Route element={<MainWindow />}>
-                    <Route index element={<App />} />
-                    <Route path="config" element={<Config />} />
-                    <Route path="devices" element={<Devices />} />
+                    <Route element={<App />}>
+                        <Route index element={null} />
+                        <Route path="config" element={<Config />} />
+                        <Route path="devices" element={<Devices />} />
+                    </Route>
                     <Route path="dev" element={<ForDev />} />
                 </Route>
                 <Route path="about" element={<About />}>
