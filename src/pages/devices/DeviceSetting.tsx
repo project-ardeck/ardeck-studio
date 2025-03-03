@@ -16,27 +16,12 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { NavLink } from "react-router";
+import { useParams } from "react-router"
 
-export default function AppNavLink({
-    to,
-    children,
-}: {
-    to: string;
-    children: React.ReactNode;
-}) {
+export default function DeviceSetting() {
+    let { device } = useParams();
+
     return (
-        <NavLink
-            to={to}
-            className={({ isActive }) => {
-                const defaultStyle = "px-2 py-1 rounded-md hover:bg-bg-secondary";
-                const activeStyle = "bg-bg-secondary";
-                return isActive
-                    ? defaultStyle + " " + activeStyle
-                    : defaultStyle;
-            }}
-        >
-            {children}
-        </NavLink>
-    );
+        <div>Device Setting: {device}</div>
+    )
 }

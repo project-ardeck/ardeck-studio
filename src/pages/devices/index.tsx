@@ -22,6 +22,7 @@ import { SerialPortInfo } from "../../types/ardeck";
 import { invoke } from "../../tauri/invoke";
 import { listen } from "../../tauri/listen";
 import Popup from "../../component/popup";
+import { Link } from "react-router";
 
 export default function Devices() {
     const [devices, setDevices] = useState<SerialPortInfo[]>([]);
@@ -44,9 +45,10 @@ export default function Devices() {
                     if (!device.port_type.UsbPort) return null;
 
                     return (
-                        <div
+                        <Link
                             className="flex flex-col bg-bg-secondary"
                             key={device.port_name}
+                            to={device.port_name}
                         >
                             <div>{device.port_name}</div>
                             {/* <Popup
@@ -64,7 +66,7 @@ export default function Devices() {
                                 <div>{device.port_type.UsbPort.vid}</div>
                                 <div>{device.port_type.UsbPort.product}</div>
                             {/* </Popup> */}
-                        </div>
+                        </Link>
                     );
                 })}
             </div>

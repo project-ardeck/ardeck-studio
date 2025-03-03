@@ -7,6 +7,7 @@ import About from "./pages/about";
 import License from "./pages/about/license";
 import Authors from "./pages/about/authors";
 import Devices from "./pages/devices";
+import DeviceSetting from "./pages/devices/DeviceSetting";
 
 export default function Router() {
     return (
@@ -17,6 +18,10 @@ export default function Router() {
                         <Route index element={null} />
                         <Route path="config" element={<Config />} />
                         <Route path="devices" element={<Devices />} />
+                        <Route
+                            path="/devices/:device"
+                            element={<DeviceSetting />}
+                        />
                     </Route>
                     <Route path="dev" element={<ForDev />} />
                 </Route>

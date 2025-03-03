@@ -49,7 +49,7 @@ export default function App() {
                 };
             });
         }
-        console.log(isMenuBarClick);
+        // console.log(isMenuBarClick);
     };
 
     window.onmousedown = (e) => {
@@ -81,7 +81,7 @@ export default function App() {
     return (
         <div className="flex h-full w-full select-none">
             <nav
-                className={`flex flex-col gap-1 p-2`}
+                className={`flex flex-col gap-1.5 p-2`}
                 style={{ width: menuWidth.current }}
             >
                 <AppNavLink to="config">Config</AppNavLink>
@@ -97,7 +97,7 @@ export default function App() {
             >
                 <span className="pointer-events-none w-1 bg-bg-secondary"></span>
             </span>
-            <div>
+            <div className="px-4 py-2">
                 <Outlet />
             </div>
         </div>
