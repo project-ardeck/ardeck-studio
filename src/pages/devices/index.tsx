@@ -57,14 +57,14 @@ export default function Devices() {
                                 onOpen={() => {}}
                             > */}
                                 <div>
-                                    {device.port_type.UsbPort.manufacturer}
+                                    manufacturer: {device.port_type.UsbPort.manufacturer}
                                 </div>
-                                <div>{device.port_type.UsbPort.pid}</div>
+                                <div>pid: {device.port_type.UsbPort.pid}</div>
                                 <div>
-                                    {device.port_type.UsbPort.serial_number}
+                                    serial_number: {device.port_type.UsbPort.serial_number}
                                 </div>
-                                <div>{device.port_type.UsbPort.vid}</div>
-                                <div>{device.port_type.UsbPort.product}</div>
+                                <div>vid: {device.port_type.UsbPort.vid}</div>
+                                <div>product: {device.port_type.UsbPort.product}</div>
                             {/* </Popup> */}
                         </Link>
                     );

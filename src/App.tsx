@@ -87,7 +87,7 @@ export default function App() {
                 <AppNavLink to="config">Config</AppNavLink>
                 <AppNavLink to="devices">Devices</AppNavLink>
                 <div className="flex-1"></div>
-                <button className="" onClick={openAbout}>
+                <button className="rounded-md hover:bg-bg-secondary" onClick={openAbout}>
                     About Ardeck
                 </button>
             </nav>
@@ -97,7 +97,7 @@ export default function App() {
             >
                 <span className="pointer-events-none w-1 bg-bg-secondary"></span>
             </span>
-            <div className="px-4 py-2">
+            <div className="px-4 py-2 w-full h-full">
                 <Outlet />
             </div>
         </div>

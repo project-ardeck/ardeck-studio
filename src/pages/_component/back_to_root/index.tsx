@@ -16,10 +16,16 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-
 import { ReactNode } from "react";
 import { Link } from "react-router";
 
-export default function BackToRoot(props: { children: ReactNode }) {
-    return <Link to="/">{props.children}</Link>;
+export default function BackToRoot(props: {
+    children: ReactNode;
+    className?: string;
+}) {
+    return (
+        <Link className={props.className} to="/">
+            {props.children}
+        </Link>
+    );
 }

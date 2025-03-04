@@ -16,17 +16,20 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useParams } from "react-router";
-import BackToPrev from "../_component/back_to_prev";
-import { VscArrowLeft } from "react-icons/vsc";
+import { ReactNode } from "react";
+import { Link } from "react-router";
 
-export default function DeviceSetting() {
-    let { device } = useParams();
-
+export default function BackToPrev(props: {
+    children: ReactNode;
+    className?: string;
+}) {
+    const { pathname } = window.location;
     return (
-        <div>
-            <BackToPrev className="flex items-center gap-2"><VscArrowLeft />Back to list</BackToPrev>
-            <div>Device Setting: {device}</div>
-        </div>
+        <Link
+            className={props.className}
+            to={`${pathname.split("/").slice(0, -1).join("/")}/`}
+        >
+            {props.children}
+        </Link>
     );
 }

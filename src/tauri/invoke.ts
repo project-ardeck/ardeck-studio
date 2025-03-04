@@ -54,6 +54,9 @@ export const invoke = {
                 );
             },
         },
+        ardeckPresets: {
+            // async getArdeckPreset()
+        }
     },
     ardeck: {
         async openPort(portName: string, baudRate: number) {
