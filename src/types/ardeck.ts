@@ -100,3 +100,20 @@ export type serialPortState = {
     //     flow_control: string
     // }
 };
+
+/**
+ * デバイスの設定
+ * @type {ArdeckProfileConfigItem}
+ * @property {string} deviceId - デバイスの識別子
+ * @property {string} deviceName - デバイスの名前
+ * @property {number} baudRate - デバイスのボーレート
+ * @property {string} description - デバイスの説明
+ * @property {string} mappingPreset - デバイスのマッピングプリセットID
+ */
+export type ArdeckProfileConfigItem = {
+    deviceId: string;
+    deviceName?: string;
+    baudRate?: number;
+    description?: string;
+    mappingPreset?: string;
+}

@@ -35,36 +35,36 @@ export default function App() {
         max: 400, // 最大値
     });
 
-    window.onmousemove = (e) => {
-        // e.preventDefault();
-        if (isMenuBarClick) {
-            setMenuWidth((p) => {
-                const width = e.clientX - menuBarWidth.current / 2;
+    // window.onmousemove = (e) => {
+    //     // e.preventDefault();
+    //     if (isMenuBarClick) {
+    //         setMenuWidth((p) => {
+    //             const width = e.clientX - menuBarWidth.current / 2;
 
-                if (width < p.min) return { ...p, current: p.min };
-                if (width > p.max) return { ...p, current: p.max };
-                return {
-                    ...p,
-                    current: width,
-                };
-            });
-        }
-        // console.log(isMenuBarClick);
-    };
+    //             if (width < p.min) return { ...p, current: p.min };
+    //             if (width > p.max) return { ...p, current: p.max };
+    //             return {
+    //                 ...p,
+    //                 current: width,
+    //             };
+    //         });
+    //     }
+    //     // console.log(isMenuBarClick);
+    // };
 
-    window.onmousedown = (e) => {
-        const menuBar = document.getElementById("menu-bar");
+    // window.onmousedown = (e) => {
+    //     const menuBar = document.getElementById("menu-bar");
 
-        if (!menuBar) return;
+    //     if (!menuBar) return;
 
-        if (e.target !== menuBar) return;
+    //     if (e.target !== menuBar) return;
 
-        setIsMenuBarClick(true);
-    };
+    //     setIsMenuBarClick(true);
+    // };
 
-    window.onmouseup = () => {
-        setIsMenuBarClick(false);
-    };
+    // window.onmouseup = () => {
+    //     setIsMenuBarClick(false);
+    // };
 
     useEffect(() => {
         // メニューバーのつかめる範囲の幅を取得して保存
@@ -81,6 +81,7 @@ export default function App() {
     return (
         <div className="flex h-full w-full select-none">
             <nav
+                // data-tauri-drag-region
                 className={`flex flex-col gap-1.5 p-2`}
                 style={{ width: menuWidth.current }}
             >
@@ -91,12 +92,12 @@ export default function App() {
                     About Ardeck
                 </button>
             </nav>
-            <span
+            {/* <span
                 id="menu-bar"
                 className="flex h-full w-2 cursor-e-resize justify-center"
             >
                 <span className="pointer-events-none w-1 bg-bg-secondary"></span>
-            </span>
+            </span> */}
             <div className="px-4 py-2 w-full h-full">
                 <Outlet />
             </div>

@@ -21,12 +21,12 @@ import BackToPrev from "../_component/back_to_prev";
 import { VscArrowLeft } from "react-icons/vsc";
 
 export default function DeviceSetting() {
-    let { device } = useParams();
+    let { device_id } = useParams();
 
     return (
         <div>
             <BackToPrev className="flex items-center gap-2"><VscArrowLeft />Back to list</BackToPrev>
-            <div>Device Setting: {device}</div>
+            <div>Device Setting: {device_id}</div>
         </div>
     );
 }

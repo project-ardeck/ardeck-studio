@@ -25,7 +25,8 @@ import Popup from "../../component/popup";
 import { Link } from "react-router";
 
 export default function Devices() {
-    const [devices, setDevices] = useState<SerialPortInfo[]>([]);
+    const [devices, setDevices] = useState<[string, SerialPortInfo][]>([]);
+    const [deviceSetting, setDeviceSetting] = useState<string>("");
 
     useEffect(() => {
         invoke.ardeck.getPorts().then((ports) => setDevices(ports));
@@ -38,33 +39,38 @@ export default function Devices() {
             <div>Devices</div>
             <h2 className="text-xl font-bold">Saved</h2>
             None
-            <h2 className="text-xl font-bold">Other</h2>
+            <h2 className="text-xl font-bold">New</h2>
             <div className="flex flex-col gap-2">
                 {devices.map((device) => {
                     console.log(device);
-                    if (!device.port_type.UsbPort) return null;
+                    if (!device[1].port_type.UsbPort) return null;
 
                     return (
                         <Link
                             className="flex flex-col bg-bg-secondary"
-                            key={device.port_name}
-                            to={device.port_name}
+                            key={device[1].port_name}
+                            to={device[0]}
                         >
-                            <div>{device.port_name}</div>
+                            <div>port_name: {device[1].port_name}</div>
                             {/* <Popup
                                 title={device.port_name}
                                 onClose={() => {}}
                                 onOpen={() => {}}
                             > */}
-                                <div>
-                                    manufacturer: {device.port_type.UsbPort.manufacturer}
-                                </div>
-                                <div>pid: {device.port_type.UsbPort.pid}</div>
-                                <div>
-                                    serial_number: {device.port_type.UsbPort.serial_number}
-                                </div>
-                                <div>vid: {device.port_type.UsbPort.vid}</div>
-                                <div>product: {device.port_type.UsbPort.product}</div>
+                            <div>port_id: {device[0]}</div>
+                            <div>
+                                manufacturer:{" "}
+                                {device[1].port_type.UsbPort.manufacturer}
+                            </div>
+                            <div>pid: {device[1].port_type.UsbPort.pid}</div>
+                            <div>
+                                serial_number:{" "}
+                                {device[1].port_type.UsbPort.serial_number}
+                            </div>
+                            <div>vid: {device[1].port_type.UsbPort.vid}</div>
+                            <div>
+                                product: {device[1].port_type.UsbPort.product}
+                            </div>
                             {/* </Popup> */}
                         </Link>
                     );

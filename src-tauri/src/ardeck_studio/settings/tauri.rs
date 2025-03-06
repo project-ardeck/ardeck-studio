@@ -27,16 +27,19 @@ use uuid::Uuid;
 
 use crate::{
     ardeck_studio::{
-        action::action_map::ActionMap, settings::definitions::mapping_presets::MappingPreset,
+        action::action_map::ActionMap,
+        settings::definitions::{ardeck::ArdeckProfileConfigItem, mapping_presets::MappingPreset},
         switch_info::SwitchType,
     },
     service::dir::Directories,
 };
 
-use super::{definitions::mapping_presets::MappingPresetsJSON, SettingsStore};
+use super::{
+    definitions::{ardeck::ArdeckProfileConfigJSON, mapping_presets::MappingPresetsJSON},
+    SettingsStore,
+};
 
 // Mapping presets
-
 #[tauri::command]
 async fn get_mapping_list<R: Runtime>(
     app: tauri::AppHandle<R>,
@@ -53,6 +56,7 @@ async fn get_mapping_list<R: Runtime>(
     Ok(list)
 }
 
+// Mapping presets
 #[tauri::command]
 async fn get_mapping_preset<R: Runtime>(
     app: tauri::AppHandle<R>,
@@ -76,6 +80,7 @@ async fn get_mapping_preset<R: Runtime>(
     Ok(None)
 }
 
+// Mapping presets
 #[tauri::command]
 async fn save_mapping_preset<R: Runtime>(
     app: tauri::AppHandle<R>,
@@ -118,6 +123,74 @@ async fn save_mapping_preset<R: Runtime>(
     Ok(mapping_preset)
 }
 
+// Ardeck Profile
+type DeviceName = Option<String>;
+type DeviceId = String;
+type ProfileList = Vec<(DeviceName, DeviceId)>;
+#[tauri::command]
+async fn get_ardeck_profile_list<R: Runtime>(
+    app: tauri::AppHandle<R>,
+) -> Result<ProfileList, String> {
+    let config = ArdeckProfileConfigJSON::new().load().await;
+    let mut list: ProfileList = Vec::new();
+
+    if config.is_none() {
+        return Err("Failed to load ardeck profile config".into());
+    }
+
+    let config = config.unwrap();
+
+    for item in config.iter() {
+        list.push((item.device_name.clone(), item.device_id.clone()));
+    }
+
+    Ok(list)
+}
+
+#[tauri::command]
+async fn get_ardeck_profile<R: Runtime>(
+    app: tauri::AppHandle<R>,
+    device_id: &str,
+) -> Result<Option<ArdeckProfileConfigItem>, String> {
+    let config = ArdeckProfileConfigJSON::new().load().await;
+    if config.is_none() {
+        return Err("Failed to load ardeck profile config".into());
+    }
+
+    let config = config.unwrap();
+
+    for item in config.iter() {
+        if item.device_id == device_id {
+            return Ok(Some(item.clone()));
+        }
+    }
+
+    Err("Failed to find ardeck profile config".into())
+}
+
+#[tauri::command]
+async fn save_ardeck_profile<R: Runtime>(
+    app: tauri::AppHandle<R>,
+    profile: ArdeckProfileConfigItem,
+) -> Result<ArdeckProfileConfigItem, String> {
+    let mut config = ArdeckProfileConfigJSON::new().load().await.unwrap();
+
+    let position = config.iter().position(|p| p.device_id == profile.device_id);
+
+    match position {
+        Some(i) => {
+            config[i] = profile.clone();
+        }
+        None => {
+            config.push(profile.clone());
+        }
+    }
+
+    config.save().await;
+
+    Ok(profile)
+}
+
 macro_rules! ext_config_file {
     () => {};
 }
@@ -133,7 +206,10 @@ pub fn init<R: Runtime>() -> TauriPlugin<R> {
         .invoke_handler(generate_handler![
             get_mapping_list,
             get_mapping_preset,
-            save_mapping_preset
+            save_mapping_preset,
+            get_ardeck_profile_list,
+            get_ardeck_profile,
+            save_ardeck_profile
         ])
         .build()
 }

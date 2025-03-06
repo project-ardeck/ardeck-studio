@@ -20,8 +20,8 @@ import { listen as _listen } from "@tauri-apps/api/event"
 import { SerialPortInfo } from "../types/ardeck";
 
 export const listen = {
-    async onPorts(callback: (payload: SerialPortInfo[]) => void) {
-        _listen("on-ports", (e) => callback(e.payload as SerialPortInfo[]));
+    async onPorts(callback: (payload: [string, SerialPortInfo][]) => void) {
+        _listen("on-ports", (e) => callback(e.payload as [string, SerialPortInfo][]));
     }
 }
 

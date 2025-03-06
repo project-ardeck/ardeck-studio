@@ -19,7 +19,7 @@ export default function Router() {
                         <Route path="config" element={<Config />} />
                         <Route path="devices" element={<Devices />} />
                         <Route
-                            path="/devices/:device"
+                            path="/devices/:device_id"
                             element={<DeviceSetting />}
                         />
                     </Route>

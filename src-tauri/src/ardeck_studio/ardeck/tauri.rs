@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 use once_cell::sync::Lazy;
-use serialport::{SerialPort, SerialPortInfo};
+use serialport::{SerialPort, SerialPortInfo, SerialPortType};
 use std::{io, sync::Arc, time::Duration};
 use tauri::{
     plugin::{Builder, TauriPlugin},
@@ -228,7 +228,28 @@ fn serial_watch<R: Runtime>(tauri_app: tauri::AppHandle<R>) {
 
             if last_ports.clone() != ports.clone() {
                 log::info!("Ports list changed: {:?}", ports);
-                tauri_app.emit_all("on-ports", ports.clone()).unwrap();
+                let mut payload: Vec<(String, SerialPortInfo)> = Vec::new();
+
+                for port in ports.clone() {
+                    match port.port_type.clone() {
+                        SerialPortType::UsbPort(info) => {
+                            if let Some(serial_number) = info.serial_number {
+                                payload.push((
+                                    format!("{}-{}-{}", info.vid, info.pid, serial_number),
+                                    port,
+                                ));
+                            } else {
+                                payload.push((format!("{}-{}", info.vid, info.pid), port));
+                            }
+                        }
+                        _ => continue,
+                    }
+                    
+                }
+
+                tauri_app
+                    .emit_all("on-ports-changed", payload)
+                    .unwrap();
             }
 
             last_ports = ports;
@@ -240,9 +261,24 @@ fn serial_watch<R: Runtime>(tauri_app: tauri::AppHandle<R>) {
 
 // ポートの一覧を取得する
 #[tauri::command]
-fn get_ports() -> Vec<serialport::SerialPortInfo> {
+fn get_ports() -> Vec<(String, serialport::SerialPortInfo)> {
     let ports = serialport::available_ports().unwrap();
-    ports
+    let mut list: Vec<(String, serialport::SerialPortInfo)> = Vec::new();
+
+    for port in ports {
+        match port.port_type.clone() {
+            SerialPortType::UsbPort(info) => {
+                if let Some(serial_number) = info.serial_number {
+                    list.push((format!("{}-{}-{}", info.vid, info.pid, serial_number), port));
+                } else {
+                    list.push((format!("{}-{}", info.vid, info.pid), port));
+                }
+            }
+            _ => continue,
+        }
+    }
+
+    list
 }
 
 pub fn init<R: Runtime>() -> TauriPlugin<R> {

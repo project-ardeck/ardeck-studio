@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import { invoke as tauriInvoke } from "@tauri-apps/api";
-import { SerialPortInfo } from "../types/ardeck";
+import { ArdeckProfileConfigItem, SerialPortInfo } from "../types/ardeck";
 import { MappingPreset } from "../types/settings";
 
 // TODO: error handling
@@ -55,8 +55,18 @@ export const invoke = {
             },
         },
         ardeckPresets: {
-            // async getArdeckPreset()
-        }
+            async getArdeckProfileList(): Promise<[string, string]> {
+                return await tauriInvoke("plugin:settings|get_ardeck_profile_list");
+            },
+
+            async getArdeckProfile(deviceId: string): Promise<ArdeckProfileConfigItem> {
+                return await tauriInvoke("plugin:settings|get_ardeck_profile", { deviceId });
+            },
+
+            async saveArdeckProfile(ardeckProfile: ArdeckProfileConfigItem): Promise<ArdeckProfileConfigItem> {
+                return await tauriInvoke("plugin:settings|save_ardeck_profile", { ardeckProfile });
+            },
+        },
     },
     ardeck: {
         async openPort(portName: string, baudRate: number) {
@@ -71,13 +81,13 @@ export const invoke = {
         async getConnectingSerials(): Promise<Array<string>> {
             return await tauriInvoke("plugin:ardeck|get_connecting_serials");
         },
-        async getPorts(): Promise<Array<SerialPortInfo>> {
+        async getPorts(): Promise<Array<[string, SerialPortInfo]>> {
             return await tauriInvoke("plugin:ardeck|get_ports");
         },
     },
     openWindow: {
         async about() {
             return await tauriInvoke("open_about");
-        }
-    }
+        },
+    },
 };
