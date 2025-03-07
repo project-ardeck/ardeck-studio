@@ -51,7 +51,7 @@ async fn get_mapping_list<R: Runtime>(
         .map(|a| (a.uuid.clone(), a.preset_name.clone()))
         .collect();
 
-    log::trace!("get_mapping_list: {:#?}", list);
+    log::debug!("get_mapping_list: {:#?}", list);
 
     Ok(list)
 }
@@ -63,20 +63,20 @@ async fn get_mapping_preset<R: Runtime>(
     // mapping_presets_json: State<'_, Mutex<MappingPresetsJSON>>,
     uuid: &str,
 ) -> Result<Option<MappingPreset>, String> {
-    log::trace!("get_mapping_preset: {}", uuid);
+    log::debug!("get_mapping_preset: {}", uuid);
 
-    log::trace!("get_mapping_preset.uuid: {}", uuid);
+    log::debug!("get_mapping_preset.uuid: {}", uuid);
 
     let mapping_presets = MappingPresetsJSON::new().load().await.unwrap();
     for a in mapping_presets.iter() {
-        log::trace!("\tuuid: {}", a.uuid);
+        log::debug!("\tuuid: {}", a.uuid);
 
         if a.uuid == uuid.to_string() {
-            log::trace!("\tfound.");
+            log::debug!("\tfound.");
             return Ok(Some(a.clone()));
         }
     }
-    log::trace!("\tnot found.");
+    log::debug!("\tnot found.");
     Ok(None)
 }
 
@@ -88,9 +88,9 @@ async fn save_mapping_preset<R: Runtime>(
     mut mapping_preset: MappingPreset,
 ) -> Result<MappingPreset, String> {
     let mut mapping_presets = MappingPresetsJSON::new().load().await.unwrap();
-    log::trace!("save_mapping_preset: {:#?}", mapping_preset);
+    log::debug!("save_mapping_preset: {:#?}", mapping_preset);
 
-    log::trace!("save_mapping_preset.uuid: {}", mapping_preset.uuid);
+    log::debug!("save_mapping_preset.uuid: {}", mapping_preset.uuid);
 
     // すでに存在するかを確認する
     let index = mapping_presets
@@ -101,8 +101,8 @@ async fn save_mapping_preset<R: Runtime>(
         Some(i) => {
             mapping_presets[i] = mapping_preset.clone();
 
-            log::trace!("save_mapping_preset.data_change");
-            log::trace!("mapping_presets[after]: {:#?}", mapping_presets);
+            log::debug!("save_mapping_preset.data_change");
+            log::debug!("mapping_presets[after]: {:#?}", mapping_presets);
 
             mapping_presets.save().await;
         }
@@ -113,8 +113,8 @@ async fn save_mapping_preset<R: Runtime>(
 
             mapping_presets.push(mapping_preset.clone());
 
-            log::trace!("save_mapping_preset.new_data");
-            log::trace!("mapping_presets[after]: {:#?}", mapping_presets);
+            log::debug!("save_mapping_preset.new_data");
+            log::debug!("mapping_presets[after]: {:#?}", mapping_presets);
 
             mapping_presets.save().await;
         }
@@ -126,7 +126,7 @@ async fn save_mapping_preset<R: Runtime>(
 // Ardeck Profile
 type DeviceName = Option<String>;
 type DeviceId = String;
-type ProfileList = Vec<(DeviceName, DeviceId)>;
+type ProfileList = Vec<(DeviceId, DeviceName)>;
 #[tauri::command]
 async fn get_ardeck_profile_list<R: Runtime>(
     app: tauri::AppHandle<R>,
@@ -141,7 +141,7 @@ async fn get_ardeck_profile_list<R: Runtime>(
     let config = config.unwrap();
 
     for item in config.iter() {
-        list.push((item.device_name.clone(), item.device_id.clone()));
+        list.push((item.device_id.clone(), item.device_name.clone()));
     }
 
     Ok(list)

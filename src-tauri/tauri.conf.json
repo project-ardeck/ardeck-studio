@@ -1,61 +1,69 @@
 {
-  "build": {
-    "beforeDevCommand": "bun run dev",
-    "beforeBuildCommand": "bun run build",
-    "devPath": "http://localhost:1420",
-    "distDir": "../dist"
-  },
-  "package": {
-    "productName": "ardeck",
-    "version": "0.2.0"
-  },
-  "tauri": {
-    "allowlist": {
-      "all": false,
-      "shell": {
-        "all": false,
-        "open": true
-      },
-      "window": {
-        "all": false,
-        "close": true,
-        "hide": true,
-        "show": true,
-        "maximize": true,
-        "minimize": true,
-        "unmaximize": true,
-        "unminimize": true,
-        "startDragging": true
-      }
+    "build": {
+        "beforeDevCommand": "bun run dev",
+        "beforeBuildCommand": "bun run build",
+        "devPath": "http://localhost:1420",
+        "distDir": "../dist"
     },
-    "windows": [
-      {
-        "title": "ardeck",
-        "minHeight": 600,
-        "minWidth": 800,
-        "decorations": false,
-        "resizable": true,
-        "visible": false
-      }
-    ],
-    "security": {
-      "csp": null
+    "package": {
+        "productName": "ardeck",
+        "version": "0.2.0"
     },
-    "bundle": {
-      "active": true,
-      "targets": "all",
-      "identifier": "com.ardeck.studio",
-      "icon": [
-        "icons/32x32.png",
-        "icons/128x128.png",
-        "icons/128x128@2x.png",
-        "icons/icon.ico",
-        "icons/icon.icns"
-      ]
-    },
-    "systemTray": {
-      "iconPath": "icons/32x32.png",
-      "iconAsTemplate": true
+    "tauri": {
+        "allowlist": {
+            "all": false,
+            "shell": {
+                "all": false,
+                "open": true
+            },
+            "window": {
+                "all": false,
+                "close": true,
+                "hide": true,
+                "show": true,
+                "maximize": true,
+                "minimize": true,
+                "unmaximize": true,
+                "unminimize": true,
+                "startDragging": true
+            },
+            "dialog": {
+                "all": true,
+                "ask": true,
+                "confirm": true,
+                "message": true,
+                "open": true,
+                "save": true
+            }
+        },
+        "windows": [
+            {
+                "title": "ardeck",
+                "minHeight": 600,
+                "minWidth": 800,
+                "decorations": false,
+                "resizable": true,
+                "visible": false
+            }
+        ],
+        "security": {
+            "csp": null
+        },
+        "bundle": {
+            "active": true,
+            "targets": "all",
+            "identifier": "com.ardeck.studio",
+            "icon": [
+                "icons/32x32.png",
+                "icons/128x128.png",
+                "icons/128x128@2x.png",
+                "icons/icon.ico",
+                "icons/icon.icns"
+            ]
+        },
+        "systemTray": {
+            "iconPath": "icons/32x32.png",
+            "iconAsTemplate": true
+        }
     }
-  }
 }

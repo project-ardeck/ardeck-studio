@@ -55,16 +55,27 @@ export const invoke = {
             },
         },
         ardeckPresets: {
-            async getArdeckProfileList(): Promise<[string, string]> {
-                return await tauriInvoke("plugin:settings|get_ardeck_profile_list");
+            async getArdeckProfileList(): Promise<[string, string][]> {
+                return await tauriInvoke(
+                    "plugin:settings|get_ardeck_profile_list",
+                );
             },
 
-            async getArdeckProfile(deviceId: string): Promise<ArdeckProfileConfigItem> {
-                return await tauriInvoke("plugin:settings|get_ardeck_profile", { deviceId });
+            async getArdeckProfile(
+                deviceId: string,
+            ): Promise<ArdeckProfileConfigItem> {
+                return await tauriInvoke("plugin:settings|get_ardeck_profile", {
+                    deviceId,
+                });
             },
 
-            async saveArdeckProfile(ardeckProfile: ArdeckProfileConfigItem): Promise<ArdeckProfileConfigItem> {
-                return await tauriInvoke("plugin:settings|save_ardeck_profile", { ardeckProfile });
+            async saveArdeckProfile(
+                ardeckProfile: ArdeckProfileConfigItem,
+            ): Promise<ArdeckProfileConfigItem> {
+                return await tauriInvoke(
+                    "plugin:settings|save_ardeck_profile",
+                    { profile: ardeckProfile },
+                );
             },
         },
     },

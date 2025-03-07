@@ -70,7 +70,7 @@ impl PluginServer {
                 return;
             }
 
-            log::trace!("listening on {}", tcp.local_addr().unwrap());
+            log::debug!("listening on {}", tcp.local_addr().unwrap());
 
             // 接続待ち
             while let Ok((stream, _)) = tcp.accept().await {
@@ -85,11 +85,11 @@ impl PluginServer {
         // 起動待ち
         while let Some(b) = rx.recv().await {
             if b {
-                log::trace!("plugin server OK.");
+                log::debug!("plugin server OK.");
 
                 return Ok(());
             } else {
-                log::trace!("plugin server failed.");
+                log::debug!("plugin server failed.");
 
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::Other,
@@ -192,13 +192,13 @@ impl PluginServer {
                 .get_mut(&action.target.plugin_id)
             {
                 Some(plugin) => {
-                    log::trace!(
+                    log::debug!(
                         "\t[plugin.server]: put_action: plugin found: {}",
                         action.target.plugin_id
                     );
                     plugin.put_action(action.clone()).await;
                 }
-                None => log::trace!("\t[plugin.server]: put_action: plugin not found"),
+                None => log::debug!("\t[plugin.server]: put_action: plugin not found"),
             }
         }
 
@@ -221,7 +221,7 @@ async fn handle_connection(
             if msg.is_text() {
                 let msg_str = msg.to_text().unwrap();
 
-                log::trace!("Received: {}", msg_str);
+                log::debug!("Received: {}", msg_str);
 
                 let message: PluginMessage = serde_json::from_str(msg_str).unwrap();
 
@@ -231,7 +231,7 @@ async fn handle_connection(
                         ardeck_plugin_web_socket_version,
                         plugin_id,
                     } => {
-                        log::trace!("Hello:\n\t{}", plugin_id);
+                        log::debug!("Hello:\n\t{}", plugin_id);
 
                         // TODO: tauri.conf.jsonからのバージョン情報の取得
                         let data = PluginMessage::Success {

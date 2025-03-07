@@ -16,17 +16,41 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { useParams } from "react-router";
+import { Link, useParams } from "react-router";
 import BackToPrev from "../_component/back_to_prev";
 import { VscArrowLeft } from "react-icons/vsc";
+import { useCallback, useEffect, useState } from "react";
+import { ArdeckProfileConfigItem } from "../../types/ardeck";
+import { invoke } from "../../tauri/invoke";
 
 export default function DeviceSetting() {
     let { device_id } = useParams();
+    const [deviceSetting, setDeviceSetting] =
+        useState<ArdeckProfileConfigItem>();
+
+    
+
+    useEffect(() => {
+        const getDeviceSetting = async () => {
+            if (device_id) {
+                const deviceSetting =
+                    await invoke.settings.ardeckPresets.getArdeckProfile(
+                        device_id,
+                    );
+                setDeviceSetting(deviceSetting);
+            }
+        };
+        getDeviceSetting();
+    }, []);
 
     return (
         <div>
-            <BackToPrev className="flex items-center gap-2"><VscArrowLeft />Back to list</BackToPrev>
+            <BackToPrev className="flex items-center gap-2">
+                <VscArrowLeft />
+                Back to list
+            </BackToPrev>
             <div>Device Setting: {device_id}</div>
+            <pre>{JSON.stringify(deviceSetting, null, 2)}</pre>
         </div>
     );
 }

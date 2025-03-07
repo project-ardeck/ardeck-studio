@@ -18,7 +18,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import { useEffect, useState } from "react";
 import BackToRoot from "../_component/back_to_root";
-import { SerialPortInfo } from "../../types/ardeck";
+import { ArdeckProfileConfigItem, SerialPortInfo } from "../../types/ardeck";
 import { invoke } from "../../tauri/invoke";
 import { listen } from "../../tauri/listen";
 import Popup from "../../component/popup";
@@ -26,10 +26,33 @@ import { Link } from "react-router";
 
 export default function Devices() {
     const [devices, setDevices] = useState<[string, SerialPortInfo][]>([]);
+    const [deviceProfileList, setDeviceProfileList] = useState<
+        [string, string][]
+    >([]);
     const [deviceSetting, setDeviceSetting] = useState<string>("");
+
+    /**
+     * 接続中のデバイスのうち、保存されていないデバイスを新たに保存する
+     * @param deviceId - デバイスID
+     */
+    const saveNewDeviceHandler = (deviceId: string) => {
+        console.log("save new device");
+
+        const newDevice: ArdeckProfileConfigItem = {
+            deviceId,
+            deviceName: "",
+            baudRate: 115200,
+            description: "",
+        };
+
+        invoke.settings.ardeckPresets.saveArdeckProfile(newDevice);
+    };
 
     useEffect(() => {
         invoke.ardeck.getPorts().then((ports) => setDevices(ports));
+        invoke.settings.ardeckPresets
+            .getArdeckProfileList()
+            .then((profiles) => setDeviceProfileList(profiles));
 
         listen.onPorts((ports) => setDevices(ports));
     }, []);
@@ -38,19 +61,50 @@ export default function Devices() {
         <div>
             <div>Devices</div>
             <h2 className="text-xl font-bold">Saved</h2>
-            None
+            {devices.map((device) => {
+                if (!device[1].port_type.UsbPort) return null;
+
+                if (
+                    !deviceProfileList.find(
+                        (profile) => profile[0] === device[0],
+                    )
+                )
+                    return null;
+
+                return (
+                    <Link
+                        className="flex flex-col bg-bg-secondary"
+                        key={device[1].port_name}
+                        to={device[0]}
+                    >
+                        <div>port_name: {device[1].port_name}</div>
+                    </Link>
+                );
+            })}
             <h2 className="text-xl font-bold">New</h2>
             <div className="flex flex-col gap-2">
                 {devices.map((device) => {
                     console.log(device);
                     if (!device[1].port_type.UsbPort) return null;
 
+                    if (
+                        deviceProfileList.find(
+                            (profile) => profile[0] === device[0],
+                        )
+                    )
+                        return null;
+
                     return (
-                        <Link
+                        <div
                             className="flex flex-col bg-bg-secondary"
                             key={device[1].port_name}
-                            to={device[0]}
+                            // to={device[0]}
                         >
+                            <input
+                                type="button"
+                                value="Save Device"
+                                onClick={() => saveNewDeviceHandler(device[0])}
+                            />
                             <div>port_name: {device[1].port_name}</div>
                             {/* <Popup
                                 title={device.port_name}
@@ -72,7 +126,7 @@ export default function Devices() {
                                 product: {device[1].port_type.UsbPort.product}
                             </div>
                             {/* </Popup> */}
-                        </Link>
+                        </div>
                     );
                 })}
             </div>
