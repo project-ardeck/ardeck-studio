@@ -248,7 +248,7 @@ fn serial_watch<R: Runtime>(tauri_app: tauri::AppHandle<R>) {
                 }
 
                 tauri_app
-                    .emit_all("on-ports-changed", payload)
+                    .emit_all("on-ports", payload)
                     .unwrap();
             }
 

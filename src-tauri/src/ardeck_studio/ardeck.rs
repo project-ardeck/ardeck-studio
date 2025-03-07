@@ -55,7 +55,7 @@ impl Ardeck {
 
         match port {
             Ok(port) => {
-                debug!("Port Opened: {} {}", port_name, baud_rate);
+                log::debug!("Port Opened: {} {}", port_name, baud_rate);
                 Ok(Ardeck {
                     continue_flag: Arc::new(Mutex::new(AtomicBool::new(true))),
                     port: Arc::new(Mutex::new(port)),

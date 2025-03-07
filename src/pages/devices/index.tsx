@@ -18,7 +18,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import { useEffect, useState } from "react";
 import BackToRoot from "../_component/back_to_root";
-import { ArdeckProfileConfigItem, SerialPortInfo } from "../../types/ardeck";
+import { ArdeckProfileConfigItem, SerialPortInfo } from "../../lib/ardeck";
 import { invoke } from "../../tauri/invoke";
 import { listen } from "../../tauri/listen";
 import Popup from "../../component/popup";
@@ -31,17 +31,24 @@ export default function Devices() {
     >([]);
     const [deviceSetting, setDeviceSetting] = useState<string>("");
 
+    const questionDeviceName = (): string => {
+        const name = prompt("Device name");
+        return name ? name : "";
+    };
+
     /**
      * 接続中のデバイスのうち、保存されていないデバイスを新たに保存する
      * @param deviceId - デバイスID
      */
     const saveNewDeviceHandler = (deviceId: string) => {
+        const deviceName = questionDeviceName();
+
         console.log("save new device");
 
         const newDevice: ArdeckProfileConfigItem = {
             deviceId,
             deviceName: "",
-            baudRate: 115200,
+            baudRate: 9600,
             description: "",
         };
 
@@ -54,7 +61,10 @@ export default function Devices() {
             .getArdeckProfileList()
             .then((profiles) => setDeviceProfileList(profiles));
 
-        listen.onPorts((ports) => setDevices(ports));
+        listen.onPorts((ports) => {
+            console.log("listen on ports");
+            setDevices(ports);
+        });
     }, []);
 
     return (
@@ -64,19 +74,21 @@ export default function Devices() {
             {devices.map((device) => {
                 if (!device[1].port_type.UsbPort) return null;
 
-                if (
-                    !deviceProfileList.find(
-                        (profile) => profile[0] === device[0],
-                    )
-                )
-                    return null;
+                const profile = deviceProfileList.find(
+                    (profile) => profile[0] === device[0],
+                );
+
+                if (!profile) return null;
 
                 return (
                     <Link
-                        className="flex flex-col bg-bg-secondary"
-                        key={device[1].port_name}
+                        className="flex w-64 flex-col rounded-md bg-bg-secondary p-4 *:overflow-hidden *:text-ellipsis *:text-nowrap"
+                        key={device[0]}
                         to={device[0]}
                     >
+                        <div className={`text-xl font-bold ${profile[1] ? "" : "italic opacity-50" }`}>
+                            {profile[1] ? profile[1] : "No name"}
+                        </div>
                         <div>port_name: {device[1].port_name}</div>
                     </Link>
                 );
@@ -96,36 +108,33 @@ export default function Devices() {
 
                     return (
                         <div
-                            className="flex flex-col bg-bg-secondary"
-                            key={device[1].port_name}
-                            // to={device[0]}
+                            className="flex w-64 flex-col rounded-md bg-bg-secondary p-4 *:overflow-hidden *:text-ellipsis *:text-nowrap"
+                            key={device[0]}
                         >
+                            <div className="text-xl font-bold">
+                                {device[1].port_name}
+                            </div>
+                            <div
+                                title={device[1].port_type.UsbPort.manufacturer}
+                            >
+                                {device[1].port_type.UsbPort.manufacturer}
+                            </div>
+                            <div title={device[1].port_type.UsbPort.product}>
+                                {device[1].port_type.UsbPort.product}
+                            </div>
+                            {/* <div>port_id: {device[0]}</div> */}
+                            {/* <div>pid: {device[1].port_type.UsbPort.pid}</div> */}
+                            {/* <div>
+                                serial_number:{" "}
+                                {device[1].port_type.UsbPort.serial_number}
+                            </div>
+                            <div>vid: {device[1].port_type.UsbPort.vid}</div> */}
                             <input
+                                className="mt-2"
                                 type="button"
                                 value="Save Device"
                                 onClick={() => saveNewDeviceHandler(device[0])}
                             />
-                            <div>port_name: {device[1].port_name}</div>
-                            {/* <Popup
-                                title={device.port_name}
-                                onClose={() => {}}
-                                onOpen={() => {}}
-                            > */}
-                            <div>port_id: {device[0]}</div>
-                            <div>
-                                manufacturer:{" "}
-                                {device[1].port_type.UsbPort.manufacturer}
-                            </div>
-                            <div>pid: {device[1].port_type.UsbPort.pid}</div>
-                            <div>
-                                serial_number:{" "}
-                                {device[1].port_type.UsbPort.serial_number}
-                            </div>
-                            <div>vid: {device[1].port_type.UsbPort.vid}</div>
-                            <div>
-                                product: {device[1].port_type.UsbPort.product}
-                            </div>
-                            {/* </Popup> */}
                         </div>
                     );
                 })}

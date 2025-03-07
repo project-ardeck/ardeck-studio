@@ -16,19 +16,23 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { Link, useParams } from "react-router";
+import { Link, Router, useLocation, useParams } from "react-router";
 import BackToPrev from "../_component/back_to_prev";
 import { VscArrowLeft } from "react-icons/vsc";
-import { useCallback, useEffect, useState } from "react";
-import { ArdeckProfileConfigItem } from "../../types/ardeck";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ArdeckProfileConfigItem, BaudRateList } from "../../lib/ardeck";
 import { invoke } from "../../tauri/invoke";
+import Input from "../_component/form/Input";
+import Select from "../_component/form/Select";
+import Button from "../_component/Button";
 
 export default function DeviceSetting() {
     let { device_id } = useParams();
     const [deviceSetting, setDeviceSetting] =
         useState<ArdeckProfileConfigItem>();
 
-    
+    // const location = useLocation();
+    // const prevLocation = useRef(location);
 
     useEffect(() => {
         const getDeviceSetting = async () => {
@@ -41,16 +45,130 @@ export default function DeviceSetting() {
             }
         };
         getDeviceSetting();
+
+        document.addEventListener("contextmenu", function (event) {
+            event.preventDefault();
+        });
     }, []);
 
+    const saveDeviceSettingHandler = async () => {
+        if (deviceSetting) {
+            await invoke.settings.ardeckPresets.saveArdeckProfile(
+                deviceSetting,
+            );
+        }
+    };
+
+    // useEffect(() => {
+    //     history.pushState(null, document.title, location.pathname);
+    //     const popStateHandler = (e: BeforeUnloadEvent) => {
+    //         if (location.pathname === prevLocation.current.pathname) {
+    //             console.log("popstate");
+    //             history.go(1);
+    //         }
+    //         e.preventDefault();
+
+    //         false
+    //     };
+
+    //     // window.addEventListener("contextmenu", (e) => {popStateHandler(e)});
+
+    //     window.addEventListener("popstate", (e) => {popStateHandler(e)});
+    //     window.addEventListener("beforeunload", (e) => {popStateHandler(e)});
+
+    //     return () => {
+    //         window.removeEventListener("popstate", popStateHandler);
+    //         window.removeEventListener("beforeunload", popStateHandler);
+    //     };
+    // }, [location]);
+
     return (
-        <div>
+        <div className="flex flex-col gap-4">
             <BackToPrev className="flex items-center gap-2">
                 <VscArrowLeft />
                 Back to list
             </BackToPrev>
-            <div>Device Setting: {device_id}</div>
-            <pre>{JSON.stringify(deviceSetting, null, 2)}</pre>
+            {/* <div>Device Setting: {device_id}</div> */}
+            <h1 className="text-2xl font-bold">
+                Device Setting: {deviceSetting?.deviceName || "New Device"}
+            </h1>
+            <div className="flex flex-col gap-2">
+                <label>
+                    <span>Device ID</span>
+                    <Input
+                        name="device_id"
+                        type="text"
+                        disabled
+                        value={deviceSetting?.deviceId}
+                    />
+                </label>
+                <label>
+                    <span>Device Name</span>
+                    <Input
+                        name="device_name"
+                        type="text"
+                        value={deviceSetting?.deviceName}
+                        onChange={(e) => {
+                            setDeviceSetting(
+                                (prev) =>
+                                    prev && {
+                                        ...prev,
+                                        deviceName: e.target.value,
+                                    },
+                            );
+                        }}
+                    />
+                </label>
+                <label>
+                    <span>Baud Rate</span>
+                    <Select
+                        name="baud_rate"
+                        value={deviceSetting?.baudRate}
+                        onChange={(e) => {
+                            setDeviceSetting(
+                                (prev) =>
+                                    prev && {
+                                        ...prev,
+                                        baudRate: parseInt(e.target.value),
+                                    },
+                            );
+                        }}
+                    >
+                        {BaudRateList.map((baudRate) => (
+                            <option value={baudRate}>{baudRate}</option>
+                        ))}
+                    </Select>
+                </label>
+                <label>
+                    <span>Description</span>
+                    <Input
+                        name="description"
+                        type="text"
+                        value={deviceSetting?.description}
+                        onChange={(e) => {
+                            setDeviceSetting(
+                                (prev) =>
+                                    prev && {
+                                        ...prev,
+                                        description: e.target.value,
+                                    },
+                            );
+                        }}
+                    />
+                </label>
+                <label>
+                    <span>Mapping Preset</span>
+                    <Select name="mapping_preset"></Select>
+                </label>
+                <Button
+                    onClick={() => {
+                        saveDeviceSettingHandler();
+                    }}
+                    className="mt-4"
+                >
+                    Save
+                </Button>
+            </div>
         </div>
     );
 }

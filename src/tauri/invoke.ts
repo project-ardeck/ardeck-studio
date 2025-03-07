@@ -17,8 +17,8 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import { invoke as tauriInvoke } from "@tauri-apps/api";
-import { ArdeckProfileConfigItem, SerialPortInfo } from "../types/ardeck";
-import { MappingPreset } from "../types/settings";
+import { ArdeckProfileConfigItem, SerialPortInfo } from "../lib/ardeck";
+import { MappingPreset } from "../lib/settings";
 
 // TODO: error handling
 export const invoke = {

@@ -98,7 +98,7 @@ export default function App() {
             >
                 <span className="pointer-events-none w-1 bg-bg-secondary"></span>
             </span> */}
-            <div className="px-4 py-2 w-full h-full">
+            <div className="px-4 py-2 w-full h-full overflow-auto">
                 <Outlet />
             </div>
         </div>

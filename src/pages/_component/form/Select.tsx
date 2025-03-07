@@ -16,15 +16,13 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { listen as _listen } from "@tauri-apps/api/event"
-import { SerialPortInfo } from "../lib/ardeck";
+import { SelectHTMLAttributes } from "react";
 
-export const listen = {
-    async onPorts(callback: (payload: [string, SerialPortInfo][]) => void) {
-        _listen("on-ports", (e) => {
-            console.log("on ports");
-            callback(e.payload as [string, SerialPortInfo][])
-        });
-    }
+export default function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
+    return (
+        <select
+            className="w-full rounded-md bg-bg-secondary px-2 py-1 outline-none outline-offset-0 focus:outline-accent-primary disabled:border-bg-secondary disabled:opacity-75"
+            {...props}
+        />
+    );
 }
-

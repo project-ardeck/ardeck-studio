@@ -22,7 +22,7 @@ import { emit, listen } from "@tauri-apps/api/event";
 
 import ActionMappingForm from "./component/ActionMappingForm";
 import Settings from "./component/Settings";
-import { Action, SerialPortInfo, SwitchInfo, SwitchType } from "./types/ardeck";
+import { Action, SerialPortInfo, SwitchInfo, SwitchType } from "./lib/ardeck";
 
 type switchStatesObject = {
     state: number;
