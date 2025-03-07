@@ -24,7 +24,7 @@ export default function Input(props: InputHTMLAttributes<HTMLInputElement>) {
             type="text"
             {...props}
             className={
-                "w-full rounded-md bg-bg-secondary px-2 py-1 outline-none outline-offset-0 focus:outline-accent-primary disabled:border-bg-secondary disabled:opacity-75" +
+                "w-full rounded-md bg-bg-secondary px-2 py-1 outline-none outline-offset-0 focus:outline-accent-primary disabled:border-bg-secondary disabled:opacity-50" +
                 " " +
                 props.className
             }
