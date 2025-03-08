@@ -7,7 +7,7 @@ export default function MainWindow() {
             <header>
                 <TitleBar />
             </header>
-            <main className="scrollbar-theme flex-1 overflow-auto bg-bg-primary text-text-primary">
+            <main className="scrollbar-theme bg-bg-primary text-text-primary relative flex-1 overflow-auto">
                 <Outlet />
             </main>
         </div>

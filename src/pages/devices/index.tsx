@@ -76,32 +76,34 @@ export default function Devices() {
         <div>
             <div>Devices</div>
             <h2 className="text-xl font-bold">Saved</h2>
-            {devices.map((device) => {
-                if (!device[1].port_type.UsbPort) return null;
+            <div className="flex gap-2">
+                {devices.map((device) => {
+                    if (!device[1].port_type.UsbPort) return null;
 
-                const profile = deviceProfileList.find(
-                    (profile) => profile[0] === device[0],
-                );
+                    const profile = deviceProfileList.find(
+                        (profile) => profile[0] === device[0],
+                    );
 
-                if (!profile) return null;
+                    if (!profile) return null;
 
-                return (
-                    <Link
-                        className="flex w-64 flex-col rounded-md bg-bg-secondary p-4 *:overflow-hidden *:text-ellipsis *:text-nowrap"
-                        key={device[0]}
-                        to={device[0]}
-                    >
-                        <div
-                            className={`text-xl font-bold ${profile[1] ? "" : "italic opacity-50"}`}
+                    return (
+                        <Link
+                            className="bg-bg-secondary flex w-64 flex-col rounded-md p-4 *:overflow-hidden *:text-nowrap *:text-ellipsis"
+                            key={device[0]}
+                            to={device[0]}
                         >
-                            {profile[1] ? profile[1] : "No name"}
-                        </div>
-                        <div>port_name: {device[1].port_name}</div>
-                    </Link>
-                );
-            })}
+                            <div
+                                className={`text-xl font-bold ${profile[1] ? "" : "italic opacity-50"}`}
+                            >
+                                {profile[1] ? profile[1] : "No name"}
+                            </div>
+                            <div>port_name: {device[1].port_name}</div>
+                        </Link>
+                    );
+                })}
+            </div>
             <h2 className="text-xl font-bold">New</h2>
-            <div className="flex flex-col gap-2">
+            <div className="flex gap-2">
                 {devices.map((device) => {
                     console.log(device);
                     if (!device[1].port_type.UsbPort) return null;
@@ -115,7 +117,7 @@ export default function Devices() {
 
                     return (
                         <div
-                            className="flex w-64 flex-col rounded-md bg-bg-secondary p-4 *:overflow-hidden *:text-ellipsis *:text-nowrap"
+                            className="bg-bg-secondary flex w-64 flex-col rounded-md p-4 *:overflow-hidden *:text-nowrap *:text-ellipsis"
                             key={device[0]}
                         >
                             <div className="text-xl font-bold">

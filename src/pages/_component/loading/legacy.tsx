@@ -16,19 +16,15 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { InputHTMLAttributes } from "react";
+import { ReactNode } from "react";
 
-export default function Input(props: InputHTMLAttributes<HTMLInputElement>) {
-    return (
-        <input
-            type="text"
-            {...props}
-            autoComplete="off"
-            className={
-                "bg-bg-secondary focus:outline-accent-primary disabled:border-bg-secondary w-full rounded-md px-2.5 py-1 outline-offset-0 focus:outline-1 disabled:opacity-50" +
-                " " +
-                props.className
-            }
-        />
-    );
+export default function LoadingScreen(props: { isLoading: boolean }) {
+    if (props.isLoading) {
+        return (
+            <div className="bg-bg-primary text-text-primary absolute top-0 left-0 z-50 flex h-full w-full items-center justify-center">
+                Loading...
+            </div>
+        );
+    }
+    return null;
 }

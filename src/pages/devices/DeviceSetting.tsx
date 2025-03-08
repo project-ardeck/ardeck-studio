@@ -18,18 +18,22 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import { Link, Router, useLocation, useParams } from "react-router";
 import BackToPrev from "../_component/back_to_prev";
-import { VscArrowLeft } from "react-icons/vsc";
+import { VscArrowLeft, VscChromeClose } from "react-icons/vsc";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArdeckProfileConfigItem, BaudRateList } from "../../lib/ardeck";
 import { invoke } from "../../tauri/invoke";
 import Input from "../_component/form/Input";
 import Select from "../_component/form/Select";
 import Button from "../_component/Button";
+import { MappingPresetsJSON } from "../../lib/settings";
+import LoadingScreen from "../_component/loading/legacy";
 
 export default function DeviceSetting() {
     let { device_id } = useParams();
     const [deviceSetting, setDeviceSetting] =
         useState<ArdeckProfileConfigItem>();
+    const [mappingPresetList, setMappingPresetList] =
+        useState<Array<[string, string]>>();
 
     // const location = useLocation();
     // const prevLocation = useRef(location);
@@ -45,6 +49,13 @@ export default function DeviceSetting() {
             }
         };
         getDeviceSetting();
+
+        const getMappingPreset = async () => {
+            const mappingPresetList =
+                await invoke.settings.mappingPresets.getMappingList();
+            setMappingPresetList(mappingPresetList);
+        };
+        getMappingPreset();
 
         // document.addEventListener("contextmenu", function (event) {
         //     event.preventDefault();
@@ -83,7 +94,8 @@ export default function DeviceSetting() {
     // }, [location]);
 
     return (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 px-8 py-4">
+            <LoadingScreen isLoading={!deviceSetting} />
             <BackToPrev className="flex items-center gap-2">
                 <VscArrowLeft />
                 Back to list
@@ -136,7 +148,9 @@ export default function DeviceSetting() {
                         }}
                     >
                         {BaudRateList.map((baudRate) => (
-                            <option key={baudRate} value={baudRate}>{baudRate}</option>
+                            <option key={baudRate} value={baudRate}>
+                                {baudRate}
+                            </option>
                         ))}
                     </Select>
                 </label>
@@ -159,13 +173,53 @@ export default function DeviceSetting() {
                 </label>
                 <label>
                     <span>Mapping Preset</span>
-                    <Select name="mapping_preset"></Select>
+                    <div className="flex gap-2">
+                        <Select
+                            name="mapping_preset"
+                            value={deviceSetting?.mappingPreset}
+                            onChange={(e) => {
+                                setDeviceSetting(
+                                    (prev) =>
+                                        prev && {
+                                            ...prev,
+                                            mappingPreset: e.target.value,
+                                        },
+                                );
+                            }}
+                        >
+                            {deviceSetting?.mappingPreset ? null : (
+                                <option value=""></option>
+                            )}
+                            {mappingPresetList?.map(([uuid, name]) => (
+                                <option key={uuid} value={uuid}>
+                                    {name}
+                                </option>
+                            ))}
+                        </Select>
+                        {deviceSetting?.mappingPreset ? (
+                            <button
+                                title="Clear"
+                                className="bg-bg-secondary cursor-pointer rounded-md p-2"
+                                onClick={() => {
+                                    setDeviceSetting(
+                                        (prev) =>
+                                            prev && {
+                                                ...prev,
+                                                mappingPreset: "",
+                                            },
+                                    );
+                                }}
+                            >
+                                <VscChromeClose />
+                            </button>
+                        ) : null}
+                    </div>
                 </label>
                 <Button
                     onClick={() => {
                         saveDeviceSettingHandler();
                     }}
-                    className="mt-4"
+                    className="mt-8"
                 >
                     Save
                 </Button>
