@@ -108,16 +108,16 @@ export default function DeviceSetting() {
                     <Input
                         name="device_name"
                         type="text"
-                        // defaultValue={deviceSetting?.deviceName}
-                        // onChange={(e) => {
-                        //     setDeviceSetting(
-                        //         (prev) =>
-                        //             prev && {
-                        //                 ...prev,
-                        //                 deviceName: e.target.value,
-                        //             },
-                        //     );
-                        // }}
+                        value={deviceSetting?.deviceName}
+                        onChange={(e) => {
+                            setDeviceSetting(
+                                (prev) =>
+                                    prev && {
+                                        ...prev,
+                                        deviceName: e.target.value,
+                                    },
+                            );
+                        }}
                     />
                 </label>
                 <label>

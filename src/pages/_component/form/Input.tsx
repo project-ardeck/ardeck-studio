@@ -18,18 +18,14 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 import { InputHTMLAttributes } from "react";
 
-export default function Input(
-    props: React.DetailedHTMLProps<
-        InputHTMLAttributes<HTMLInputElement>,
-        HTMLInputElement
-    >,
-) {
-    const { disabled } = props;
+export default function Input(props: InputHTMLAttributes<HTMLInputElement>) {
     return (
         <input
+            type="text"
             {...props}
+            autoComplete="off"
             className={
-                "w-full rounded-md bg-bg-secondary px-2 py-1 outline-hidden outline-offset-0 focus:outline-accent-primary disabled:border-bg-secondary disabled:opacity-50" +
+                "bg-bg-secondary focus:outline-accent-primary disabled:border-bg-secondary w-full rounded-md px-2 py-1 outline-offset-0 focus:outline-1 disabled:opacity-50" +
                 " " +
                 props.className
             }

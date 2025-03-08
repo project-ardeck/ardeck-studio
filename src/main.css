@@ -16,29 +16,29 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-@import 'tailwindcss';
+@import "tailwindcss";
 
 @theme {
-  --color-*: initial;
-  --color-bg-titlebar: rgb(var(--bg-titlebar));
-  --color-bg-primary: rgb(var(--bg-primary));
-  --color-bg-secondary: rgb(var(--bg-secondary));
-  --color-bg-tertiary: rgb(var(--bg-tertiary));
-  --color-bg-quaternary: rgb(var(--bg-quaternary));
-  --color-text-primary: rgb(var(--text-primary));
-  --color-text-secondary: rgb(var(--text-secondary));
-  --color-text-tertiary: rgb(var(--text-tertiary));
-  --color-text-reverse: rgb(var(--text-reverse));
-  --color-accent-primary: rgb(var(--accent-primary));
-  --color-accent-secondary: rgb(var(--accent-secondary));
-  --color-accent-positive: rgb(var(--accent-positive));
-  --color-accent-caution: rgb(var(--accent-caution));
-  --color-accent-negative: rgb(var(--accent-negative));
-  --color-accent-link: rgb(var(--accent-link));
+    --color-*: initial;
+    --color-bg-titlebar: rgb(var(--bg-titlebar));
+    --color-bg-primary: rgb(var(--bg-primary));
+    --color-bg-secondary: rgb(var(--bg-secondary));
+    --color-bg-tertiary: rgb(var(--bg-tertiary));
+    --color-bg-quaternary: rgb(var(--bg-quaternary));
+    --color-text-primary: rgb(var(--text-primary));
+    --color-text-secondary: rgb(var(--text-secondary));
+    --color-text-tertiary: rgb(var(--text-tertiary));
+    --color-text-reverse: rgb(var(--text-reverse));
+    --color-accent-primary: rgb(var(--accent-primary));
+    --color-accent-secondary: rgb(var(--accent-secondary));
+    --color-accent-positive: rgb(var(--accent-positive));
+    --color-accent-caution: rgb(var(--accent-caution));
+    --color-accent-negative: rgb(var(--accent-negative));
+    --color-accent-link: rgb(var(--accent-link));
 
-  --font-*: initial;
-  --font-0xp: '0xProto Regular';
-  --font-fordev: 'monaspace', 'notosans';
+    --font-*: initial;
+    --font-0xp: "0xProto Regular";
+    --font-fordev: "monaspace", "notosans";
 }
 
 /*
@@ -50,13 +50,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
   color utility to any element that depends on these defaults.
 */
 @layer base {
-  *,
-  ::after,
-  ::before,
-  ::backdrop,
-  ::file-selector-button {
-    border-color: var(--color-gray-200, currentColor);
-  }
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-gray-200, currentColor);
+    }
 }
 
 @layer base {

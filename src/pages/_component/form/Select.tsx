@@ -21,7 +21,8 @@ import { SelectHTMLAttributes } from "react";
 export default function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
     return (
         <select
-            className="w-full rounded-md bg-bg-secondary px-2 py-1 outline-hidden outline-offset-0 focus:outline-accent-primary disabled:border-bg-secondary disabled:opacity-50"
+            autoComplete="off"
+            className="bg-bg-secondary focus:outline-accent-primary disabled:border-bg-secondary w-full rounded-md px-2 py-1 outline-offset-0 focus:outline-1 disabled:opacity-50"
             {...props}
         />
     );
