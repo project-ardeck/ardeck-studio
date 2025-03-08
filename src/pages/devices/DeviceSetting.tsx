@@ -46,9 +46,9 @@ export default function DeviceSetting() {
         };
         getDeviceSetting();
 
-        document.addEventListener("contextmenu", function (event) {
-            event.preventDefault();
-        });
+        // document.addEventListener("contextmenu", function (event) {
+        //     event.preventDefault();
+        // });
     }, []);
 
     const saveDeviceSettingHandler = async () => {
@@ -99,6 +99,7 @@ export default function DeviceSetting() {
                         name="device_id"
                         type="text"
                         disabled
+                        readOnly
                         value={deviceSetting?.deviceId}
                     />
                 </label>
@@ -107,16 +108,16 @@ export default function DeviceSetting() {
                     <Input
                         name="device_name"
                         type="text"
-                        value={deviceSetting?.deviceName}
-                        onChange={(e) => {
-                            setDeviceSetting(
-                                (prev) =>
-                                    prev && {
-                                        ...prev,
-                                        deviceName: e.target.value,
-                                    },
-                            );
-                        }}
+                        // defaultValue={deviceSetting?.deviceName}
+                        // onChange={(e) => {
+                        //     setDeviceSetting(
+                        //         (prev) =>
+                        //             prev && {
+                        //                 ...prev,
+                        //                 deviceName: e.target.value,
+                        //             },
+                        //     );
+                        // }}
                     />
                 </label>
                 <label>
@@ -135,7 +136,7 @@ export default function DeviceSetting() {
                         }}
                     >
                         {BaudRateList.map((baudRate) => (
-                            <option value={baudRate}>{baudRate}</option>
+                            <option key={baudRate} value={baudRate}>{baudRate}</option>
                         ))}
                     </Select>
                 </label>

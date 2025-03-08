@@ -23,6 +23,7 @@ import { invoke } from "../../tauri/invoke";
 import { listen } from "../../tauri/listen";
 import Popup from "../../component/popup";
 import { Link } from "react-router";
+import { UnlistenFn } from "@tauri-apps/api/event";
 
 export default function Devices() {
     const [devices, setDevices] = useState<[string, SerialPortInfo][]>([]);
@@ -61,10 +62,14 @@ export default function Devices() {
             .getArdeckProfileList()
             .then((profiles) => setDeviceProfileList(profiles));
 
-        listen.onPorts((ports) => {
+        const onPorts = listen.onPorts((ports) => {
             console.log("listen on ports");
             setDevices(ports);
         });
+
+        return () => {
+            onPorts.then((unlisten) => unlisten());
+        };
     }, []);
 
     return (
@@ -86,7 +91,9 @@ export default function Devices() {
                         key={device[0]}
                         to={device[0]}
                     >
-                        <div className={`text-xl font-bold ${profile[1] ? "" : "italic opacity-50" }`}>
+                        <div
+                            className={`text-xl font-bold ${profile[1] ? "" : "italic opacity-50"}`}
+                        >
                             {profile[1] ? profile[1] : "No name"}
                         </div>
                         <div>port_name: {device[1].port_name}</div>
