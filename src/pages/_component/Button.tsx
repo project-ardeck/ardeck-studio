@@ -23,7 +23,7 @@ export default function Button(props: ButtonHTMLAttributes<HTMLButtonElement>) {
         <button
             {...props}
             className={
-                "w-full rounded-md bg-bg-secondary px-2 py-1 outline-none outline-offset-0 hover:bg-bg-tertiary focus:outline-accent-primary disabled:border-bg-secondary disabled:opacity-50" +
+                "w-full rounded-md bg-bg-secondary px-2 py-1 outline-hidden outline-offset-0 hover:bg-bg-tertiary focus:outline-accent-primary disabled:border-bg-secondary disabled:opacity-50" +
                 " " +
                 props.className
             }
