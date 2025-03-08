@@ -22,8 +22,12 @@ export default function Select(props: SelectHTMLAttributes<HTMLSelectElement>) {
     return (
         <select
             autoComplete="off"
-            className="bg-bg-secondary focus:outline-accent-primary disabled:border-bg-secondary w-full rounded-md px-2 py-1 outline-offset-0 focus:outline-1 disabled:opacity-50"
             {...props}
+            className={
+                "input" +
+                " " +
+                props.className
+            }
         />
     );
 }

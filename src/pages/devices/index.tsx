@@ -74,7 +74,7 @@ export default function Devices() {
 
     return (
         <div>
-            <div>Devices</div>
+            <h1 className="pagetitle mb-4">Devices</h1>
             <h2 className="text-xl font-bold">Saved</h2>
             <div className="flex gap-2">
                 {devices.map((device) => {
@@ -148,7 +148,7 @@ export default function Devices() {
                     );
                 })}
             </div>
-            <BackToRoot>Back to root</BackToRoot>
+            {/* <BackToRoot>Back to root</BackToRoot> */}
         </div>
     );
 }

@@ -107,3 +107,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     TODO: Adding custom styles
     https://tailwindcss.com/docs/adding-custom-styles
 */
+
+@layer components {
+    .input {
+        @apply bg-bg-secondary focus:outline-accent-primary disabled:border-bg-secondary w-full rounded-md px-2.5 py-1 outline-offset-0 focus:outline-1 disabled:opacity-50;
+    }
+
+    .pagetitle {
+        @apply text-2xl font-bold text-text-primary;
+    }
+}

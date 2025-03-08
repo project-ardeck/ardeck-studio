@@ -19,6 +19,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 import { useEffect, useState } from "react";
 import { invoke } from "../../tauri/invoke";
 import { Link } from "react-router";
+import { VscAdd } from "react-icons/vsc";
 
 export default function Mapping() {
     const [mappingList, setMappingList] = useState<Array<[string, string]>>([]);
@@ -33,10 +34,23 @@ export default function Mapping() {
 
     return (
         <div>
+            <div className="mb-4 flex justify-between">
+                <h1 className="pagetitle">Mapping</h1>
+                <Link
+                    className="bg-bg-secondary rounded-md px-4 py-2 flex gap-1 items-center justify-center hover:bg-bg-tertiary"
+                    to={`/mapping/new`}
+                >
+                    <VscAdd />
+                </Link>
+            </div>
             <div className="flex flex-col gap-2">
                 {mappingList.map(([id, name]) => {
                     return (
-                        <Link className="px-4 py-2 bg-bg-secondary rounded-md" key={id} to={`/mapping/${id}`}>
+                        <Link
+                            className="bg-bg-secondary rounded-md px-4 py-2"
+                            key={id}
+                            to={`/mapping/${id}`}
+                        >
                             {name}
                         </Link>
                     );
