@@ -10,6 +10,7 @@ import Devices from "./pages/devices";
 import DeviceSetting from "./pages/devices/DeviceSetting";
 import Mapping from "./pages/mapping";
 import MappingSetting from "./pages/mapping/MappingSetting";
+import Plugin from "./pages/plugin";
 
 export default function Router() {
     return (
@@ -21,6 +22,7 @@ export default function Router() {
                         <Route path="config" element={<Config />} />
                         <Route path="devices" element={<Devices />} />
                         <Route path="mapping" element={<Mapping />} />
+                        <Route path="plugin" element={<Plugin />} />
                     </Route>
                     <Route
                         path="/devices/:device_id"

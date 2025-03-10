@@ -88,6 +88,7 @@ export default function App() {
                 <AppNavLink to="config">Config</AppNavLink>
                 <AppNavLink to="devices">Devices</AppNavLink>
                 <AppNavLink to="mapping">Mapping</AppNavLink>
+                <AppNavLink to="plugin">Plugin</AppNavLink>
                 <div className="flex-1"></div>
                 <button className="rounded-md hover:bg-bg-secondary" onClick={openAbout}>
                     About Ardeck
