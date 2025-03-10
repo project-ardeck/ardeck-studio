@@ -16,10 +16,19 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
+export type PluginManifestJSON = {
+    name: string,
+    version: string,
+    id: string,
+    description?: string,
+    author: string,
+    main: string,
+}
 
-use std::collections::HashMap;
+export type PluginAction = {
+    name: string,
+    id: string,
+    description?: string,
+}
 
-use super::Plugin;
-
-type PluginId = String;
-pub type PluginManager = HashMap<PluginId, Plugin>;
+export type PluginActionList = PluginAction[];

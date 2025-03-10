@@ -82,7 +82,7 @@ export default function App() {
         <div className="flex h-full w-full select-none">
             <nav
                 // data-tauri-drag-region
-                className={`flex flex-col gap-1.5 p-2`}
+                className={`flex flex-col gap-1.5 px-4 py-2`}
                 style={{ width: menuWidth.current }}
             >
                 <AppNavLink to="config">Config</AppNavLink>
@@ -90,7 +90,10 @@ export default function App() {
                 <AppNavLink to="mapping">Mapping</AppNavLink>
                 <AppNavLink to="plugin">Plugin</AppNavLink>
                 <div className="flex-1"></div>
-                <button className="rounded-md hover:bg-bg-secondary" onClick={openAbout}>
+                <button
+                    className="hover:bg-bg-secondary rounded-md"
+                    onClick={openAbout}
+                >
                     About Ardeck
                 </button>
             </nav>
@@ -100,7 +103,7 @@ export default function App() {
             >
                 <span className="pointer-events-none w-1 bg-bg-secondary"></span>
             </span> */}
-            <div className="px-4 py-2 w-full h-full overflow-auto">
+            <div className="h-full w-full overflow-auto px-4 py-2">
                 <Outlet />
             </div>
         </div>

@@ -18,6 +18,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 use once_cell::sync::Lazy;
 use tauri::{
+    generate_handler,
     plugin::{Builder, TauriPlugin},
     RunEvent, Runtime,
 };
@@ -25,7 +26,7 @@ use tokio::sync::Mutex;
 
 use crate::{ardeck_studio::switch_info::SwitchInfo, service::dir::Directories};
 
-use super::server::PluginServer;
+use super::{server::PluginServer, PluginActionJSON, PluginManifestJSON};
 
 static PLUGIN_SERVER: Lazy<Mutex<PluginServer>> = Lazy::new(|| Mutex::new(PluginServer::new()));
 
@@ -56,6 +57,42 @@ async fn server_init() {
     };
 }
 
+#[tauri::command]
+async fn get_plugin_manifests<R: Runtime>(
+    _app: tauri::AppHandle<R>,
+) -> Result<Vec<PluginManifestJSON>, String> {
+    let plugin_manager = PLUGIN_SERVER.lock().await.get_plugin_manager().await;
+
+    let manifests: Vec<PluginManifestJSON> = plugin_manager
+        .lock()
+        .await
+        .iter()
+        .map(|(_id, plugin)| plugin.manifest.clone())
+        .collect();
+
+    Ok(manifests)
+}
+
+#[tauri::command]
+async fn get_plugin_actions<R: Runtime>(
+    app: tauri::AppHandle<R>,
+    plugin_id: String,
+) -> Result<PluginActionJSON, String> {
+    let plugin_server = PLUGIN_SERVER.lock().await;
+
+    if let Some(plugin) = plugin_server
+        .get_plugin_manager()
+        .await
+        .lock()
+        .await
+        .get(&plugin_id)
+    {
+        return Ok(plugin.actions.clone());
+    } else {
+        return Err("Plugin not found".to_string());
+    }
+}
+
 pub async fn init<R: Runtime>() -> TauriPlugin<R> {
     Builder::new("ardeck-plugin")
         .setup(|app| {
@@ -65,6 +102,7 @@ pub async fn init<R: Runtime>() -> TauriPlugin<R> {
 
             Ok(())
         })
+        .invoke_handler(generate_handler![get_plugin_manifests, get_plugin_actions])
         .build()
 }
 

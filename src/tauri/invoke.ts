@@ -19,6 +19,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 import { invoke as tauriInvoke } from "@tauri-apps/api";
 import { ArdeckProfileConfigItem, SerialPortInfo } from "../lib/ardeck";
 import { MappingPreset } from "../lib/settings";
+import { PluginActionList, PluginManifestJSON } from "../lib/plugin";
 
 // TODO: error handling
 export const invoke = {
@@ -78,6 +79,16 @@ export const invoke = {
                 );
             },
         },
+    },
+    plugin: {
+        async getPluginManifests(): Promise<Array<PluginManifestJSON>> {
+            return await tauriInvoke("plugin:ardeck-plugin|get_plugin_manifests");
+        },
+        async getPluginActions(pluginId: string): Promise<PluginActionList> {
+            return await tauriInvoke("plugin:ardeck-plugin|get_plugin_actions", {
+                pluginId,
+            })
+        }
     },
     ardeck: {
         async openPort(portName: string, baudRate: number) {

@@ -11,6 +11,7 @@ import DeviceSetting from "./pages/devices/DeviceSetting";
 import Mapping from "./pages/mapping";
 import MappingSetting from "./pages/mapping/MappingSetting";
 import Plugin from "./pages/plugin";
+import PluginActions from "./pages/plugin/PluginActions";
 
 export default function Router() {
     return (
@@ -31,6 +32,10 @@ export default function Router() {
                     <Route
                         path="/mapping/:mapping_id"
                         element={<MappingSetting />}
+                    />
+                    <Route
+                        path="/plugin/:plugin_id"
+                        element={<PluginActions />}
                     />
                     {/* <Route path="dev" element={<ForDev />} /> */}
                 </Route>

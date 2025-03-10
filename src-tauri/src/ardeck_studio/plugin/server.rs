@@ -105,6 +105,10 @@ impl PluginServer {
         ))
     }
 
+    pub async fn get_plugin_manager(&self) -> Arc<Mutex<PluginManager>> {
+        Arc::clone(&self.plugin_manager)
+    }
+
     pub async fn execute_plugin_all(&self) {
         log::info!("Executing plugin all...");
 

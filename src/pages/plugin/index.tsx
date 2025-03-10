@@ -16,32 +16,42 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-export default function Plugin() {
-    // const [mappingList, setMappingList] = useState<Array<[string, string]>>([]);
+import { useEffect, useState } from "react";
+import { PluginManifestJSON } from "../../lib/plugin";
+import { invoke } from "../../tauri/invoke";
+import { Link } from "react-router";
 
-    // useEffect(() => {
-    //     const getMappingList = async () => {
-    //         const list = await invoke.settings.mappingPresets.getMappingList();
-    //         setMappingList(list);
-    //     };
-    //     getMappingList();
-    // }, []);
+export default function Plugin() {
+    const [pluginManifestList, setPluginManifestList] = useState<
+        Array<PluginManifestJSON>
+    >([]);
+
+    useEffect(() => {
+        const getPluginManifestList = async () => {
+            const list = await invoke.plugin.getPluginManifests();
+            setPluginManifestList(list);
+        };
+        getPluginManifestList();
+    }, []);
 
     return (
         <div>
-            <h1 className="pagetitle">plugin</h1>
+            <h1 className="pagetitle mb-4">Plugin</h1>
             <div className="flex flex-col gap-2">
-                {/* {mappingList.map(([id, name]) => {
-                    return (
-                        <Link
-                            className="bg-bg-secondary rounded-md px-4 py-2"
-                            key={id}
-                            to={`/mapping/${id}`}
-                        >
-                            {name}
-                        </Link>
-                    );
-                })} */}
+                {pluginManifestList.map(
+                    ({ name, id, version, description }) => {
+                        return (
+                            <Link
+                                className="bg-bg-secondary flex justify-between rounded-md px-4 py-2"
+                                key={id}
+                                to={`/plugin/${id}`}
+                            >
+                                <div>{name}</div>
+                                <div>{version}</div>
+                            </Link>
+                        );
+                    },
+                )}
             </div>
         </div>
     );
