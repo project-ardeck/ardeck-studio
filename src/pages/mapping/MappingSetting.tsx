@@ -28,10 +28,19 @@ import Button from "../_component/Button";
 import Select from "../_component/form/Select";
 import { defaultActionMap, SwitchType } from "../../lib/ardeck";
 import { cloneDeep } from "lodash";
+import { ModalWindowContainer, useModal } from "../_component/ModalWindow";
 
 export default function MappingSetting() {
     const { mapping_id } = useParams();
     const [mappingPreset, setMappingPreset] = useState<MappingPreset | null>();
+    // const configModalForPluginIdAndActionId = useModal(
+    //     (close) => (
+    //         <ModalWindowContainer>
+    //             Modal test
+    //             <button onClick={close}>Close modal</button>
+    //         </ModalWindowContainer>
+    //     )
+    // );
 
     const addNewMap = () => {
         setMappingPreset((prev) => {
@@ -73,6 +82,8 @@ export default function MappingSetting() {
     return (
         <div className="flex flex-col gap-4 px-8 py-4">
             <LoadingScreen isLoading={!mappingPreset} />
+            {/* {configModalForPluginIdAndActionId.modal}
+            <button onClick={configModalForPluginIdAndActionId.open}>Open modal</button> */}
             <BackToPrev className="flex items-center gap-2">
                 <VscArrowLeft />
                 Back to list

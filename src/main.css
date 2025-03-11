@@ -114,6 +114,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     }
 
     .pagetitle {
-        @apply text-2xl font-bold text-text-primary;
+        @apply text-text-primary text-2xl font-bold;
+    }
+
+    .modal {
+        @apply bg-bg-primary absolute inset-8 lg:inset-x-48 2xl:inset-x-96 z-20 flex items-center justify-center rounded-md p-4;
+    }
+    .modal-backdrop {
+        @apply bg-bg-titlebar absolute inset-0 z-10 opacity-30;
     }
 }
