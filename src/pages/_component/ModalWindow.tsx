@@ -19,34 +19,15 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 import { EventCallback } from "@tauri-apps/api/event";
 import { Attributes, HTMLAttributes, ReactNode, useState } from "react";
 
-type CloseRequest = () => void;
-
-export function useModal(modal: (close: CloseRequest) => ReactNode) {
-    const [isOpen, setIsOpen] = useState(false);
-
-    const modalWindowController = {
-        open: () => {
-            setIsOpen(true);
-        },
-        close: () => {
-            setIsOpen(false);
-        },
-    };
-
-    return {
-        modal: (
-            <ModalWindow isOpen={isOpen}>
-                {modal(modalWindowController.close)}
-            </ModalWindow>
-        ),
-        ...modalWindowController,
-    };
-}
-
 export function ModalWindow(props: {
     isOpen: boolean;
+    onOpen?: () => void;
+    onClose?: () => void;
     children: ReactNode;
 }): ReactNode {
+    if (props.onOpen && props.isOpen) props.onOpen();
+    if (props.onClose && !props.isOpen) props.onClose();
+
     return props.isOpen ? props.children : null;
 }
 
@@ -59,7 +40,7 @@ export function ModalWindowContainer(
     return (
         <>
             <div className={`modal-backdrop ${props.backdropClassName}`} />
-            <div className={`modal ${props.className}`} {...props} />
+            <div {...props} className={`modal ${props.className}`} />
         </>
     );
 }

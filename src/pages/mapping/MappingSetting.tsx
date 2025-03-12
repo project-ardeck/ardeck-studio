@@ -26,21 +26,53 @@ import LoadingScreen from "../_component/loading/legacy";
 import Input from "../_component/form/Input";
 import Button from "../_component/Button";
 import Select from "../_component/form/Select";
-import { defaultActionMap, SwitchType } from "../../lib/ardeck";
+import { ActionMap, defaultActionMap, SwitchType } from "../../lib/ardeck";
 import { cloneDeep } from "lodash";
-import { ModalWindowContainer, useModal } from "../_component/ModalWindow";
+import { ModalWindow, ModalWindowContainer } from "../_component/ModalWindow";
+import { PluginActionList, PluginManifestJSON } from "../../lib/plugin";
+
+interface ModalParams {
+    presetIndex: number;
+    preset: ActionMap;
+}
+
+interface PluginActions {
+    manifest: PluginManifestJSON;
+    actions: PluginActionList;
+}
 
 export default function MappingSetting() {
     const { mapping_id } = useParams();
     const [mappingPreset, setMappingPreset] = useState<MappingPreset | null>();
-    // const configModalForPluginIdAndActionId = useModal(
-    //     (close) => (
-    //         <ModalWindowContainer>
-    //             Modal test
-    //             <button onClick={close}>Close modal</button>
-    //         </ModalWindowContainer>
-    //     )
-    // );
+
+    // モーダル表示用データ
+    const [modalParams, setModalParams] = useState<ModalParams | null>(null);
+
+    // プラグインとそれぞれのアクションの一覧
+    const [plugins, setPlugins] = useState<PluginActions[]>([]);
+
+    const closeModal = () => setModalParams(null);
+
+    // 設定を適用して閉じる
+    const applyAndCloseModal = () => {
+        if (modalParams) {
+            setMappingPreset((prev) => {
+                if (prev) {
+                    const p = cloneDeep(mappingPreset);
+                    if (!p) return prev;
+                    p.mapping[modalParams.presetIndex] = modalParams.preset;
+                    return p;
+                }
+            });
+        }
+
+        closeModal();
+    };
+
+    // 選択したプリセットを編集
+    const openModal = (param: ModalParams) => {
+        setModalParams(param);
+    };
 
     const addNewMap = () => {
         setMappingPreset((prev) => {
@@ -79,14 +111,37 @@ export default function MappingSetting() {
         }
     }, [mapping_id]);
 
+    // プラグイン一覧を取得
+    useEffect(() => {
+        const pluginActions: PluginActions[] = [];
+
+        const getPluginManifestList = async () => {
+            const list = await invoke.plugin.getPluginManifests();
+        };
+
+        const getPluginActions = async (plugin_id: string) => {
+            const list = await invoke.plugin.getPluginActions(plugin_id!);
+        };
+        const initPluginActions = async () => {
+            const list = await invoke.plugin.getPluginManifests();
+            for (const manifest of list) {
+                const actions = await invoke.plugin.getPluginActions(
+                    manifest.id,
+                );
+                pluginActions.push({ manifest, actions });
+            }
+            setPlugins(pluginActions);
+        };
+        initPluginActions();
+    }, []);
+
     return (
         <div className="flex flex-col gap-4 px-8 py-4">
-            <LoadingScreen isLoading={!mappingPreset} />
-            {/* {configModalForPluginIdAndActionId.modal}
-            <button onClick={configModalForPluginIdAndActionId.open}>Open modal</button> */}
-            <BackToPrev className="flex items-center gap-2">
-                <VscArrowLeft />
-                Back to list
+            <BackToPrev>
+                <div className="flex items-center gap-2">
+                    <VscArrowLeft />
+                    Back to list
+                </div>
             </BackToPrev>
             {/* <div>Device Setting: {device_id}</div> */}
             {/* <pre>{JSON.stringify(mappingPreset, null, "\t")}</pre> */}
@@ -110,10 +165,11 @@ export default function MappingSetting() {
                 <div className="flex flex-col gap-2 py-4">
                     {mappingPreset?.mapping.map((mapping, i) => {
                         return (
-                            <div className="flex w-full gap-2">
+                            <div key={i} className="flex w-full gap-2">
                                 <label>
                                     <span>Switch Type</span>
                                     <Select
+                                        className="py-2"
                                         value={mapping.switchType ?? ""}
                                         onChange={(e) => {
                                             setMappingPreset((prev) => {
@@ -141,7 +197,7 @@ export default function MappingSetting() {
                                 <label className="w-24">
                                     <span>Switch ID</span>
                                     <Input
-                                        // className="w-16"
+                                        className="py-2"
                                         type="number"
                                         value={mapping.switchId}
                                         onChange={(e) => {
@@ -162,47 +218,34 @@ export default function MappingSetting() {
                                         min={0}
                                     />
                                 </label>
-                                <label className="flex-1">
-                                    <span>Plugin ID</span>
-                                    <Input
-                                        type="text"
-                                        value={mapping.pluginId}
-                                        onChange={(e) => {
-                                            setMappingPreset((prev) => {
-                                                if (prev) {
-                                                    const m = cloneDeep(prev);
-                                                    m.mapping[i] = {
-                                                        ...m.mapping[i],
-                                                        pluginId:
-                                                            e.target.value,
-                                                    };
-                                                    return m;
-                                                }
-                                            });
-                                        }}
-                                    />
-                                </label>
-                                <label className="flex-1">
-                                    <span>Action ID</span>
-                                    <Input
-                                        type="text"
-                                        className="flex-1"
-                                        value={mapping.actionId}
-                                        onChange={(e) => {
-                                            setMappingPreset((prev) => {
-                                                if (prev) {
-                                                    const m = cloneDeep(prev);
-                                                    m.mapping[i] = {
-                                                        ...m.mapping[i],
-                                                        actionId:
-                                                            e.target.value,
-                                                    };
-                                                    return m;
-                                                }
-                                            });
-                                        }}
-                                    />
-                                </label>
+                                <div className="flex flex-1 flex-col">
+                                    <div className="flex gap-2 *:flex-1">
+                                        <span>Plugin ID</span>
+                                        <span>Action ID</span>
+                                    </div>
+                                    <Button
+                                        className="bg-bg-tertiary flex cursor-pointer gap-2 rounded-md px-1 *:pointer-events-none *:flex-1 hover:opacity-50"
+                                        onClick={() =>
+                                            openModal({
+                                                presetIndex: i,
+                                                preset: mapping,
+                                            })
+                                        }
+                                    >
+                                        <Input
+                                            className="rounded-sm"
+                                            type="text"
+                                            value={mapping.pluginId}
+                                            readOnly
+                                        />
+                                        <Input
+                                            className="rounded-sm"
+                                            type="text"
+                                            value={mapping.actionId}
+                                            readOnly
+                                        />
+                                    </Button>
+                                </div>
 
                                 <Button
                                     className="hover:bg-accent-negative mt-6 h-auto w-auto px-2 py-2"
@@ -229,6 +272,103 @@ export default function MappingSetting() {
                     Save
                 </Button>
             </div>
+
+            {/* plugin idとaction idを、ロードされているプラグインから選ぶか直接入力するためのモーダル */}
+            <ModalWindow isOpen={modalParams !== null}>
+                {modalParams && (
+                    <ModalWindowContainer className="flex flex-col gap-4">
+                        <div className="flex w-full gap-2">
+                            <Button
+                                className="w-full flex-1"
+                                onClick={applyAndCloseModal}
+                            >
+                                apply
+                            </Button>
+                            <Button
+                                className="hover:bg-accent-negative w-16"
+                                onClick={closeModal}
+                            >
+                                cancel
+                            </Button>
+                        </div>
+                        <div className="flex w-full gap-2">
+                            <label className="flex-1">
+                                <span>Plugin ID</span>
+                                <Input
+                                    type="text"
+                                    value={modalParams.preset.pluginId}
+                                    onChange={(e) => {
+                                        setModalParams((prev) => {
+                                            if (prev) {
+                                                const m = cloneDeep(prev);
+                                                m.preset = {
+                                                    ...m.preset,
+                                                    pluginId: e.target.value,
+                                                };
+                                                return m;
+                                            }
+
+                                            return prev;
+                                        });
+                                    }}
+                                />
+                            </label>
+                            <label className="flex-1">
+                                <span>Action ID</span>
+                                <Input
+                                    type="text"
+                                    className="flex-1"
+                                    value={modalParams.preset.actionId}
+                                    onChange={(e) => {
+                                        setModalParams((prev) => {
+                                            if (prev) {
+                                                const m = cloneDeep(prev);
+                                                m.preset = {
+                                                    ...m.preset,
+                                                    actionId: e.target.value,
+                                                };
+                                                return m;
+                                            }
+
+                                            return prev;
+                                        });
+                                    }}
+                                />
+                            </label>
+                        </div>
+                        <div className="mt-8 flex w-full flex-1 flex-col gap-2 overflow-auto">
+                            <span>Action List</span>
+                            {plugins.map((plugin) => {
+                                return plugin.actions.map((action) => {
+                                    return (
+                                        <Button
+                                            onClick={() =>
+                                                setModalParams((prev) => {
+                                                    if (prev) {
+                                                        const m =
+                                                            cloneDeep(prev);
+                                                        m.preset = {
+                                                            ...m.preset,
+                                                            pluginId:
+                                                                plugin.manifest
+                                                                    .id,
+                                                            actionId: action.id,
+                                                        };
+                                                        return m;
+                                                    }
+                                                    return prev;
+                                                })
+                                            }
+                                        >
+                                            {plugin.manifest.name} : {action.name}
+                                        </Button>
+                                    );
+                                });
+                            })}
+                        </div>
+                    </ModalWindowContainer>
+                )}
+            </ModalWindow>
         </div>
     );
 }
