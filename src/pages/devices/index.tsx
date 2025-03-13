@@ -152,7 +152,11 @@ export default function Devices() {
                                         ? closePort(device[0])
                                         : openPort(device[0]);
                                 }}
-                                className="bg-bg-tertiary hover:bg-accent-positive hover:text-text-reverse mt-2 rounded-sm"
+                                className={`bg-bg-tertiary mt-2 rounded-sm ${
+                                    isConnecting
+                                        ? "hover:bg-accent-negative hover:text-text-reverse"
+                                        : "hover:bg-accent-positive hover:text-text-reverse"
+                                }`}
                             >
                                 {isConnecting ? "Disconnect" : "Connect"}
                             </Button>
