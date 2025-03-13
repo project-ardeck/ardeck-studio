@@ -17,6 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 use once_cell::sync::Lazy;
+use serialport::SerialPortInfo;
 use tauri::{
     generate_handler,
     plugin::{Builder, TauriPlugin},
@@ -106,6 +107,6 @@ pub async fn init<R: Runtime>() -> TauriPlugin<R> {
         .build()
 }
 
-pub async fn send_action_to_plugins(data: SwitchInfo) {
-    PLUGIN_SERVER.lock().await.put_action(data.clone()).await;
+pub async fn send_action_to_plugins(port_info: SerialPortInfo, data: SwitchInfo) {
+    PLUGIN_SERVER.lock().await.put_action(port_info, data.clone()).await;
 }

@@ -203,7 +203,7 @@ impl ActionDataParser {
 
     // 受け取ったデータを解析する
     fn put(&mut self, _data: u8) -> bool {
-        log::debug!("put: {:08b}", &_data);
+        log::trace!("put: {:08b}", &_data);
 
         let if_str = String::from_utf8(vec![_data]).unwrap_or("".to_string());
         let msg = if_str.clone();
@@ -305,7 +305,7 @@ impl ActionDataParser {
             if self.header_buf == Self::HEADER && self.read_count as i8 == self.data_len as i8 {
                 self.clear_flag_count();
                 // print!("\tComplete-Data");
-                log::debug!("\tComplete-Data");
+                log::trace!("\tComplete-Data");
                 // println!("");
 
                 self.format_switch_data();

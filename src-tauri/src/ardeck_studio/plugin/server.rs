@@ -22,6 +22,7 @@ use std::sync::Arc;
 
 use futures_util::stream::SplitSink;
 use futures_util::{SinkExt, StreamExt};
+use serialport::SerialPortInfo;
 use tokio::sync::Mutex;
 
 use tokio::net::{TcpListener, TcpStream};
@@ -31,6 +32,8 @@ use tokio_tungstenite::WebSocketStream;
 use tokio_tungstenite::{accept_async, tungstenite::protocol::Message};
 
 use crate::ardeck_studio::action::Action;
+use crate::ardeck_studio::ardeck::tauri::get_device_id;
+use crate::ardeck_studio::settings::tauri::_get_ardeck_profile;
 use crate::ardeck_studio::switch_info::SwitchInfo;
 use crate::service::dir::Directories;
 
@@ -182,10 +185,20 @@ impl PluginServer {
         log::info!("Plugin all executed.");
     }
 
-    pub async fn put_action(&mut self, switch_info: SwitchInfo) {
+    pub async fn put_action(&mut self, port_info: SerialPortInfo, switch_info: SwitchInfo) {
         // TODO: switch_typeとswitch_idからマッピングの設定を見つけ、そのプラグインに（あれば）put_actionする
 
-        let actions = Action::from_switch_info(switch_info).await;
+        // デバイスのプロファイルを取得し、その中からスイッチ情報に対応するアクションを取得
+        let device_profile = _get_ardeck_profile(&get_device_id(port_info).unwrap())
+            .await
+            .unwrap()
+            .unwrap();
+
+        let actions = Action::from_switch_info_with_preset_id(
+            switch_info,
+            device_profile.mapping_preset.unwrap(),
+        )
+        .await;
 
         // actionsのtargetの中で、読み込まれているプラグインがあれば、プラグインに渡す
         for action in actions.iter() {
@@ -200,12 +213,14 @@ impl PluginServer {
                         "\t[plugin.server]: put_action: plugin found: {}",
                         action.target.plugin_id
                     );
-                    plugin.put_action(action.clone()).await;
+
+                    // デバイス
+
+                    plugin.send_action(action.clone()).await;
                 }
                 None => log::debug!("\t[plugin.server]: put_action: plugin not found"),
             }
         }
-
     }
 }
 

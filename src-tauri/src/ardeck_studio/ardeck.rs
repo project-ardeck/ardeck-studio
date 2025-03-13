@@ -21,11 +21,12 @@ pub mod manager;
 pub mod tauri;
 
 use log::trace;
-use serialport::{self, SerialPort};
+use serialport::{self, SerialPort, SerialPortInfo};
+use tauri::get_device_id;
 
 use std::sync::{
     atomic::{AtomicBool, Ordering},
-    Arc
+    Arc,
 };
 
 use tokio::sync::Mutex;
@@ -38,6 +39,7 @@ pub struct Ardeck {
 
     port: Arc<Mutex<Box<dyn SerialPort>>>,
     port_data: Arc<Mutex<ActionDataParser>>,
+    device_id: String,
 }
 
 /* State List
@@ -50,16 +52,18 @@ pub enum OpenError {
 }
 
 impl Ardeck {
-    pub fn open(port_name: &str, baud_rate: u32) -> Result<Ardeck, OpenError> {
-        let port = serialport::new(port_name, baud_rate).open();
+    pub fn open(port_info: SerialPortInfo, baud_rate: u32) -> Result<Ardeck, OpenError> {
+        let port = serialport::new(&port_info.port_name, baud_rate).open();
 
         match port {
             Ok(port) => {
-                log::debug!("Port Opened: {} {}", port_name, baud_rate);
+                let device_id = get_device_id(port_info.clone()).unwrap();
+                log::debug!("Port Opened: {} {}", port_info.port_name, baud_rate);
                 Ok(Ardeck {
                     continue_flag: Arc::new(Mutex::new(AtomicBool::new(true))),
                     port: Arc::new(Mutex::new(port)),
                     port_data: Arc::new(Mutex::new(ActionDataParser::new())),
+                    device_id,
                 })
             }
             Err(_) => Err(OpenError::Unknown),

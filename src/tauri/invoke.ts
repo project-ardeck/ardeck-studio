@@ -91,13 +91,13 @@ export const invoke = {
         }
     },
     ardeck: {
-        async openPort(portName: string, baudRate: number) {
+        async openPort(portName: string, baudRate: number): Promise<undefined> {
             return await tauriInvoke("plugin:ardeck|open_port", {
                 portName,
                 baudRate,
             });
         },
-        async closePort(portName: string) {
+        async closePort(portName: string): Promise<undefined> {
             return await tauriInvoke("plugin:ardeck|close_port", { portName });
         },
         async getConnectingSerials(): Promise<Array<string>> {

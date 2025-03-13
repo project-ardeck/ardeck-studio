@@ -16,15 +16,30 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import { listen as _listen, UnlistenFn } from "@tauri-apps/api/event"
+import { listen as _listen, UnlistenFn } from "@tauri-apps/api/event";
 import { SerialPortInfo } from "../lib/ardeck";
 
 export const listen = {
-    async onPorts(callback: (payload: [string, SerialPortInfo][]) => void): Promise<UnlistenFn> {
+    async onPorts(
+        callback: (payload: [string, SerialPortInfo][]) => void,
+    ): Promise<UnlistenFn> {
         return _listen("on-ports", (e) => {
             console.log("on ports");
-            callback(e.payload as [string, SerialPortInfo][])
+            callback(e.payload as [string, SerialPortInfo][]);
         });
-    }
-}
-
+    },
+    async onOpenSerial(
+        callback: (payload: string) => void,
+    ): Promise<UnlistenFn> {
+        return _listen("on-open-serial", (e) => {
+            callback(e.payload as string);
+        });
+    },
+    async onCloseSerial(
+        callback: (payload: string) => void,
+    ): Promise<UnlistenFn> {
+        return _listen("on-close-serial", (e) => {
+            callback(e.payload as string);
+        });
+    },
+};

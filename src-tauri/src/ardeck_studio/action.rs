@@ -36,12 +36,12 @@ pub struct Action {
 
 impl Action {
     /// スイッチの情報から、そのスイッチが割り当てられているアクションを見つけ、ActionのVecを返す
-    pub async fn from_switch_info(switch: SwitchInfo) -> Vec<Self> {
+    pub async fn from_switch_info_with_preset_id(switch: SwitchInfo, preset_id: String) -> Vec<Self> {
         log::debug!(
             "# Action::from_switch_info\n\tswitch_state: {}",
             switch.switch_state
         );
-        let target = Self::search_action_target(switch.clone()).await;
+        let target = Self::search_action_target_with_preset(preset_id, switch.clone()).await;
 
         let mut actions: Vec<Action> = Vec::new();
 
@@ -55,8 +55,10 @@ impl Action {
         actions
     }
 
+
+
     /// スイッチの情報から、そのスイッチが割り当てられているアクションを見つけ、Vec<ActionTarget>を返す
-    async fn search_action_target(switch_info: SwitchInfo) -> Vec<ActionTarget> {
+    async fn search_action_target_with_preset(preset_id: String, switch_info: SwitchInfo) -> Vec<ActionTarget> {
         let mapping_presets = match MappingPresetsJSON::new().load().await {
             Some(presets) => presets,
             None => return Vec::new(),  // TODO: Error
@@ -69,6 +71,7 @@ impl Action {
             for map in preset.mapping.iter() {
                 if map.switch_type == switch_info.switch_type
                     && map.switch_id == switch_info.switch_id
+                    && preset.uuid == preset_id
                 {
                     target.push(ActionTarget {
                         plugin_id: map.plugin_id.clone(),
@@ -80,4 +83,6 @@ impl Action {
 
         target
     }
+
+
 }

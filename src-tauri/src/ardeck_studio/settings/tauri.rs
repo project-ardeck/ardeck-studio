@@ -147,9 +147,7 @@ async fn get_ardeck_profile_list<R: Runtime>(
     Ok(list)
 }
 
-#[tauri::command]
-async fn get_ardeck_profile<R: Runtime>(
-    app: tauri::AppHandle<R>,
+pub async fn _get_ardeck_profile(
     device_id: &str,
 ) -> Result<Option<ArdeckProfileConfigItem>, String> {
     let config = ArdeckProfileConfigJSON::new().load().await;
@@ -166,6 +164,14 @@ async fn get_ardeck_profile<R: Runtime>(
     }
 
     Err("Failed to find ardeck profile config".into())
+}
+
+#[tauri::command]
+async fn get_ardeck_profile<R: Runtime>(
+    app: tauri::AppHandle<R>,
+    device_id: &str,
+) -> Result<Option<ArdeckProfileConfigItem>, String> {
+    _get_ardeck_profile(device_id).await
 }
 
 #[tauri::command]

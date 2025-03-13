@@ -32,6 +32,30 @@ use super::{manager::ArdeckManager, Ardeck};
 static ARDECK_MANAGER: Lazy<Mutex<ArdeckManager>> = Lazy::new(|| Mutex::new(ArdeckManager::new()));
 // static ACTION_MANAGER: Lazy<Mutex<ArdeckManager>> = Lazy::new(|| Mutex::new(ActionManager::new()));
 
+// SerialPortInfoからdevice_idを生成する
+pub fn get_device_id(port: SerialPortInfo) -> Option<String> {
+    match port.port_type.clone() {
+        SerialPortType::UsbPort(info) => {
+            if let Some(serial_number) = info.serial_number {
+                return Some(format!("{}-{}-{}", info.vid, info.pid, serial_number).to_string());
+            } else {
+                return Some(format!("{}-{}", info.vid, info.pid).to_string());
+            }
+        }
+        _ => return None,
+    }
+}
+
+fn get_port_info(port_name: &str) -> io::Result<SerialPortInfo> {
+    let ports = serialport::available_ports().unwrap();
+    for port in ports {
+        if port.port_name == port_name {
+            return Ok(port);
+        }
+    }
+    Err(io::Error::new(io::ErrorKind::NotFound, "error"))
+}
+
 // 現在接続中のポートの名前一覧を取得する
 // invoke("plugin:ardeck|get_connecting_serials");
 #[tauri::command]
@@ -105,15 +129,17 @@ async fn port_read<R: Runtime>(app: tauri::AppHandle<R>, port_name: &str) {
 
 // invoke("plugin:ardeck|close_port");
 #[tauri::command]
-async fn close_port<R: Runtime>(_app: tauri::AppHandle<R>, port_name: &str) -> Result<u32, u32> {
+async fn close_port<R: Runtime>(_app: tauri::AppHandle<R>, port_name: &str) -> Result<(), u32> {
+    log::info!("Ardeck Disconnect Request: {}", port_name);
     // 要求されたデバイスの処理継続フラグを折る
     match ARDECK_MANAGER.lock().await.get_mut(port_name) {
         Some(a) => {
             a.close_request().await;
 
-            return Ok(200);
+            return Ok(());
         }
         None => {
+            log::error!("[{}] Not closed.", port_name);
             return Err(501);
         }
     };
@@ -126,7 +152,7 @@ async fn open_port<R: Runtime>(
     app: tauri::AppHandle<R>,
     port_name: &str,
     baud_rate: u32,
-) -> Result<u32, u32> {
+) -> Result<(), u32> {
     // print!("\x1B[2J\x1B[1;1H"); // ! コンソールをクリア
     log::info!("Ardeck Connect Request: {}", port_name);
     // 接続済みのポートならば何もしない
@@ -135,8 +161,11 @@ async fn open_port<R: Runtime>(
         return Err(501);
     }
 
+    // ポート情報を取得する
+    let port_info = get_port_info(port_name).unwrap();
+
     // デバイスへ接続する
-    let ardeck = match Ardeck::open(port_name, baud_rate) {
+    let ardeck = match Ardeck::open(port_info.clone(), baud_rate) {
         Ok(f) => f,
         Err(_e) => {
             log::error!("Open Error: {}", port_name);
@@ -161,7 +190,7 @@ async fn open_port<R: Runtime>(
         .lock()
         .await
         .on_complete_action(move |data| {
-            log::debug!("# Ardeck::on_complete_action\n\tdata: {:#?}", data);
+            log::trace!("# Ardeck::on_complete_action\n\tdata: {:#?}", data);
 
             app_for_data
                 .emit_all("on-message-serial", data.clone())
@@ -170,6 +199,7 @@ async fn open_port<R: Runtime>(
 
     // TODO: async crosure
     // 1回前のデータから値が変わったときの処理
+    let port_info_clone = port_info.clone();
     ardeck
         .port_data()
         .lock()
@@ -181,24 +211,9 @@ async fn open_port<R: Runtime>(
                 data.switch_state
             );
 
-            // let (tx, mut rx) = std::sync::mpsc::channel::<bool>();
-            // let atomic_bool = Arc::new(Mutex::new(AtomicBool::new(false)));
-
-            // let atomic_bool_spawn = atomic_bool.clone();
+            let port_info_clone = port_info_clone.clone();
             tokio::spawn(async move {
-                // TODO
-
-                // println!(
-                //     "# Ardeck::on_change_action/tokio::spawn\n\tswitch_id: {}\n\tswitch_state: {}",
-                //     data.switch_id, data.switch_state
-                // );
-
-                plugin::tauri::send_action_to_plugins(data.clone()).await;
-
-                // println!(
-                //     "----- send_action_to_plugins end -----\tswitch_id: {}\n",
-                //     data.switch_id
-                // );
+                plugin::tauri::send_action_to_plugins(port_info_clone, data.clone()).await;
             });
         });
 
@@ -213,7 +228,7 @@ async fn open_port<R: Runtime>(
     // 受信データの読み取り開始
     port_read(app.app_handle(), port_name).await;
 
-    Ok(200)
+    Ok(())
 }
 
 fn serial_watch<R: Runtime>(tauri_app: tauri::AppHandle<R>) {
@@ -231,25 +246,13 @@ fn serial_watch<R: Runtime>(tauri_app: tauri::AppHandle<R>) {
                 let mut payload: Vec<(String, SerialPortInfo)> = Vec::new();
 
                 for port in ports.clone() {
-                    match port.port_type.clone() {
-                        SerialPortType::UsbPort(info) => {
-                            if let Some(serial_number) = info.serial_number {
-                                payload.push((
-                                    format!("{}-{}-{}", info.vid, info.pid, serial_number),
-                                    port,
-                                ));
-                            } else {
-                                payload.push((format!("{}-{}", info.vid, info.pid), port));
-                            }
-                        }
-                        _ => continue,
+                    match get_device_id(port.clone()) {
+                        Some(device_id) => payload.push((device_id, port)),
+                        None => continue,
                     }
-                    
                 }
 
-                tauri_app
-                    .emit_all("on-ports", payload)
-                    .unwrap();
+                tauri_app.emit_all("on-ports", payload).unwrap();
             }
 
             last_ports = ports;
@@ -266,15 +269,9 @@ fn get_ports() -> Vec<(String, serialport::SerialPortInfo)> {
     let mut list: Vec<(String, serialport::SerialPortInfo)> = Vec::new();
 
     for port in ports {
-        match port.port_type.clone() {
-            SerialPortType::UsbPort(info) => {
-                if let Some(serial_number) = info.serial_number {
-                    list.push((format!("{}-{}-{}", info.vid, info.pid, serial_number), port));
-                } else {
-                    list.push((format!("{}-{}", info.vid, info.pid), port));
-                }
-            }
-            _ => continue,
+        match get_device_id(port.clone()) {
+            Some(device_id) => list.push((device_id, port)),
+            None => continue,
         }
     }
 

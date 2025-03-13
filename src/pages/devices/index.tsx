@@ -24,13 +24,15 @@ import { listen } from "../../tauri/listen";
 import Popup from "../../component/popup";
 import { Link } from "react-router";
 import { UnlistenFn } from "@tauri-apps/api/event";
+import Button from "../_component/Button";
 
 export default function Devices() {
     const [devices, setDevices] = useState<[string, SerialPortInfo][]>([]);
     const [deviceProfileList, setDeviceProfileList] = useState<
         [string, string][]
     >([]);
-    const [deviceSetting, setDeviceSetting] = useState<string>("");
+
+    const [connectingDevice, setConnectingDevice] = useState<string[]>();
 
     const questionDeviceName = (): string => {
         const name = prompt("Device name");
@@ -56,6 +58,33 @@ export default function Devices() {
         invoke.settings.ardeckPresets.saveArdeckProfile(newDevice);
     };
 
+    /**
+     * デバイスを接続する
+     *  @param deviceId - デバイスID
+     */
+    const openPort = async (deviceId: string) => {
+        const deviceName = devices.find((device) => device[0] === deviceId);
+
+        if (!deviceName) return;
+        console.log(deviceName[1].port_name);
+
+        await invoke.ardeck.openPort(deviceName[1].port_name, 9600);
+    };
+
+    /**
+     * デバイスを切断する
+     * @param deviceId - デバイスID
+     */
+    const closePort = async (deviceId: string) => {
+        const deviceName = devices.find((device) => device[0] === deviceId);
+
+        if (!deviceName) return;
+
+        console.log(deviceName[1].port_name);
+
+        await invoke.ardeck.closePort(deviceName[1].port_name);
+    };
+
     useEffect(() => {
         invoke.ardeck.getPorts().then((ports) => setDevices(ports));
         invoke.settings.ardeckPresets
@@ -67,8 +96,18 @@ export default function Devices() {
             setDevices(ports);
         });
 
+        const refreshConnectingDevice = async () => {
+            setConnectingDevice(await invoke.ardeck.getConnectingSerials());
+        };
+
+        const onOpenHandle = listen.onOpenSerial(refreshConnectingDevice);
+        const onCloseHandle = listen.onCloseSerial(refreshConnectingDevice);
+        refreshConnectingDevice();
+
         return () => {
             onPorts.then((unlisten) => unlisten());
+            onOpenHandle.then((unlisten) => unlisten());
+            onCloseHandle.then((unlisten) => unlisten());
         };
     }, []);
 
@@ -86,11 +125,20 @@ export default function Devices() {
 
                     if (!profile) return null;
 
+                    console.log("connectingDevice: ", connectingDevice);
+
+                    const isConnecting = Boolean(
+                        connectingDevice?.find(
+                            (id) => id === device[1].port_name,
+                        ),
+                    );
+
+                    console.log("isConnecting: ", isConnecting);
+
                     return (
-                        <Link
+                        <div
                             className="bg-bg-secondary flex w-64 flex-col rounded-md p-4 *:overflow-hidden *:text-nowrap *:text-ellipsis"
                             key={device[0]}
-                            to={device[0]}
                         >
                             <div
                                 className={`text-xl font-bold ${profile[1] ? "" : "italic opacity-50"}`}
@@ -98,7 +146,23 @@ export default function Devices() {
                                 {profile[1] ? profile[1] : "No name"}
                             </div>
                             <div>port_name: {device[1].port_name}</div>
-                        </Link>
+                            <Button
+                                onClick={() => {
+                                    isConnecting
+                                        ? closePort(device[0])
+                                        : openPort(device[0]);
+                                }}
+                                className="bg-bg-tertiary hover:bg-accent-positive hover:text-text-reverse mt-2 rounded-sm"
+                            >
+                                {isConnecting ? "Disconnect" : "Connect"}
+                            </Button>
+                            <Link
+                                className="input bg-bg-tertiary mt-2 rounded-sm text-center"
+                                to={device[0]}
+                            >
+                                Edit
+                            </Link>
+                        </div>
                     );
                 })}
             </div>
