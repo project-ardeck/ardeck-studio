@@ -27,9 +27,7 @@ export default function Popup(
         isOpen: boolean;
     }
 ) {
-    const [isOpen, setIsOpen] = useState(false);
-
-    if (!isOpen) return null;
+    if (!props.isOpen) return null;
 
     return (
         <div className="fixed left-0 top-0 z-50 flex h-screen w-screen items-center justify-center bg-black/50 p-4">

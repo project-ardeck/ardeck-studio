@@ -342,6 +342,7 @@ export default function MappingSetting() {
                                 return plugin.actions.map((action) => {
                                     return (
                                         <Button
+                                            key={`${plugin.manifest.id}-${action.id}`}
                                             onClick={() =>
                                                 setModalParams((prev) => {
                                                     if (prev) {

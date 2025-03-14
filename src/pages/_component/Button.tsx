@@ -22,11 +22,7 @@ export default function Button(props: ButtonHTMLAttributes<HTMLButtonElement>) {
     return (
         <button
             {...props}
-            className={
-                "input cursor-pointer" +
-                " " +
-                props.className
-            }
+            className={`input cursor-pointer ${props.className || ""}`}
         >
             {props.children}
         </button>

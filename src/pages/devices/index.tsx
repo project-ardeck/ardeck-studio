@@ -44,10 +44,6 @@ export default function Devices() {
      * @param deviceId - デバイスID
      */
     const saveNewDeviceHandler = (deviceId: string) => {
-        const deviceName = questionDeviceName();
-
-        console.log("save new device");
-
         const newDevice: ArdeckProfileConfigItem = {
             deviceId,
             deviceName: "",

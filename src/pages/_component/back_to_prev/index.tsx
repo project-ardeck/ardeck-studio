@@ -17,19 +17,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import { ReactNode } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 
 export default function BackToPrev(props: {
     children: ReactNode;
     className?: string;
 }) {
-    const { pathname } = window.location;
+    const navigate = useNavigate();
     return (
-        <Link
-            className={props.className}
-            to={`${pathname.split("/").slice(0, -1).join("/")}/`}
-        >
+        <button className={`cursor-pointer ${props.className}`} onClick={() => navigate(-1)}>
             {props.children}
-        </Link>
+        </button>
     );
 }

@@ -163,7 +163,7 @@ pub async fn _get_ardeck_profile(
         }
     }
 
-    Err("Failed to find ardeck profile config".into())
+    Ok(None)
 }
 
 #[tauri::command]

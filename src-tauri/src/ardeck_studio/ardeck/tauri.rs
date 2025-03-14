@@ -47,7 +47,7 @@ pub fn get_device_id(port: SerialPortInfo) -> Option<String> {
 }
 
 fn get_port_info(port_name: &str) -> io::Result<SerialPortInfo> {
-    let ports = serialport::available_ports().unwrap();
+    let ports = serialport::available_ports()?;
     for port in ports {
         if port.port_name == port_name {
             return Ok(port);

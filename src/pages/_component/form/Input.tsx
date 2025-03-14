@@ -23,11 +23,7 @@ export default function Input(props: InputHTMLAttributes<HTMLInputElement>) {
         <input
             {...props}
             autoComplete="off"
-            className={
-                "input" +
-                " " +
-                props.className
-            }
+            className={`input ${props.className || ""}`}
         />
     );
 }
