@@ -16,9 +16,49 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+
+@theme {
+    --color-*: initial;
+    --color-bg-titlebar: rgb(var(--bg-titlebar));
+    --color-bg-primary: rgb(var(--bg-primary));
+    --color-bg-secondary: rgb(var(--bg-secondary));
+    --color-bg-tertiary: rgb(var(--bg-tertiary));
+    --color-bg-quaternary: rgb(var(--bg-quaternary));
+    --color-text-primary: rgb(var(--text-primary));
+    --color-text-secondary: rgb(var(--text-secondary));
+    --color-text-tertiary: rgb(var(--text-tertiary));
+    --color-text-reverse: rgb(var(--text-reverse));
+    --color-accent-primary: rgb(var(--accent-primary));
+    --color-accent-secondary: rgb(var(--accent-secondary));
+    --color-accent-positive: rgb(var(--accent-positive));
+    --color-accent-caution: rgb(var(--accent-caution));
+    --color-accent-negative: rgb(var(--accent-negative));
+    --color-accent-link: rgb(var(--accent-link));
+
+    --font-*: initial;
+    --font-0xp: "0xProto Regular";
+    --font-fordev: "monaspace", "notosans";
+}
+
+/*
+  The default border color has changed to `currentColor` in Tailwind CSS v4,
+  so we've added these compatibility styles to make sure everything still
+  looks the same as it did with Tailwind CSS v3.
+
+  If we ever want to remove these styles, we need to add an explicit border
+  color utility to any element that depends on these defaults.
+*/
+@layer base {
+    *,
+    ::after,
+    ::before,
+    ::backdrop,
+    ::file-selector-button {
+        border-color: var(--color-gray-200, currentColor);
+    }
+}
+
 @layer base {
     @font-face {
         font-family: "0xProto Regular";
@@ -58,7 +98,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
         --accent-positive: 121 192 255; /* #79c0ff */
         --accent-caution: 255 171 92; /* #ffab5c */
-        --accent-negative: 255 92 141; /* #ff5c8d */
+        --accent-negative: 255 50 72; /* #ff5c8d */
         --accent-link: 88 166 255; /* #58a6ff */
     }
 }
@@ -67,5 +107,20 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
     TODO: Adding custom styles
     https://tailwindcss.com/docs/adding-custom-styles
 */
+
 @layer components {
+    .input {
+        @apply bg-bg-secondary focus:outline-accent-primary disabled:border-bg-secondary w-full rounded-md px-2.5 py-1 outline-offset-0 focus:outline-1 disabled:opacity-50;
+    }
+
+    .pagetitle {
+        @apply text-text-primary text-2xl font-bold;
+    }
+
+    .modal {
+        @apply bg-bg-primary absolute inset-8 lg:inset-x-48 2xl:inset-x-96 z-20 flex items-center justify-center rounded-md p-4;
+    }
+    .modal-backdrop {
+        @apply bg-bg-titlebar absolute inset-0 z-10 opacity-30;
+    }
 }

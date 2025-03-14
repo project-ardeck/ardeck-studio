@@ -17,8 +17,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
 import { invoke as tauriInvoke } from "@tauri-apps/api";
-import { SerialPortInfo } from "../types/ardeck";
-import { MappingPreset } from "../types/settings";
+import { ArdeckProfileConfigItem, SerialPortInfo } from "../lib/ardeck";
+import { MappingPreset } from "../lib/settings";
+import { PluginActionList, PluginManifestJSON } from "../lib/plugin";
 
 // TODO: error handling
 export const invoke = {
@@ -43,7 +44,9 @@ export const invoke = {
                 });
             },
 
-            async saveMappingPreset(mappingPreset: MappingPreset): Promise<MappingPreset> {
+            async saveMappingPreset(
+                mappingPreset: MappingPreset,
+            ): Promise<MappingPreset> {
                 return await tauriInvoke(
                     "plugin:settings|save_mapping_preset",
                     {
@@ -52,22 +55,61 @@ export const invoke = {
                 );
             },
         },
+        ardeckPresets: {
+            async getArdeckProfileList(): Promise<[string, string][]> {
+                return await tauriInvoke(
+                    "plugin:settings|get_ardeck_profile_list",
+                );
+            },
+
+            async getArdeckProfile(
+                deviceId: string,
+            ): Promise<ArdeckProfileConfigItem> {
+                return await tauriInvoke("plugin:settings|get_ardeck_profile", {
+                    deviceId,
+                });
+            },
+
+            async saveArdeckProfile(
+                ardeckProfile: ArdeckProfileConfigItem,
+            ): Promise<ArdeckProfileConfigItem> {
+                return await tauriInvoke(
+                    "plugin:settings|save_ardeck_profile",
+                    { profile: ardeckProfile },
+                );
+            },
+        },
+    },
+    plugin: {
+        async getPluginManifests(): Promise<Array<PluginManifestJSON>> {
+            return await tauriInvoke("plugin:ardeck-plugin|get_plugin_manifests");
+        },
+        async getPluginActions(pluginId: string): Promise<PluginActionList> {
+            return await tauriInvoke("plugin:ardeck-plugin|get_plugin_actions", {
+                pluginId,
+            })
+        }
     },
     ardeck: {
-        async openPort(portName: string, baudRate: number) {
+        async openPort(portName: string, baudRate: number): Promise<undefined> {
             return await tauriInvoke("plugin:ardeck|open_port", {
                 portName,
                 baudRate,
             });
         },
-        async closePort(portName: string) {
+        async closePort(portName: string): Promise<undefined> {
             return await tauriInvoke("plugin:ardeck|close_port", { portName });
         },
         async getConnectingSerials(): Promise<Array<string>> {
             return await tauriInvoke("plugin:ardeck|get_connecting_serials");
         },
-        async getPorts(): Promise<Array<SerialPortInfo>> {
+        async getPorts(): Promise<Array<[string, SerialPortInfo]>> {
             return await tauriInvoke("plugin:ardeck|get_ports");
+        },
+    },
+    openWindow: {
+        async about() {
+            return await tauriInvoke("open_about");
         },
     },
 };

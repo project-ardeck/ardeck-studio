@@ -27,7 +27,7 @@ use std::time::SystemTime;
 use fern::colors::ColoredLevelConfig;
 use service::dir::Directories;
 use tauri::{
-    CustomMenuItem, Manager, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem,
+    CustomMenuItem, LogicalSize, Manager, Runtime, Size, SystemTray, SystemTrayEvent, SystemTrayMenu, SystemTrayMenuItem, Window, WindowBuilder
 };
 use tokio::fs::{self, File};
 use window_shadows::set_shadow;
@@ -49,18 +49,24 @@ async fn init_logger_internal() -> Result<(), Box<dyn std::error::Error>> {
     File::create(&log_file_path).await?;
     delete_old_logs(MAX_FILE).await?;
 
+    #[cfg(debug_assertions)]
+    let level = log::LevelFilter::Debug;
+
+    #[cfg(not(debug_assertions))]
+    let level = log::LevelFilter::Info;
+
     let colors = ColoredLevelConfig::new()
         .error(fern::colors::Color::Red)
         .warn(fern::colors::Color::Yellow)
         .info(fern::colors::Color::Blue)
-        .debug(fern::colors::Color::White)
+        .debug(fern::colors::Color::BrightBlue)
         .trace(fern::colors::Color::BrightBlack);
 
     let base_config = fern::Dispatch::new();
 
     // TODO: debugやtraceは、コンフィグ次第で出力できるようにする
     let stdout_config = fern::Dispatch::new()
-        .level(log::LevelFilter::Info)
+        .level(level)
         .chain(std::io::stdout())
         .format(move |out, message, record| {
             out.finish(format_args!(
@@ -124,6 +130,29 @@ async fn delete_old_logs(max_file: usize) -> Result<(), Box<dyn std::error::Erro
     Ok(())
 }
 
+#[tauri::command]
+async fn open_about<R: Runtime>(
+    app: tauri::AppHandle<R>,
+    window: tauri::Window<R>,
+) -> Result<(), String> {
+    match WindowBuilder::new(&app, "about-ardeck", tauri::WindowUrl::App("/about".into()))
+        .maximizable(false)
+        .resizable(false)
+        .inner_size(720.0, 405.0)
+        .title("About ardeck studio")
+        .build()
+    {
+        Ok(window) => {
+            window.show().unwrap();
+        }
+        Err(e) => {
+            return Err(e.to_string());
+        }
+    }
+
+    Ok(())
+}
+
 #[tokio::main]
 async fn main() {
     init_logger().await;
@@ -131,9 +160,11 @@ async fn main() {
     // print!("\x1B[2J\x1B[1;1H"); // ! コンソールをクリア
 
     // システムトレイアイコンの設定
+    let show = CustomMenuItem::new("show".to_string(), "Show");
     let hide = CustomMenuItem::new("hide".to_string(), "Hide");
     let quit = CustomMenuItem::new("quit".to_string(), "Quit");
     let tray_menu = SystemTrayMenu::new()
+        .add_item(show)
         .add_item(hide)
         .add_native_item(SystemTrayMenuItem::Separator)
         .add_item(quit);
@@ -167,6 +198,10 @@ async fn main() {
                 window.set_focus().unwrap();
             }
             SystemTrayEvent::MenuItemClick { id, .. } => match id.as_str() {
+                "show" => {
+                    let window = app.get_window("main").unwrap();
+                    window.show().unwrap();
+                }
                 "hide" => {
                     let window = app.get_window("main").unwrap();
                     window.hide().unwrap();
@@ -181,6 +216,7 @@ async fn main() {
         .plugin(ardeck_studio::ardeck::tauri::init())
         .plugin(ardeck_studio::plugin::tauri::init().await)
         .plugin(ardeck_studio::settings::tauri::init())
+        .invoke_handler(tauri::generate_handler![open_about])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

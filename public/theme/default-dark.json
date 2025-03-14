@@ -21,7 +21,7 @@
 
         "accent-positive": [88, 166, 255],
         "accent-caution": [255, 171, 92],
-        "accent-negative": [255, 100, 130],
+        "accent-negative": [255, 50, 72],
         "accent-link": [88, 166, 255]
     }
 }

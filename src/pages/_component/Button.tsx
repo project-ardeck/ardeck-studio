@@ -16,17 +16,15 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import React from "react";
-import ReactDOM from "react-dom/client";
-import WindowTheme from "./component/WindowTheme";
+import { ButtonHTMLAttributes } from "react";
 
-import "./main.css";
-import Router from "./router";
-
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-    <React.StrictMode>
-        <WindowTheme>
-            <Router />
-        </WindowTheme>
-    </React.StrictMode>,
-);
+export default function Button(props: ButtonHTMLAttributes<HTMLButtonElement>) {
+    return (
+        <button
+            {...props}
+            className={`input cursor-pointer ${props.className || ""}`}
+        >
+            {props.children}
+        </button>
+    );
+}

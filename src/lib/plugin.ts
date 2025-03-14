@@ -16,17 +16,19 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import React from "react";
-import ReactDOM from "react-dom/client";
-import WindowTheme from "./component/WindowTheme";
+export type PluginManifestJSON = {
+    name: string,
+    version: string,
+    id: string,
+    description?: string,
+    author: string,
+    main: string,
+}
 
-import "./main.css";
-import Router from "./router";
+export type PluginAction = {
+    name: string,
+    id: string,
+    description?: string,
+}
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-    <React.StrictMode>
-        <WindowTheme>
-            <Router />
-        </WindowTheme>
-    </React.StrictMode>,
-);
+export type PluginActionList = PluginAction[];

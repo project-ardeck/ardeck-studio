@@ -25,14 +25,13 @@ import {
     useRef,
     useState,
 } from "react";
-import { makeUid, randomStr } from "../util/props";
 import { invoke } from "../tauri/invoke";
-import { ActionMap, defaultActionMap, SwitchType } from "../types/ardeck";
+import { ActionMap, defaultActionMap, SwitchType } from "../lib/ardeck";
 import {
     defaultMappingPreset,
     MappingPreset,
     MappingPresetsJSON,
-} from "../types/settings";
+} from "../lib/settings";
 import { cloneDeep, get } from "lodash";
 
 type ActionMapKey = "switchType" | "switchId" | "pluginId" | "actionId";

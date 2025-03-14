@@ -21,4 +21,5 @@ use std::collections::HashMap;
 
 use super::Plugin;
 
-pub type PluginManager = HashMap<String, Plugin>;
+type PluginId = String;
+pub type PluginManager = HashMap<PluginId, Plugin>;

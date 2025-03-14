@@ -22,6 +22,7 @@ use std::sync::Arc;
 
 use futures_util::stream::SplitSink;
 use futures_util::{SinkExt, StreamExt};
+use serialport::SerialPortInfo;
 use tokio::sync::Mutex;
 
 use tokio::net::{TcpListener, TcpStream};
@@ -31,6 +32,8 @@ use tokio_tungstenite::WebSocketStream;
 use tokio_tungstenite::{accept_async, tungstenite::protocol::Message};
 
 use crate::ardeck_studio::action::Action;
+use crate::ardeck_studio::ardeck::tauri::get_device_id;
+use crate::ardeck_studio::settings::tauri::_get_ardeck_profile;
 use crate::ardeck_studio::switch_info::SwitchInfo;
 use crate::service::dir::Directories;
 
@@ -70,7 +73,7 @@ impl PluginServer {
                 return;
             }
 
-            log::trace!("listening on {}", tcp.local_addr().unwrap());
+            log::debug!("listening on {}", tcp.local_addr().unwrap());
 
             // 接続待ち
             while let Ok((stream, _)) = tcp.accept().await {
@@ -85,11 +88,11 @@ impl PluginServer {
         // 起動待ち
         while let Some(b) = rx.recv().await {
             if b {
-                log::trace!("plugin server OK.");
+                log::debug!("plugin server OK.");
 
                 return Ok(());
             } else {
-                log::trace!("plugin server failed.");
+                log::debug!("plugin server failed.");
 
                 return Err(std::io::Error::new(
                     std::io::ErrorKind::Other,
@@ -103,6 +106,10 @@ impl PluginServer {
             std::io::ErrorKind::Other,
             "Failed to start plugin server.",
         ))
+    }
+
+    pub async fn get_plugin_manager(&self) -> Arc<Mutex<PluginManager>> {
+        Arc::clone(&self.plugin_manager)
     }
 
     pub async fn execute_plugin_all(&self) {
@@ -178,10 +185,20 @@ impl PluginServer {
         log::info!("Plugin all executed.");
     }
 
-    pub async fn put_action(&mut self, switch_info: SwitchInfo) {
+    pub async fn put_action(&mut self, port_info: SerialPortInfo, switch_info: SwitchInfo) {
         // TODO: switch_typeとswitch_idからマッピングの設定を見つけ、そのプラグインに（あれば）put_actionする
 
-        let actions = Action::from_switch_info(switch_info).await;
+        // デバイスのプロファイルを取得し、その中からスイッチ情報に対応するアクションを取得
+        let device_profile = _get_ardeck_profile(&get_device_id(port_info).unwrap())
+            .await
+            .unwrap()
+            .unwrap();
+
+        let actions = Action::from_switch_info_with_preset_id(
+            switch_info,
+            device_profile.mapping_preset.unwrap(),
+        )
+        .await;
 
         // actionsのtargetの中で、読み込まれているプラグインがあれば、プラグインに渡す
         for action in actions.iter() {
@@ -192,16 +209,18 @@ impl PluginServer {
                 .get_mut(&action.target.plugin_id)
             {
                 Some(plugin) => {
-                    log::trace!(
+                    log::debug!(
                         "\t[plugin.server]: put_action: plugin found: {}",
                         action.target.plugin_id
                     );
-                    plugin.put_action(action.clone()).await;
+
+                    // デバイス
+
+                    plugin.send_action(action.clone()).await;
                 }
-                None => log::trace!("\t[plugin.server]: put_action: plugin not found"),
+                None => log::debug!("\t[plugin.server]: put_action: plugin not found"),
             }
         }
-
     }
 }
 
@@ -221,7 +240,7 @@ async fn handle_connection(
             if msg.is_text() {
                 let msg_str = msg.to_text().unwrap();
 
-                log::trace!("Received: {}", msg_str);
+                log::debug!("Received: {}", msg_str);
 
                 let message: PluginMessage = serde_json::from_str(msg_str).unwrap();
 
@@ -231,7 +250,7 @@ async fn handle_connection(
                         ardeck_plugin_web_socket_version,
                         plugin_id,
                     } => {
-                        log::trace!("Hello:\n\t{}", plugin_id);
+                        log::debug!("Hello:\n\t{}", plugin_id);
 
                         // TODO: tauri.conf.jsonからのバージョン情報の取得
                         let data = PluginMessage::Success {

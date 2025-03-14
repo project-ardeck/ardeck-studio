@@ -16,17 +16,15 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import React from "react";
-import ReactDOM from "react-dom/client";
-import WindowTheme from "./component/WindowTheme";
+import { ReactNode } from "react";
 
-import "./main.css";
-import Router from "./router";
-
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-    <React.StrictMode>
-        <WindowTheme>
-            <Router />
-        </WindowTheme>
-    </React.StrictMode>,
-);
+export default function LoadingScreen(props: { isLoading: boolean }) {
+    if (props.isLoading) {
+        return (
+            <div className="bg-bg-primary text-text-primary absolute top-0 left-0 z-50 flex h-full w-full items-center justify-center">
+                Loading...
+            </div>
+        );
+    }
+    return null;
+}

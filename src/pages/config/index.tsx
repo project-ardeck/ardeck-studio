@@ -16,17 +16,14 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import React from "react";
-import ReactDOM from "react-dom/client";
-import WindowTheme from "./component/WindowTheme";
 
-import "./main.css";
-import Router from "./router";
+import BackToRoot from "../_component/back_to_root";
 
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-    <React.StrictMode>
-        <WindowTheme>
-            <Router />
-        </WindowTheme>
-    </React.StrictMode>,
-);
+export default function Config() {
+    return (
+        <div>
+            <div>config page</div>
+            <BackToRoot>Back to root</BackToRoot>
+        </div>
+    );
+}

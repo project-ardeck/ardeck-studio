@@ -30,17 +30,17 @@ use crate::{
 #[serde(rename_all = "camelCase")]
 // TODO: 名称の変更：ConfigField
 pub struct ArdeckProfileConfigItem {
-    // シリアルポート名
-    pub serial_number: String,
+    /// [vid]-[pid]-[serial number]
+    pub device_id: String,
 
-    // シリアルデバイスの表示名
+    /// シリアルデバイスの表示名
     pub device_name: Option<String>,
-    // このデバイスで今後デフォルトで利用するレート
+    /// このデバイスで今後デフォルトで利用するレート
     pub baud_rate: Option<u32>,
-    // デバイスの説明
+    /// デバイスの説明
     pub description: Option<String>,
 
-    // このデバイスでデフォルトで割り当てるマッピングプリセットのID
+    /// このデバイスでデフォルトで割り当てるマッピングプリセットのID
     pub mapping_preset: Option<String>, // mapping preset id
 }
 

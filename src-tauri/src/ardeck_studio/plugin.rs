@@ -67,7 +67,7 @@ impl Plugin {
     }
 
     /// アクションが発生したことをプラグインに通知する
-    pub async fn put_action(&mut self, action: Action) {
+    pub async fn send_action(&mut self, action: Action) {
         let data = PluginMessage::Action(action);
 
         if let Some(server_sink) = self.server_sink.as_mut() {

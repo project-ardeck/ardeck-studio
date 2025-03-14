@@ -51,12 +51,12 @@ impl ActionCompare {
     fn compare(&mut self, new_switch_info: SwitchInfo) {
         if let Some(prev_action) = self.prev_actions.get(&new_switch_info.get_switch_id()) {
             if new_switch_info.get_switch_state() != prev_action.get_switch_state() {
-                log::trace!("change state: {}", new_switch_info.get_switch_id());
+                log::debug!("change state: {}", new_switch_info.get_switch_id());
                 self.on_change_action_emit_all(new_switch_info.clone());
                 self.prev_actions.insert(new_switch_info.get_switch_id(), new_switch_info);
             }
         } else {
-            log::trace!("new switch: {}", new_switch_info.get_switch_id());
+            log::debug!("new switch: {}", new_switch_info.get_switch_id());
             self.on_change_action_emit_all(new_switch_info.clone());
             self.prev_actions.insert(new_switch_info.get_switch_id(), new_switch_info);
         }

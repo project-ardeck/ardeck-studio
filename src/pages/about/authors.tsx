@@ -16,17 +16,16 @@ You should have received a copy of the GNU General Public License
 along with this program. If not, see <https://www.gnu.org/licenses/>.
 */
 
-import React from "react";
-import ReactDOM from "react-dom/client";
-import WindowTheme from "./component/WindowTheme";
-
-import "./main.css";
-import Router from "./router";
-
-ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-    <React.StrictMode>
-        <WindowTheme>
-            <Router />
-        </WindowTheme>
-    </React.StrictMode>,
-);
+export default function Authors() {
+    return (
+        <div>
+            <h1 className="text-2xl font-bold">Authors</h1>
+            <p>
+                Project Ardeck
+                <ul className="list-disc pl-8">
+                    <li>akurakuu</li>
+                </ul>
+            </p>
+        </div>
+    );
+}
